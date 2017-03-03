@@ -6,8 +6,12 @@ Tabulate loss data at various polygon boundaries using the standard GFW cumsum a
 http://gfw2-data.s3.amazonaws.com/alerts-tsv/output/wdpa_protected_areas_diss_int_diss.csv
 
 The above cryptic filename refers to Hansen 2000 - 2015 loss pixels that occur within WDPA boundaries. These WDPA boundaries are intersected with GADM2.8 boundaries, meaning the input CSV looks like this: 
+
 | ISO | ADM1 | ADM2 | Loss Year | Loss Threshold | Pixel Area | Loss Emissions |
 | --- | ---- | ---- | --------- | -------------- | ---------- | -------------- |
+NGA|26|539|5|15|202979.3358690382|0.003107805249357181
+BRA|23|4351|12|10|2301.92479254|1.1405613065553998E-5
+VEN|19|236|10|30|9881.107236421|1.35012201795243E-4
 
 ### Processing
 Example command to process this data (using this repo) and save the results as a dataset in the GFW-API:
