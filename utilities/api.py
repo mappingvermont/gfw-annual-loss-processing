@@ -10,6 +10,12 @@ def create(s3_url, environment, tags):
 
     dataset_name = os.path.splitext(os.path.basename(s3_url))[0]
 
+    s3_url_split = s3_url.split(r'/')
+    bucket_name = s3_url_split[2]
+
+    dataset_path = r'/'.join(s3_url_split[3:])
+    http_url = r'http://{0}.s3.amazonaws.com/{1}'.format(bucket_name, dataset_path)
+
     datasets_url = r'{0}/dataset'.format(api_url)
     payload = {
         "dataset":
@@ -19,9 +25,12 @@ def create(s3_url, environment, tags):
                 "application": ["gfw"],
                 "name": dataset_name,
                 "tags": tags,
-                "connectorUrl": s3_url
+                "connectorUrl": http_url
             },
     }
+
+    print http_url
+    sys.exit()
 
     dataset_id = make_request(headers, datasets_url, 'POST', payload, 201, ['data', 'id'])
 

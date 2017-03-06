@@ -40,10 +40,11 @@ def tabulate(input_data, custom_fields):
     # update all Nan values to be 0, so that they will be included
     # in the sum when we cumsum
     joined_df['area_raw'].fillna(0, inplace=True)
-    joined_df['emissions_raw'].fillna(0, inplace=True)
+    # joined_df['emissions_raw'].fillna(0, inplace=True)
 
     print 'grouping by boundary fields, year and thresh'
-    grouped_df = joined_df.groupby(join_fields)['area_raw', 'emissions_raw'].sum().reset_index()
+    # grouped_df = joined_df.groupby(join_fields)['area_raw', 'emissions_raw'].sum().reset_index()
+    grouped_df = joined_df.groupby(join_fields)['area_raw'].sum().reset_index()
 
     print 'Tabluating cum sum for thresh'
     # First sort the DF by threshold DESC, then cumsum, grouping by iso and year
@@ -51,17 +52,18 @@ def tabulate(input_data, custom_fields):
 
     cumsum_fields = boundary_fields + ['year']
     grouped_df['area'] = grouped_df.groupby(cumsum_fields)['area_raw'].cumsum()
-    grouped_df['emissions'] = grouped_df.groupby(cumsum_fields)['emissions_raw'].cumsum()
+    # grouped_df['emissions'] = grouped_df.groupby(cumsum_fields)['emissions_raw'].cumsum()
 
     # Delete the area_raw column-- this shouldn't go in the database
     del grouped_df['area_raw']
-    del grouped_df['emissions_raw']
+    # del grouped_df['emissions_raw']
 
     return grouped_df.to_dict(orient='records')
 
 
 def source_to_df(input_data, boundary_fields):
-    base_fields = ['year', 'thresh', 'area_raw', 'emissions_raw']
+    # base_fields = ['year', 'thresh', 'area_raw', 'emissions_raw']
+    base_fields = ['year', 'thresh', 'area_raw']
 
     if not boundary_fields:
         boundary_fields = ['iso', 'adm1', 'adm2']

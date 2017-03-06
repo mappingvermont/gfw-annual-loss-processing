@@ -12,6 +12,7 @@ def main():
     parser.add_argument('--dataset-id', '-d', help='the ID of the dataset to overwrite')
     parser.add_argument('--tags', '-t', nargs='+', help='tags for the dataset, required if creating a new dataset')
     parser.add_argument('--boundary-fields', '-b', nargs='+', help='boundary field names if not iso/adm1/adm2')
+    parser.add_argument('--custom-data-type', '-c', choices=('extent',), help='')
 
     args = parser.parse_args()
 
@@ -23,11 +24,13 @@ def main():
 
         s3_file = util.push_to_s3(cumsum_records, local_data)
 
-        if args.dataset_id:
-            api.overwrite(s3_file, args.environment, args.dataset_id)
+        print s3_file
 
-        else:
-            api.create(s3_file, args.environment, args.tags)
+        # if args.dataset_id:
+        #     api.overwrite(s3_file, args.environment, args.dataset_id)
+        #
+        # else:
+        #     api.create(s3_file, args.environment, args.tags)
 
     else:
         raise ValueError('Either dataset-id or tags required-- must be creating or overwriting a dataset')
