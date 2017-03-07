@@ -47,7 +47,11 @@ def download_data(input_dataset):
 def push_to_s3(record_list, input_file):
 
     print 'dumping records to local JSON'
-    output_file = os.path.splitext(input_file)[0] + '.json'
+    if os.path.isdir(input_file):
+        output_file = os.path.join(input_file, 'output.json')
+    else:
+        output_file = os.path.splitext(input_file)[0] + '.json'
+
     fname = os.path.basename(output_file)
 
     record_dict = {'data': record_list}

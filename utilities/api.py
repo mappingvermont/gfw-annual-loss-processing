@@ -1,14 +1,11 @@
-import os
 from requests import Request, Session
 
 import util
 
 
-def create(s3_url, environment, tags):
+def create(s3_url, environment, tags, dataset_name):
 
     api_url, headers = get_url_and_headers(environment)
-
-    dataset_name = os.path.splitext(os.path.basename(s3_url))[0]
 
     s3_url_split = s3_url.split(r'/')
     bucket_name = s3_url_split[2]
@@ -28,9 +25,6 @@ def create(s3_url, environment, tags):
                 "connectorUrl": http_url
             },
     }
-
-    print http_url
-    sys.exit()
 
     dataset_id = make_request(headers, datasets_url, 'POST', payload, 201, ['data', 'id'])
 

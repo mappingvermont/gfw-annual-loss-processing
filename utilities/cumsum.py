@@ -2,11 +2,9 @@ import os
 import pandas as pd
 
 
-def tabulate(input_data, custom_fields):
+def tabulate(input_data, custom_boundary_fields, has_emissions):
 
-    df, boundary_fields = source_to_df(input_data, custom_fields)
-
-    df = df.apply(lambda x: pd.to_numeric(x, errors='ignore'))
+    df, boundary_fields = source_to_df(input_data, custom_boundary_fields, has_emissions)
 
     # years in this CSV are stored as 1 - 14, should be 2001 - 2014
     df['year'] = df['year'] + 2000
@@ -40,11 +38,15 @@ def tabulate(input_data, custom_fields):
     # update all Nan values to be 0, so that they will be included
     # in the sum when we cumsum
     joined_df['area_raw'].fillna(0, inplace=True)
-    # joined_df['emissions_raw'].fillna(0, inplace=True)
+
+    if has_emissions:
+        joined_df['emissions_raw'].fillna(0, inplace=True)
 
     print 'grouping by boundary fields, year and thresh'
-    # grouped_df = joined_df.groupby(join_fields)['area_raw', 'emissions_raw'].sum().reset_index()
-    grouped_df = joined_df.groupby(join_fields)['area_raw'].sum().reset_index()
+    if has_emissions:
+        grouped_df = joined_df.groupby(join_fields)['area_raw', 'emissions_raw'].sum().reset_index()
+    else:
+        grouped_df = joined_df.groupby(join_fields)['area_raw'].sum().reset_index()
 
     print 'Tabluating cum sum for thresh'
     # First sort the DF by threshold DESC, then cumsum, grouping by iso and year
@@ -52,18 +54,23 @@ def tabulate(input_data, custom_fields):
 
     cumsum_fields = boundary_fields + ['year']
     grouped_df['area'] = grouped_df.groupby(cumsum_fields)['area_raw'].cumsum()
-    # grouped_df['emissions'] = grouped_df.groupby(cumsum_fields)['emissions_raw'].cumsum()
 
     # Delete the area_raw column-- this shouldn't go in the database
     del grouped_df['area_raw']
-    # del grouped_df['emissions_raw']
+
+    if has_emissions:
+        grouped_df['emissions'] = grouped_df.groupby(cumsum_fields)['emissions_raw'].cumsum()
+        del grouped_df['emissions_raw']
 
     return grouped_df.to_dict(orient='records')
 
 
-def source_to_df(input_data, boundary_fields):
-    # base_fields = ['year', 'thresh', 'area_raw', 'emissions_raw']
-    base_fields = ['year', 'thresh', 'area_raw']
+def source_to_df(input_data, boundary_fields, has_emissions):
+
+    if has_emissions:
+        base_fields = ['year', 'thresh', 'area_raw', 'emissions_raw']
+    else:
+        base_fields = ['year', 'thresh', 'area_raw']
 
     if not boundary_fields:
         boundary_fields = ['iso', 'adm1', 'adm2']
@@ -81,6 +88,8 @@ def source_to_df(input_data, boundary_fields):
         raise ValueError('Expected {} columns based on the input, found {} instead'.format(expected_num, num_cols))
     else:
         df.columns = boundary_fields + base_fields
+
+    df = df.apply(lambda x: pd.to_numeric(x, errors='ignore'))
 
     return df, boundary_fields
 
