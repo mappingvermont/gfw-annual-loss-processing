@@ -13,13 +13,15 @@ def main():
     parser.add_argument('--dataset-id', '-d', help='the ID of the dataset to overwrite')
     parser.add_argument('--tags', '-t', nargs='+', help='tags for the dataset, required if creating a new dataset')
     parser.add_argument('--name', '-n', help='dataset name, if creating a new dataset')
-
     parser.add_argument('--boundary-fields', '-b', nargs='+', help='boundary field names if not iso/adm1/adm2')
-    parser.add_argument('--custom-data-type', '-c', choices=('extent',), help='')
 
     parser.add_argument('--emissions', dest='emissions', action='store_true')
     parser.add_argument('--no-emissions', dest='emissions', action='store_false')
     parser.set_defaults(emissions=True)
+
+    parser.add_argument('--years', dest='years', action='store_true')
+    parser.add_argument('--no-years', dest='years', action='store_false')
+    parser.set_defaults(years=True)
 
     args = parser.parse_args()
 
@@ -27,7 +29,7 @@ def main():
         local_data = util.download_data(args.input)
         print local_data
 
-        cumsum_records = cumsum.tabulate(local_data, args.boundary_fields, args.emissions)
+        cumsum_records = cumsum.tabulate(local_data, args.boundary_fields, args.emissions, args.years)
 
         s3_file = util.push_to_s3(cumsum_records, local_data)
 
@@ -35,7 +37,7 @@ def main():
 
         if args.dataset_id:
             api.overwrite(s3_file, args.environment, args.dataset_id)
-       
+
         else:
             api.create(s3_file, args.environment, args.tags, args.name)
 

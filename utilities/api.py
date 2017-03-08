@@ -19,6 +19,7 @@ def create(s3_url, environment, tags, dataset_name):
             {
                 "connectorType": "json",
                 "provider": "rwjson",
+                "dataPath": "data",
                 "application": ["gfw"],
                 "name": dataset_name,
                 "tags": tags,
