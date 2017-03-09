@@ -13,21 +13,37 @@ def create(s3_url, environment, tags, dataset_name):
     dataset_path = r'/'.join(s3_url_split[3:])
     http_url = r'http://{0}.s3.amazonaws.com/{1}'.format(bucket_name, dataset_path)
 
-    datasets_url = r'{0}/dataset'.format(api_url)
-    payload = {
-        "dataset":
-            {
-                "connectorType": "json",
-                "provider": "rwjson",
-                "dataPath": "data",
-                "application": ["gfw"],
-                "name": dataset_name,
-                "tags": tags,
-                "connectorUrl": http_url
-            },
-    }
+    if environment == 'staging':
+        datasets_url = r'{0}/v1/dataset'.format(api_url)
+        status_code_result = 200
 
-    dataset_id = make_request(headers, datasets_url, 'POST', payload, 201, ['data', 'id'])
+        payload = {
+                       "name": dataset_name,
+                       "application": ["gfw"],
+                       "connectorType": "document",
+                       "provider": "json",
+                       "connectorUrl": http_url,
+                       "dataPath": "data",
+                       "tags": tags
+                    }
+    else:
+        datasets_url = r'{0}/dataset'.format(api_url)
+        status_code_result = 201
+
+        payload = {
+            "dataset":
+                {
+                    "connectorType": "json",
+                    "provider": "rwjson",
+                    "dataPath": "data",
+                    "application": ["gfw"],
+                    "name": dataset_name,
+                    "tags": tags,
+                    "connectorUrl": http_url
+                },
+        }
+
+    dataset_id = make_request(headers, datasets_url, 'POST', payload, status_code_result, ['data', 'id'])
 
     print 'Created new dataset:\n{0}'.format(dataset_id)
 
@@ -71,6 +87,7 @@ def make_request(headers, api_endpoint, request_type, payload, status_code_requi
 
     else:
         print r.text
+        print r.status_code
         raise ValueError("Request failed")
 
 
