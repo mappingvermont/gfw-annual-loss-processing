@@ -29,7 +29,7 @@ def main():
         local_data = util.download_data(args.input)
         print local_data
 
-        cumsum_records = cumsum.tabulate(local_data, args.boundary_fields, args.emissions, args.years)
+        cumsum_records = cumsum.tabulate(local_data, args)
 
         s3_file = util.push_to_s3(cumsum_records, local_data)
 

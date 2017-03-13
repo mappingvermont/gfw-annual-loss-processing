@@ -2,12 +2,12 @@ import os
 import pandas as pd
 
 
-def tabulate(input_data, custom_boundary_fields, has_emissions, has_years):
+def tabulate(input_data, args):
 
-    df, boundary_fields = source_to_df(input_data, custom_boundary_fields, has_emissions, has_years)
+    df, boundary_fields = source_to_df(input_data, args)
 
     # years in this CSV are stored as 1 - 14, should be 2001 - 2014
-    if has_years:
+    if args.years:
         df['year'] = df['year'] + 2000
 
     # convert area in m2 to area in ha
@@ -27,7 +27,7 @@ def tabulate(input_data, custom_boundary_fields, has_emissions, has_years):
     for dummy_thresh in [0, 10, 15, 20, 25, 30, 50, 75]:
         all_combo_df['thresh'] = dummy_thresh
 
-        if has_years:
+        if args.years:
             for dummy_year in range(2001, 2016):
                 all_combo_df['year'] = dummy_year
                 dummy_df = dummy_df.append(all_combo_df)
@@ -39,7 +39,7 @@ def tabulate(input_data, custom_boundary_fields, has_emissions, has_years):
     # Nan values where we don't have data
     print 'joining to dummy data'
     join_fields = boundary_fields + ['thresh']
-    if has_years:
+    if args.years:
         join_fields += ['year']
 
     joined_df = pd.merge(dummy_df, df, how='left', on=join_fields)
@@ -48,11 +48,11 @@ def tabulate(input_data, custom_boundary_fields, has_emissions, has_years):
     # in the sum when we cumsum
     joined_df['area_raw'].fillna(0, inplace=True)
 
-    if has_emissions:
+    if args.emissions:
         joined_df['emissions_raw'].fillna(0, inplace=True)
 
     print 'grouping by boundary fields, year and thresh'
-    if has_emissions:
+    if args.emissions:
         grouped_df = joined_df.groupby(join_fields)['area_raw', 'emissions_raw'].sum().reset_index()
     else:
         grouped_df = joined_df.groupby(join_fields)['area_raw'].sum().reset_index()
@@ -61,7 +61,7 @@ def tabulate(input_data, custom_boundary_fields, has_emissions, has_years):
     # First sort the DF by threshold DESC, then cumsum, grouping by iso and year
     grouped_df = grouped_df.sort_values('thresh', ascending=False)
 
-    if has_years:
+    if args.years:
         cumsum_fields = boundary_fields + ['year']
     else:
         cumsum_fields = boundary_fields
@@ -71,24 +71,28 @@ def tabulate(input_data, custom_boundary_fields, has_emissions, has_years):
     # Delete the area_raw column-- this shouldn't go in the database
     del grouped_df['area_raw']
 
-    if has_emissions:
+    if args.emissions:
         grouped_df['emissions'] = grouped_df.groupby(cumsum_fields)['emissions_raw'].cumsum()
         del grouped_df['emissions_raw']
 
     return grouped_df.to_dict(orient='records')
 
 
-def source_to_df(input_data, boundary_fields, has_emissions, has_years):
+def source_to_df(input_data, args):
 
-    base_fields = ['thresh', 'area_raw']
+    base_fields = []
 
-    if has_emissions:
-        base_fields += ['emissions_raw']
-
-    if has_years:
+    if args.years:
         base_fields += ['year']
 
-    if not boundary_fields:
+    base_fields += ['thresh', 'area_raw']
+
+    if args.emissions:
+        base_fields += ['emissions_raw']
+
+    if args.boundary_fields:
+        boundary_fields = args.boundary_fields
+    else:
         boundary_fields = ['iso', 'adm1', 'adm2']
 
     print 'Reading df'
