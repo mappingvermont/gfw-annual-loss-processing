@@ -30,6 +30,9 @@ def main():
         del df
         
     lkp_df = pd.read_csv('adm_lkp.csv')
+    lkp_df.loc[lkp_df.adm1 == -9999, 'name1'] = 'N/A'
+    lkp_df.loc[lkp_df.adm2 == -9999, 'name2'] = 'N/A'
+    
     lkp_df.to_sql('adm_lkp', conn, if_exists='replace')
     
     print 'inserted'

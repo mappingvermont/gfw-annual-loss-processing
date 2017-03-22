@@ -23,6 +23,9 @@ def main():
         
     df = pd.read_sql(extent_sql, conn)
     df = add_lookup(df)
+    
+    # dealing with raw data, so need to convert it
+    df['area'] = df.area / 10000
 
     # write iso level
     iso_df = df.copy()
