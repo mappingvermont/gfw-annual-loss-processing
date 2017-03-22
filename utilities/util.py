@@ -18,20 +18,23 @@ def download_data(input_dataset):
         root_dir = os.path.dirname(os.path.dirname(__file__))
         processing_dir = os.path.join(root_dir, 'processing')
 
+        guid = str(uuid.uuid4())
+
         if not os.path.exists(processing_dir):
             os.mkdir(processing_dir)
 
         # If the input is a single CSV
         if file_ext == '.csv':
+            temp_dir = os.path.join(processing_dir, guid)
+            os.mkdir(temp_dir)
 
             fname = os.path.basename(input_dataset)
-            local_path = os.path.join(processing_dir, fname)
+            local_path = os.path.join(temp_dir, fname)
 
             cmd = ['aws', 's3', 'cp', input_dataset, local_path]
 
         # Or if it's a directory
         else:
-            guid = str(uuid.uuid4())
             local_path = os.path.join(processing_dir, guid)
 
             cmd = ['aws', 's3', 'sync', input_dataset, local_path]
@@ -44,7 +47,9 @@ def download_data(input_dataset):
         raise ValueError("Dataset {} does not exist locally and doesn't have an s3:// URL ".format(input_dataset))
 
 
-def push_to_s3(record_list, input_file):
+def push_to_s3(cumsum_df, input_file, local_save):
+
+    record_list = cumsum_df.to_dict(orient='records')
 
     print 'dumping records to local JSON'
     if os.path.isdir(input_file):
@@ -59,13 +64,24 @@ def push_to_s3(record_list, input_file):
     with open(output_file, 'wb') as the_file:
         json.dump(record_dict, the_file)
 
-    print 'Copying output JSON to s3'
-    s3_outfile = r's3://gfw2-data/alerts-tsv/output/to-api/{}'.format(fname)
-    cmd = ['aws', 's3', 'cp', output_file, s3_outfile]
+    if local_save:
+        output_dir = os.path.dirname(output_file)
+        csv_name = os.path.splitext(fname)[0] + '_processed.csv'
+        csv_file = os.path.join(output_dir, csv_name)
 
-    subprocess.check_call(cmd)
+        cumsum_df.to_csv(csv_file, index=False)
+        output = csv_file
 
-    return s3_outfile
+    else:
+
+        print 'Copying output JSON to s3'
+        s3_outfile = r's3://gfw2-data/alerts-tsv/output/to-api/{}'.format(fname)
+        cmd = ['aws', 's3', 'cp', output_file, s3_outfile]
+
+        subprocess.check_call(cmd)
+        output = s3_outfile
+
+    return output
 
 
 def load_json_from_token(file_name):

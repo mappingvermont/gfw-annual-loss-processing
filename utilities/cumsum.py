@@ -75,7 +75,7 @@ def tabulate(input_data, args):
         grouped_df['emissions'] = grouped_df.groupby(cumsum_fields)['emissions_raw'].cumsum()
         del grouped_df['emissions_raw']
 
-    return grouped_df.to_dict(orient='records')
+    return grouped_df
 
 
 def source_to_df(input_data, args):
