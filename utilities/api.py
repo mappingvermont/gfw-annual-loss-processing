@@ -13,35 +13,18 @@ def create(s3_url, environment, tags, dataset_name):
     dataset_path = r'/'.join(s3_url_split[3:])
     http_url = r'http://{0}.s3.amazonaws.com/{1}'.format(bucket_name, dataset_path)
 
-    if environment == 'staging':
-        datasets_url = r'{0}/v1/dataset'.format(api_url)
-        status_code_result = 200
+    datasets_url = r'{0}/v1/dataset'.format(api_url)
+    status_code_result = 200
 
-        payload = {
-                       "name": dataset_name,
-                       "application": ["gfw"],
-                       "connectorType": "document",
-                       "provider": "json",
-                       "connectorUrl": http_url,
-                       "dataPath": "data",
-                       "tags": tags
-                    }
-    else:
-        datasets_url = r'{0}/dataset'.format(api_url)
-        status_code_result = 201
-
-        payload = {
-            "dataset":
-                {
-                    "connectorType": "json",
-                    "provider": "rwjson",
-                    "dataPath": "data",
-                    "application": ["gfw"],
-                    "name": dataset_name,
-                    "tags": tags,
-                    "connectorUrl": http_url
-                },
-        }
+    payload = {
+                   "name": dataset_name,
+                   "application": ["gfw"],
+                   "connectorType": "document",
+                   "provider": "json",
+                   "connectorUrl": http_url,
+                   "dataPath": "data",
+                   "tags": tags
+                }
 
     dataset_id = make_request(headers, datasets_url, 'POST', payload, status_code_result, ['data', 'id'])
 
