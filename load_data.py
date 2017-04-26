@@ -7,6 +7,10 @@ import sqlite3
 def main():
     conn = sqlite3.connect('data.db')
     conn.text_factory = str
+
+    # create output directory while we're at it
+    if not os.path.exists('output'):
+        os.mkdir('output')
     
     root_dir = os.path.dirname(os.path.abspath(__file__))
     src_dir = os.path.join(root_dir, 'source')
