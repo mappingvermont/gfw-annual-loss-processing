@@ -28,41 +28,22 @@ def main():
     # Create country field name
     df['Country'] = df.name0 + '_' + df.name1
 
-    # remove partial country data
-    partial_list = ['AFG', 'ARE', 'CHN', 'ESP', 'IRN', 'IRQ', 'ISR', 'ITA', 'JOR', 'JPN',
-                 'KGZ', 'KWT', 'OMN', 'PSE', 'SAU', 'TJK', 'TKM', 'USA', 'ALB', 'CYP',
-                 'GRC', 'LBN', 'MUS', 'PRK', 'XNC', 'PRT', 'KOR', 'SYR', 'TUR', 'UZB']
+    is_first = True
 
-    complete_miss_list = ['ALA', 'ASM', 'AND', 'ATA', 'ARM', 'AUT', 'AZE', 'BLR', 'BEL', 'BMU',
-                         'BIH', 'BVT', 'IOT', 'BGR', 'CAN', 'XCA', 'CXR', 'CCK', 'COK', 'HRV',
-                         'CZE', 'DNK', 'EST', 'FRO', 'FIN', 'FRA', 'PYF', 'GEO', 'DEU', 'GRL',
-                         'GUM', 'GGY', 'HMD', 'HUN', 'ISL', 'IRL', 'IMN', 'JEY', 'KAZ', 'XKO',
-                         'LVA', 'LIE', 'LTU', 'LUX', 'MKD', 'MHL', 'MDA', 'MCO', 'MNG', 'MNE',
-                         'NLD', 'NIU', 'MNP', 'NOR', 'PCN', 'POL', 'ROU', 'RUS', 'SHN', 'SPM',
-                         'WSM', 'SMR', 'SRB', 'SVK', 'SVN', 'SGS', 'SJM', 'SWE', 'CHE', 'TKL',
-                         'TON', 'UKR', 'GBR', 'VAT', 'WLF']
-
-    skip_list = partial_list + complete_miss_list
-
-    # set area = -9999 where we have partial country data
-    df.loc[((df.iso.isin(skip_list)) & (df.year == 2015)), 'area'] = -9999
-
-    thresh10_df = df[df.thresh == 10]
-    thresh10_pivot = thresh10_df.pivot(index='Country', columns='year', values='area')
-
-    thresh10_pivot.loc[(thresh10_pivot[2015] != -9999), 'TOTAL 2001-2015'] = thresh10_pivot.sum(axis=1)
-    thresh10_pivot.loc[(thresh10_pivot[2015] == -9999), 'TOTAL 2001-2015'] = -9999
-
-    for thresh in [15, 20, 25, 30, 50, 75]:
+    for thresh in [10, 15, 20, 25, 30, 50, 75]:
         df_subset = df[df.thresh == thresh]
 
         df_pivot = df_subset.pivot(index='Country', columns='year', values='area')
-        df_pivot.loc[(df_pivot[2015] != -9999), 'TOTAL 2001-2015'] = df_pivot.sum(axis=1)
-        df_pivot.loc[(df_pivot[2015] == -9999), 'TOTAL 2001-2015'] = -9999
+        df_pivot['TOTAL 2001-2015'] = df_pivot.sum(axis=1)
 
-        thresh10_pivot = pd.concat([thresh10_pivot, df_pivot], axis=1, join_axes=[thresh10_pivot.index])
+        if is_first:
+            output_df = df_pivot.copy()
+            is_first = False
 
-    thresh10_pivot.to_excel(writer, 'Loss (2001-2014) by Subnat')
+        else:
+            output_df = pd.concat([output_df, df_pivot], axis=1, join_axes=[output_df.index])
+
+    output_df.to_excel(writer, 'Loss (2001-2015) by Subnat')
 
     writer.save()
 
