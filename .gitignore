@@ -4,3 +4,5 @@ output/
 source/
 
 data.db
+
+*.pyc

@@ -1,12 +1,38 @@
 import os
 import shutil
-import openpyxl
+from openpyxl.styles import Border, Side
+from openpyxl import load_workbook
 
 
 def format_excel(excel_path):
 
-    wb = openpyxl.load_workbook(filename=excel_path)
-    print wb.get_sheet_names()
+    wb = load_workbook(filename=excel_path)
+    sheet_list = wb.get_sheet_names()
+    
+    # todo
+    # add new front sheet (copy from somewhere?)
+    # fix float format (and pct format?)
+    # highlight top left cell
+    
+    thin = Side(border_style="thin", color="000000")
+    border = Border(top=thin, left=thin, right=thin, bottom=thin)
+    
+    for sheet in sheet_list:
+        ws = wb.get_sheet_by_name(sheet)
+        
+        # bold top row
+        # for cell in ws[1]:
+        #    cell.font = cell.font.copy(bold=True)
+        
+        # bold and do border for left-most row
+        # for cell in ws['A']:
+        #    cell.font = cell.font.copy(bold=True)
+            
+        #    cell.border = border
+                
+    
+    wb.save(excel_path)
+    
 
 
 if __name__ == '__main__':

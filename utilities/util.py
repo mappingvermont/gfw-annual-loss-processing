@@ -67,3 +67,14 @@ def validate_input_data(root_dir):
     for tbl in ['loss', 'extent', 'gain', 'adm_lkp']:
         if tbl not in table_list:
             raise IndexError('Table {} must be in data.db for this process to work; run load_data.py to create it')
+      
+      
+def prep_output_dirs(output_excel):
+
+    if os.path.exists(output_excel):
+        os.remove(output_excel)
+        
+    output_dir = os.path.dirname(output_excel)
+        
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)

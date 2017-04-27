@@ -23,9 +23,8 @@ def main():
 
     else:
         output_excel = os.path.join(output_dir, 'tree_cover_stats_2015.xlsx')
-
-    if os.path.exists(output_excel):
-        os.remove(output_excel)
+        
+    util.prep_output_dirs(output_excel)
 
     # set default max admin level
     if not args.level:
