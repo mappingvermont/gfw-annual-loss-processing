@@ -40,7 +40,7 @@ def main():
         for output_type in [gain, extent2000, loss]:
             sheet_name, df = output_type.build_df(adm_level, args.iso)
 
-            df.to_excel(writer, sheet_name, index=False)
+            df.to_excel(writer, sheet_name)
 
     writer.save()
 
