@@ -80,6 +80,11 @@ def adjust_cell_width(ws):
             if 'gain' in ws.title.lower() and col_count == 1:
                 length += 4
                 
+            # catch instances where no loss, just the year
+            # keep spacing relatively even for all columns
+            if length <= 4:
+                length = 14
+                
             ws.column_dimensions[column_cells[0].column].width = length
             
         col_count += 1
