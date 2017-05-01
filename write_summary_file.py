@@ -3,7 +3,7 @@ import argparse
 import pandas as pd
 from openpyxl import load_workbook
 
-from utilities import gain, extent2000, loss, util, postprocess
+from utilities import gain, extent2000, loss, util
 
 
 def main():
@@ -41,15 +41,12 @@ def main():
     with pd.ExcelWriter(output_excel, engine='openpyxl') as writer:
         writer.book = wb
 
-        for adm_level in range(0, args.level + 1):
-
-            for output_type in [gain, extent2000, loss]:
+        for output_type in [extent2000, loss, gain]:
+            for adm_level in range(0, args.level + 1):
                 sheet_name, df = output_type.build_df(adm_level, args.iso)
 
                 df.to_excel(writer, sheet_name)
 
-    # apply proper formatting, add headers etc
-    postprocess.format_excel(output_excel)
 
 if __name__ == '__main__':
     main()

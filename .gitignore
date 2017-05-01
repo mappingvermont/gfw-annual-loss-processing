@@ -6,3 +6,6 @@ source/
 data.db
 
 *.pyc
+
+# virtualenv dir
+venv/

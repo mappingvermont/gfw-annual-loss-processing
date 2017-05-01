@@ -20,20 +20,35 @@ def build_df(adm_level, iso=None):
     conn = util.db_connect()
     df = pd.read_sql(sql, conn)
     df = util.add_lookup(df, adm_level, conn)
+    
+    # remove thresh 0 values
+    df = df[df.thresh != 0]
 
     # Create expression to come up with a combined field name
     # if iso, just Country, if adm1, Country_Adm1_Name, etc
-    df['Country'] = eval(util.country_text_lookup(adm_level))
+    df['Country_Index'] = eval(util.country_text_lookup(adm_level))
 
     # Group by Country and thresh, sum area
-    df = df.groupby(['Country', 'thresh'])['area'].sum().reset_index()
+    df = df.groupby(['Country_Index', 'thresh'])['area'].sum().reset_index()
 
+    # Add larger index for merged column in output excel sheet
+    df['All areas are in hectares'] = 'TREE COVER (2000) BY PERCENT CANOPY COVER'
+    
+    # convert int thresh to labeled thresh percent
+    df['thresh'] = df.apply(lambda row: '>{}%'.format(str(row['thresh'])), axis=1)
+    
+    # rename the 'thresh' column to the name that we'll need for our summary output table
+    column_name_dict = {0: 'Country', 1: 'Country_Subnat1', 2: 'Country_Subnat1_Subnat2'}
+    summary_col_name = column_name_dict[adm_level]
+    
+    df.rename(columns = {'thresh': summary_col_name}, inplace=True)
+    
     # pivot and remove column where thresh == 0
-    df_pivot = df.pivot(index='Country', columns='thresh', values='area').reset_index()
-    del df_pivot[0]
-
-    # rename columns to match output
-    df_pivot.columns = ['Country', '>10%', '>15%', '>20%', '>25%', '>30%', '>50%', '>75%']
+    df_pivot = df.pivot_table(index=['Country_Index', 'All areas are in hectares'], columns=summary_col_name, values='area')
+    
+    df_pivot = df_pivot.unstack('All areas are in hectares')
+    df_pivot = df_pivot.swaplevel(0,1, axis=1)
+    del df_pivot.index.name
 
     sheet_name_dict = {0: 'Country', 1: 'Subnat1', 2: 'Subnat2'}
     sheet_name = 'Extent (2000) by {}'.format(sheet_name_dict[adm_level])

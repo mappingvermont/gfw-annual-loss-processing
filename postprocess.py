@@ -1,10 +1,21 @@
 import os
 import shutil
+import argparse
 from openpyxl.styles import PatternFill
 from openpyxl import load_workbook
 
 
-def format_excel(excel_path):
+def main():
+
+    parser = argparse.ArgumentParser(description='Postprocess excel output to standard format')
+    parser.add_argument('--input', '-i', help='Input excel sheet to process', required=True)
+    parser.add_argument('--output', '-o', help='Max admin level to summarize')
+    args = parser.parse_args()
+    
+    format_excel(args.input, args.output)
+
+
+def format_excel(excel_path, output_path):
 
     wb = load_workbook(filename=excel_path)
     
@@ -31,7 +42,10 @@ def format_excel(excel_path):
         # adjust cell width to match column data
         adjust_cell_width(ws)
         
-    wb.save(excel_path)
+    if output_path:
+        wb.save(output_path)
+    else:
+        wb.save(excel_path)
  
  
 def cell_length(cell):
@@ -61,21 +75,14 @@ def adjust_cell_width(ws):
         # if any cell has a value
         if cell_length_list:
             length = max(cell_length_list)
+
+            # add to the width of the gain column
+            if 'gain' in ws.title.lower() and col_count == 1:
+                length += 4
+                
             ws.column_dimensions[column_cells[0].column].width = length
             
         col_count += 1
 
 if __name__ == '__main__':
-    root_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-    output_dir = os.path.join(root_dir, 'output')
-
-    #src_file = os.path.join(output_dir, 'tree_cover_stats_2015.xlsx')
-    src_file = os.path.join(output_dir, 'tree_cover_stats_2015_IRL.xlsx')
-    path_to_excel = os.path.join(output_dir, 'dummy.xlsx')
-
-    if os.path.exists(path_to_excel):
-        os.remove(path_to_excel)
-
-    shutil.copy2(src_file, path_to_excel)
-
-    format_excel(path_to_excel)
+    main()
