@@ -1,7 +1,7 @@
 import os
 import shutil
 import argparse
-from openpyxl.styles import PatternFill
+from openpyxl.styles import PatternFill, Alignment
 from openpyxl import load_workbook
 
 
@@ -23,6 +23,7 @@ def format_excel(excel_path, output_path):
     sheet_list = wb.get_sheet_names()[1:]
     
     yellowFill = PatternFill(start_color='FFFF00', end_color='FFFF00', fill_type='solid')
+    aligned_left = Alignment(horizontal='left')
     
     for sheet in sheet_list:
         ws = wb.get_sheet_by_name(sheet)
@@ -30,6 +31,15 @@ def format_excel(excel_path, output_path):
         # unbold left-most column after first two rows
         for cell in ws['A'][2:]:
             cell.font = cell.font.copy(bold=False)
+            
+        # left justify left-most column cells
+        for cell in ws['A']:
+            cell.alignment = aligned_left
+            
+        # left justify first two rows 
+        for row in ws.iter_rows(min_row=1, max_row=2):
+            for cell in row:
+                cell.alignment = aligned_left
             
         # format numbers to include commas and hide decimals
         for row in ws.iter_rows(row_offset=2):
