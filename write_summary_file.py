@@ -1,6 +1,7 @@
 import os
 import argparse
 import pandas as pd
+from openpyxl import load_workbook
 
 from utilities import gain, extent2000, loss, util, postprocess
 
@@ -24,7 +25,10 @@ def main():
     else:
         output_excel = os.path.join(output_dir, 'tree_cover_stats_2015.xlsx')
         
-    util.prep_output_dirs(output_excel)
+    # grab the read me from the excel template to start our new workbook
+    # return the wb object so we can write to it
+    excel_template = os.path.join(root_dir, 'example_output.xlsx')
+    wb = util.prep_output_file(excel_template, output_excel, args.iso)
 
     # set default max admin level
     if not args.level:
@@ -33,16 +37,16 @@ def main():
         else:
             args.level = 1
 
-    writer = pd.ExcelWriter(output_excel)
+    # open our workbook for writing and add various sheets
+    with pd.ExcelWriter(output_excel, engine='openpyxl') as writer:
+        writer.book = wb
 
-    for adm_level in range(0, args.level + 1):
+        for adm_level in range(0, args.level + 1):
 
-        for output_type in [gain, extent2000, loss]:
-            sheet_name, df = output_type.build_df(adm_level, args.iso)
+            for output_type in [gain, extent2000, loss]:
+                sheet_name, df = output_type.build_df(adm_level, args.iso)
 
-            df.to_excel(writer, sheet_name)
-
-    writer.save()
+                df.to_excel(writer, sheet_name)
 
     # apply proper formatting, add headers etc
     postprocess.format_excel(output_excel)

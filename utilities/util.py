@@ -1,7 +1,9 @@
 import os
 import sys
+import shutil
 import sqlite3
 import pandas as pd
+from openpyxl import load_workbook
 
 
 def add_lookup(data_df, adm_level, conn):
@@ -69,7 +71,7 @@ def validate_input_data(root_dir):
             raise IndexError('Table {} must be in data.db for this process to work; run load_data.py to create it')
       
       
-def prep_output_dirs(output_excel):
+def prep_output_file(excel_template, output_excel, iso):
 
     if os.path.exists(output_excel):
         os.remove(output_excel)
@@ -78,3 +80,21 @@ def prep_output_dirs(output_excel):
         
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
+        
+    # copy excel template excel file then delete all non Read Me sheets
+    if iso:
+        readme_sheet_name = 'Read Me Iso'
+    else:
+        readme_sheet_name = 'Read Me'
+        
+    shutil.copy2(excel_template, output_excel)
+    
+    wb = load_workbook(filename=output_excel)
+    sheet_list = wb.get_sheet_names()
+    
+    delete_list = [s for s in sheet_list if s != readme_sheet_name]
+    
+    for sheet in delete_list:
+        del wb[sheet]
+            
+    return wb

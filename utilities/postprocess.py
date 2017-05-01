@@ -1,51 +1,69 @@
 import os
 import shutil
-from openpyxl.styles import Border, Side
+from openpyxl.styles import PatternFill
 from openpyxl import load_workbook
 
 
 def format_excel(excel_path):
 
     wb = load_workbook(filename=excel_path)
-    sheet_list = wb.get_sheet_names()
     
-    print 'sheet list hardcoded--remove'
-    sheet_list = ['Loss (2001-2015) by Subnat1']
+    # grab all sheets except the first readme one
+    sheet_list = wb.get_sheet_names()[1:]
     
-    # todo
-    # add new front sheet (copy from somewhere?)
-    # highlight top left cell
-    # adjust column spacing -- need to ignore merged cells
+    yellowFill = PatternFill(start_color='FFFF00', end_color='FFFF00', fill_type='solid')
     
     for sheet in sheet_list:
         ws = wb.get_sheet_by_name(sheet)
-        
-        # bold top row
-        # for cell in ws[1]:
-        #    cell.font = cell.font.copy(bold=True)
         
         # unbold left-most column after first two rows
         for cell in ws['A'][2:]:
             cell.font = cell.font.copy(bold=False)
             
+        # format numbers to include commas and hide decimals
         for row in ws.iter_rows(row_offset=2):
             for cell in row:
                 cell.number_format = '#,##0'
+                
+        # highlight top left cell
+        ws['A1'].fill = yellowFill
         
-        for column_cells in ws.columns:
-            length = max(len(as_text(cell.value).strip()) for cell in column_cells)
-            print column_cells[0].column, length
+        # adjust cell width to match column data
+        adjust_cell_width(ws)
+        
+    wb.save(excel_path)
+ 
+ 
+def cell_length(cell):
+    # http://stackoverflow.com/a/40935194/4355916
+    return len(str(cell.value))
+    
+ 
+def adjust_cell_width(ws):
+
+    col_count = 0
+    
+    for column_cells in ws.columns:
+        cell_length_list = []
+        
+        # if it's the first column, include the first cell when we resize column
+        if col_count == 0:
+            valid_cells = [c for c in column_cells if c.value]
+            
+        # start with the second row-- merged cells screw up cell length
+        # remove cells with value of None                
+        else:
+            valid_cells = [c for c in column_cells[1:] if c.value]
+        
+        for cell in valid_cells:
+            cell_length_list.append(cell_length(cell))                    
+    
+        # if any cell has a value
+        if cell_length_list:
+            length = max(cell_length_list)
             ws.column_dimensions[column_cells[0].column].width = length
             
-            if column_cells[0].column == 'B':
-                for cell in column_cells:
-                    print as_text(cell.value), len(as_text(cell.value))
-    
-    wb.save(excel_path)
-    
-# http://stackoverflow.com/a/40935194/4355916
-def as_text(value): 
-    return str(value) if value is not None else ""
+        col_count += 1
 
 if __name__ == '__main__':
     root_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
