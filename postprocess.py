@@ -60,7 +60,12 @@ def format_excel(excel_path, output_path):
  
 def cell_length(cell):
     # http://stackoverflow.com/a/40935194/4355916
-    return len(str(cell.value))
+    try:
+        length = len(str(cell.value))
+    except UnicodeEncodeError:
+        length = len(cell.value.encode('utf-8'))
+
+    return length
     
  
 def adjust_cell_width(ws):

@@ -4,8 +4,6 @@ import pandas as pd
 import openpyxl
 
 from utilities import util
-from write_summary_file import write_output
-from postprocess import format_excel
 
 parser = argparse.ArgumentParser(description='Batch process all countries')
 parser.add_argument('--type', '-t', choices=('raw', 'postprocess'), required=True)
@@ -23,6 +21,8 @@ for iso in all_iso_codes:
     print 'starting to write file for {}'.format(iso)
 
     if args.type == 'raw':
+        from write_summary_file import write_output
+
         pandas_version = int(pd.__version__.split('.')[1])
         if pandas_version > 16:
             raise ValueError('Pandas version must be less than or equal to 16 to output correct excel sheet')
@@ -30,6 +30,8 @@ for iso in all_iso_codes:
         write_output(iso, level=None)
 
     else:
+        from postprocess import format_excel
+
         openpyxl_version = int(''.join(openpyxl.__version__.split('.')[0:2]))
         if openpyxl_version < 24:
             raise ValueError('openpyxl must be version 2.4.x or greater when postprocessing')
