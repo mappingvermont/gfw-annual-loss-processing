@@ -5,10 +5,11 @@ import sqlite3
 
 from utilities import util
 
+conn = util.db_connect()
+conn.text_factory = str
+
 
 def main():
-    conn = util.db_connect()
-    conn.text_factory = str
     
     root_dir = os.path.dirname(os.path.abspath(__file__))
     src_dir = os.path.join(root_dir, 'source')
@@ -28,7 +29,6 @@ def main():
         print 'inserting into {}'.format(table_name)
         
         df.to_sql(table_name, conn, if_exists='replace')
-
         del df
         
     lkp_df = pd.read_csv('adm_lkp.csv')
@@ -56,31 +56,42 @@ def add_missing_data(adm_df, data_type):
     sql = 'SELECT iso, adm1, adm2, sum(area) as area FROM {} GROUP BY iso, adm1, adm2'.format(data_type)        
     df = pd.read_sql(sql, conn)
 
-    merged = pd.merge(adm_df, df, how='left', on=['iso', 'adm1', 'adm2'])
+    join_field_list = ['iso', 'adm1', 'adm2']
+    merged = pd.merge(adm_df, df, how='left', on=join_field_list)
 
     missing_df = merged[merged.area.isnull()]        
     missing_df['area'] = 0.0
+
+    join_field_dict = {'extent': ['thresh'], 'loss': ['thresh', 'year']}
     
     if data_type in ['extent', 'loss']:
+        join_field_list += join_field_dict[data_type]
 
         # create empty df
         dummy_df = pd.DataFrame()
         
         for thresh in [0, 10, 15, 20, 25, 30, 50, 75]:
             missing_df['thresh'] = thresh
+
+            if data_type == 'loss':
+                 for year in range(2001, 2016):
+                     missing_df['year'] = year
             
-            dummy_df = dummy_df.append(missing_df)
+                    dummy_df = dummy_df.append(missing_df)
+
+            else:
+                dummy_df = dummy_df.append(missing_df)
     
     else:
         dummy_df = missing_df
     
+    # add area to our output field list
+    # then remove all extraneous fields from dataframe
+    join_field_list += ['area']
+    dummy_df = dummy_df[join_field_list]
+
     dummy_df.to_sql(data_type, conn, if_exists='append', index=False)
-    
-    print dummy_df
-    
-    print 'appending {} data . . .'.format(data_type)
-    print dummy_df.shape
-    
+            
     
 if __name__ == '__main__':
     main()
