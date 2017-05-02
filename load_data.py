@@ -3,14 +3,12 @@ import pandas as pd
 import json
 import sqlite3
 
+from utilities import util
+
 
 def main():
-    conn = sqlite3.connect('data.db')
+    conn = util.db_connect()
     conn.text_factory = str
-
-    # create output directory while we're at it
-    if not os.path.exists('output'):
-        os.mkdir('output')
     
     root_dir = os.path.dirname(os.path.abspath(__file__))
     src_dir = os.path.join(root_dir, 'source')
@@ -39,6 +37,9 @@ def main():
     
     lkp_df.to_sql('adm_lkp', conn, if_exists='replace')
     
+    for data_type in ['loss', 'extent', 'gain']:
+        add_missing_data(lkp_df, data_type)
+    
     print 'inserted'
 
     
@@ -48,6 +49,37 @@ def json_to_df(json_file):
         data = json.load(thefile)['data']
         
     return pd.DataFrame(data)
+    
+    
+def add_missing_data(adm_df, data_type):
+
+    sql = 'SELECT iso, adm1, adm2, sum(area) as area FROM {} GROUP BY iso, adm1, adm2'.format(data_type)        
+    df = pd.read_sql(sql, conn)
+
+    merged = pd.merge(adm_df, df, how='left', on=['iso', 'adm1', 'adm2'])
+
+    missing_df = merged[merged.area.isnull()]        
+    missing_df['area'] = 0.0
+    
+    if data_type in ['extent', 'loss']:
+
+        # create empty df
+        dummy_df = pd.DataFrame()
+        
+        for thresh in [0, 10, 15, 20, 25, 30, 50, 75]:
+            missing_df['thresh'] = thresh
+            
+            dummy_df = dummy_df.append(missing_df)
+    
+    else:
+        dummy_df = missing_df
+    
+    dummy_df.to_sql(data_type, conn, if_exists='append', index=False)
+    
+    print dummy_df
+    
+    print 'appending {} data . . .'.format(data_type)
+    print dummy_df.shape
     
     
 if __name__ == '__main__':
