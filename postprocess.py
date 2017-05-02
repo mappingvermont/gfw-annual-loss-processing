@@ -92,8 +92,8 @@ def adjust_cell_width(ws):
                 
             # catch instances where no loss, just the year
             # keep spacing relatively even for all columns
-            if length <= 4:
-                length = 14
+            if length <= 14:
+                length = 15
                 
             ws.column_dimensions[column_cells[0].column].width = length
             
