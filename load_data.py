@@ -77,7 +77,7 @@ def add_missing_data(adm_df, data_type):
                  for year in range(2001, 2016):
                      missing_df['year'] = year
             
-                    dummy_df = dummy_df.append(missing_df)
+                     dummy_df = dummy_df.append(missing_df)
 
             else:
                 dummy_df = dummy_df.append(missing_df)
