@@ -80,12 +80,12 @@ def tabulate(input_data, args):
 
 def source_to_df(input_data, args):
 
-    base_fields = []
+    base_fields = ['thresh']
 
     if args.years:
         base_fields += ['year']
 
-    base_fields += ['thresh', 'area_raw']
+    base_fields += ['area_raw']
 
     if args.emissions:
         base_fields += ['emissions_raw']
