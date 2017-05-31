@@ -10,7 +10,7 @@ def main():
 
     parser = argparse.ArgumentParser(description='Summarize hadoop output data in pretty pivot tables')
     parser.add_argument('--iso', '-i', help='Select an ISO code to process')
-    parser.add_argument('--level', '-l', help='Max admin level to summarize')
+    parser.add_argument('--level', '-l', type=int, help='Max admin level to summarize')
     args = parser.parse_args()
 
     write_output(args.iso, args.level)
