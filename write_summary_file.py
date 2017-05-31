@@ -13,7 +13,7 @@ def main():
     parser.add_argument('--level', '-l', help='Max admin level to summarize')
     args = parser.parse_args()
 
-    write_output(args.iso.upper(), args.level)
+    write_output(args.iso, args.level)
 
 
 def write_output(iso, level):
@@ -24,6 +24,7 @@ def write_output(iso, level):
     util.validate_input_data(root_dir)
 
     if iso:
+        iso = iso.upper()
         output_excel = os.path.join(output_dir, 'tree_cover_stats_2015_{}.xlsx'.format(iso))
 
     else:

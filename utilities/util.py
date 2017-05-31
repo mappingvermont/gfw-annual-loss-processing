@@ -24,7 +24,7 @@ def add_lookup(data_df, adm_level, conn):
 def db_connect():
 
     utilities_dir = os.path.dirname(os.path.realpath(__file__))
-    data_db = os.path.join(os.path.dirname(utilities_dir), 'data.db')
+    data_db = os.path.join(os.path.dirname(utilities_dir), 'data', 'data.db')
     conn = sqlite3.connect(data_db)
 
     return conn
@@ -52,7 +52,7 @@ def country_text_lookup(adm_level):
 
 def validate_input_data(root_dir):
 
-    data_db = os.path.join(root_dir, 'data.db')
+    data_db = os.path.join(root_dir, 'data', 'data.db')
 
     if not os.path.exists(data_db):
         print 'data.db not found in the root directory'
