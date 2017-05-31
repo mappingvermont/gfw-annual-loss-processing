@@ -79,7 +79,7 @@ def push_to_s3(cumsum_df, input_file, local_save):
         cmd = ['aws', 's3', 'cp', output_file, s3_outfile]
 
         subprocess.check_call(cmd)
-        output = s3_outfile
+        output = r'http://gfw2-data.s3.amazonaws.com/alerts-tsv/output/to-api/{}'.format(fname)
 
     return output
 

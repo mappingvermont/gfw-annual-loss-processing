@@ -3,15 +3,9 @@ from requests import Request, Session
 import util
 
 
-def create(s3_url, environment, tags, dataset_name):
+def create(http_url, environment, tags, dataset_name):
 
     api_url, headers = get_url_and_headers(environment)
-
-    s3_url_split = s3_url.split(r'/')
-    bucket_name = s3_url_split[2]
-
-    dataset_path = r'/'.join(s3_url_split[3:])
-    http_url = r'http://{0}.s3.amazonaws.com/{1}'.format(bucket_name, dataset_path)
 
     datasets_url = r'{0}/v1/dataset'.format(api_url)
     status_code_result = 200
@@ -33,7 +27,7 @@ def create(s3_url, environment, tags, dataset_name):
     return dataset_id
 
 
-def overwrite(s3_url, environment, dataset_id):
+def overwrite(http_url, environment, dataset_id):
 
     api_url, headers = get_url_and_headers(environment)
 
@@ -44,7 +38,7 @@ def overwrite(s3_url, environment, dataset_id):
     make_request(headers, dataset_url, 'PATCH', modify_attributes_payload, 200)
 
     data_overwrite_url = r'{0}/data-overwrite'.format(dataset_url)
-    overwrite_payload = {"url": s3_url, "dataPath": "data", "provider": "json"}
+    overwrite_payload = {"url": http_url, "dataPath": "data", "provider": "json"}
 
     make_request(headers, data_overwrite_url, 'POST', overwrite_payload, 204)
 
@@ -64,7 +58,11 @@ def make_request(headers, api_endpoint, request_type, payload, status_code_requi
             return_val = reduce(lambda d, k: d[k], json_map_list, r.json())
 
         else:
-            return_val = r.json()
+            try:
+                return_val = r.json()
+            except ValueError:
+                print 'No JSON in response, likely just a 204 No Content'
+                return_val = None
 
         return return_val
 

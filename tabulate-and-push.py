@@ -27,6 +27,7 @@ def main():
     args = parser.parse_args()
 
     if args.dataset_id or (args.tags and args.name) or args.local:
+
         local_data = util.download_data(args.input)
         print local_data
 
