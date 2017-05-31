@@ -46,7 +46,7 @@ def overwrite(s3_url, environment, dataset_id):
     data_overwrite_url = r'{0}/data-overwrite'.format(dataset_url)
     overwrite_payload = {"url": s3_url, "dataPath": "data", "provider": "json"}
 
-    make_request(headers, data_overwrite_url, 'POST', overwrite_payload, 200)
+    make_request(headers, data_overwrite_url, 'POST', overwrite_payload, 204)
 
 
 def make_request(headers, api_endpoint, request_type, payload, status_code_required, json_map_list=None):
