@@ -77,7 +77,7 @@ def add_missing_data(adm_df, data_type):
             missing_df['thresh'] = thresh
 
             if data_type == 'loss':
-                 for year in range(2001, 2016):
+                 for year in range(2001, 2017):
                      missing_df['year'] = year
 
                      dummy_df = dummy_df.append(missing_df)

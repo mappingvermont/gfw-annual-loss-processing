@@ -25,10 +25,10 @@ def write_output(iso, level):
 
     if iso:
         iso = iso.upper()
-        output_excel = os.path.join(output_dir, 'tree_cover_stats_2015_{}.xlsx'.format(iso))
+        output_excel = os.path.join(output_dir, 'tree_cover_stats_2016_{}.xlsx'.format(iso))
 
     else:
-        output_excel = os.path.join(output_dir, 'tree_cover_stats_2015.xlsx')
+        output_excel = os.path.join(output_dir, 'tree_cover_stats_2016.xlsx')
         
     # grab the read me from the excel template to start our new workbook
     # return the wb object so we can write to it

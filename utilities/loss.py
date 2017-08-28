@@ -39,7 +39,7 @@ def build_df(adm_level, iso=None):
         df_subset['All areas are in hectares'] = 'TREE COVER LOSS (>{}% CANOPY COVER)'.format(thresh)
  
         df_pivot = df_subset.pivot_table(index=['Country_Index', 'All areas are in hectares'], columns=summary_col_name, values='area')
-        df_pivot['TOTAL 2001-2015'] = df_pivot.sum(axis=1)
+        df_pivot['TOTAL 2001-2016'] = df_pivot.sum(axis=1)
         
         df_pivot = df_pivot.unstack('All areas are in hectares')
         df_pivot = df_pivot.swaplevel(0,1, axis=1)
@@ -53,7 +53,7 @@ def build_df(adm_level, iso=None):
             output_df = pd.concat([output_df, df_pivot], axis=1, join_axes=[output_df.index])
 
     sheet_name_dict = {0: 'Country', 1: 'Subnat1', 2: 'Subnat2'}
-    sheet_name = 'Loss (2001-2015) by {}'.format(sheet_name_dict[adm_level])
+    sheet_name = 'Loss (2001-2016) by {}'.format(sheet_name_dict[adm_level])
 
     return sheet_name, output_df
 
