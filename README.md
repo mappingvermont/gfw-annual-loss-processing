@@ -33,7 +33,9 @@ Loss and extent2000 data need to be cumsummed by threshold for this process to w
 
 #### Organizing this data
 ---
-The `load_data.py` script must be executed first-- this brings all the source data into a SQLite3 database for easy querying. Given the memory required by this process, it should be run in 64 bit python on a decent machine.
+Download all the files above (extent2000, loss, gain) into the `source` directory.
+
+Then run `load_data.py`. This brings all the source data into a SQLite3 database for easy querying. Given the memory required by this process, it should be run in 64 bit python on a decent machine.
 
 #### Writing summary files
 
@@ -58,10 +60,26 @@ deactivate
 
 #### Postprocess the spreadsheet
 ---
-To add proper highlighting/column widths, run the following:
+To add proper highlighting/column widths, first **deactivate** the virtualenv, then run the following:
 ```
 python postprocess.py -i <path to input sheet> -o <output path>
 ```
+
+#### Batch processing
+````
+virtualenv venv
+source venv/bin/activate
+
+# generate spreadsheets for all ISO codes
+python batch_process.py -t raw
+
+# postprocess all spreadsheets
+# first deactivate virtualenv
+deactivate
+
+# then apply formatting
+python batch_process.py -t postprocess
+````
 
 #### Example output
 For an example of this output, see `example_output.xlsx`.
