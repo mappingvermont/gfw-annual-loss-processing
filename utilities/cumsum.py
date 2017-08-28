@@ -28,7 +28,7 @@ def tabulate(input_data, args):
         all_combo_df['thresh'] = dummy_thresh
 
         if args.years:
-            for dummy_year in range(2001, 2016):
+            for dummy_year in range(2001, 2017):
                 all_combo_df['year'] = dummy_year
                 dummy_df = dummy_df.append(all_combo_df)
 
@@ -107,9 +107,20 @@ def source_to_df(input_data, args):
     if num_cols != expected_num:
         raise ValueError('Expected {} columns based on the input, found {} instead'.format(expected_num, num_cols))
     else:
-        df.columns = boundary_fields + base_fields
+        col_list = boundary_fields + base_fields
+        df.columns = col_list
 
     df = df.apply(lambda x: pd.to_numeric(x, errors='ignore'))
+    
+    # catch issue where thresh and year columns are in the wrong order
+    if df.year.max() >= 20:
+    
+        # switch positions of thresh and year
+        # https://stackoverflow.com/a/2493980/4355916
+        a, b = col_list.index('thresh'), col_list.index('year')
+        col_list[b], col_list[a] = col_list[a], col_list[b]
+        
+        df.columns = col_list
 
     return df, boundary_fields
 
