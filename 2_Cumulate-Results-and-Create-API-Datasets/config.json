@@ -1,0 +1,34 @@
+[
+	{
+		"name": "IFL 2000",
+		"src": "ifl_2000_int_diss_gadm28_large.csv",
+		"tags": ["Intact", "Forest", "Landscapes", "2000"]
+	},
+	{
+		"name": "World Database of Protected Areas",
+		"src": "wdpa_final_int_diss_gadm28_large.csv"
+	},
+	{
+		"name": "Primary Forest in Brazil, Indonesia and Democratic Republic of Congo",
+		"src": "primary_bra_idn_cod_int_diss_gadm28_large.csv",
+		"tags": ["primary", "forest", "BRA", "IDN", "COD"]
+	},
+	{
+		"name": "Biodiversity Hotspots",
+		"src": "biodiversity_hotspots_int_diss_gadm28_large.csv"
+	},
+	{
+		"name": "GFW Plantations",
+		"src": "gfw_plantations_int_diss_gadm28_large.csv"
+	},
+	{
+		"name": "GFW Managed Forests",
+		"src": "gfw_managed_forests_int_diss_gadm28_large.csvcreate"
+	},
+	{
+		"name": "GADM 2.8 Boundaries",
+		"src": "gadm28_large.csv"
+	}
+]
+
+	

@@ -22,3 +22,7 @@ This will create a new dataset in the staging API with the tags `wdpa` and `test
 ### Output
 Example output data:
 [http://staging-api.globalforestwatch.org/query/21e23320-3b63-424a-a669-393f10d451b8?sql=SELECT * FROM data LIMIT 10](http://staging-api.globalforestwatch.org/query/21e23320-3b63-424a-a669-393f10d451b8?sql=SELECT%20*%20FROM%20data%20LIMIT%2010)
+
+
+### Batch processing
+The save_datasets.py code (and accompanying config.json file) can be useful for batch creating datasets in the API.
