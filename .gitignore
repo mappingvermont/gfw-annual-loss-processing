@@ -65,6 +65,9 @@ tokens/
 
 #logs
 logs/
+
 *.lock
+*~lock.*
 
 2_Cumulate-Results-and-Create-API-Datasets/processing/
+tree_cover_stats_2016.xlsx

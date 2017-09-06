@@ -113,14 +113,15 @@ def source_to_df(input_data, args):
     df = df.apply(lambda x: pd.to_numeric(x, errors='ignore'))
     
     # catch issue where thresh and year columns are in the wrong order
-    if df.year.max() >= 20:
+    if args.years:
+        if df.year.max() >= 20:
     
-        # switch positions of thresh and year
-        # https://stackoverflow.com/a/2493980/4355916
-        a, b = col_list.index('thresh'), col_list.index('year')
-        col_list[b], col_list[a] = col_list[a], col_list[b]
+            # switch positions of thresh and year
+            # https://stackoverflow.com/a/2493980/4355916
+            a, b = col_list.index('thresh'), col_list.index('year')
+            col_list[b], col_list[a] = col_list[a], col_list[b]
         
-        df.columns = col_list
+            df.columns = col_list
 
     return df, boundary_fields
 
