@@ -71,3 +71,7 @@ logs/
 
 2_Cumulate-Results-and-Create-API-Datasets/processing/
 tree_cover_stats_2016.xlsx
+
+3_Create-Summary-Spreadsheets/venv/
+3_Create-Summary-Spreadsheets/data/data.db
+3_Create-Summary-Spreadsheets/source/
