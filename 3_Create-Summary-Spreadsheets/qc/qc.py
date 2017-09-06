@@ -1,28 +1,27 @@
-import sys
+import argparse
 import pandas as pd
 
-import read_output_excel
+import excel_to_df
 
 thresh_list = [10, 15, 20, 25, 30, 50, 75]
 
 def main():
 
-    try:
-        excel_src = sys.argv[1]
-    except IndexError:
-        raise IndexError('Please include the path to the spreadsheet as the first argument')
+    parser = argparse.ArgumentParser(description='QC Hansen Stats Spreadsheet')
+    parser.add_argument('--excel_file', '-e', required=True)
 
-    print 'sheet names are: {}'.format(pd.ExcelFile(excel_src).sheet_names)
+    args = parser.parse_args()
+    xl_src = args.excel_file
 
     # load dataframes
-    extent2000_iso = xl.parse('extent2000_iso')
-    extent2000_subnat = xl.parse('extent2000_subnat')
+    extent2000_iso = excel_to_df.extent(xl_src, 'Extent (2000) by Country')
+    extent2000_subnat = excel_to_df.extent(xl_src, 'Extent (2000) by Subnat1')
 
-    loss_iso = read_output_excel(xl, )
-    loss_subnat = xl.parse('loss_subnat')
+    loss_iso = excel_to_df.loss(xl_src, 'Loss (2001-2016) by Country')
+    loss_subnat = excel_to_df.loss(xl_src, 'Loss (2001-2016) by Subnat1')
 
-    gain_iso = xl.parse('gain_iso')
-    gain_subnat = xl.parse('gain_subnat')
+    gain_iso = excel_to_df.gain(xl_src, 'Gain (2001-2012) by Country')
+    gain_subnat = excel_to_df.gain(xl_src, 'Gain (2001-2012) by Subnat1')
 
     # check that the area value declines as the threshold increases
     # for each country or country_admin row
@@ -58,10 +57,8 @@ def compare_nat_to_subnat(nat_src, subnat_src, df_type):
     if df_type == 'loss':
 
         melted_nat = pd.melt(nat_df, id_vars=['Country', 'thresh'], value_name='area', var_name='year')
-        melted_nat = melted_nat[melted_nat.year != 2015]
 
         melted_subnat = pd.melt(subnat_df, id_vars=['id', 'thresh'], value_name='area', var_name='year')
-        melted_subnat = melted_subnat[melted_subnat.year != 2015]
 
         melted_subnat = melted_subnat.groupby(['id', 'year', 'thresh'])['area'].sum().reset_index()
         melted_subnat.columns = ['Country', 'year', 'thresh', 'area']
@@ -95,9 +92,7 @@ def compare_loss_and_extent(loss_df, extent_df, name):
 
     melted_loss = pd.melt(loss_df, id_vars=['Country', 'thresh'], value_name='area', var_name='year')
 
-    # remove 2015 because of no data values
-    remove_2015 = melted_loss[melted_loss.year != 2015]
-    sum_loss_by_thresh = remove_2015.groupby(['Country', 'thresh'])['area'].sum().reset_index()
+    sum_loss_by_thresh = melted_loss.groupby(['Country', 'thresh'])['area'].sum().reset_index()
 
     melted_extent = pd.melt(extent_df, id_vars=['Country'], value_name='area', var_name='thresh')
 
@@ -115,14 +110,13 @@ def check_loss_iso_thresh(df, table_name):
 
     melted = pd.melt(df, id_vars=['Country', 'thresh'], value_name='area', var_name='year')
 
-    # intentionally leaving out 2015 due to nodata issues
-    for year in range(2001, 2015):
+    for year in range(melted.year.min(), melted.year.max() + 1):
         year_df = melted[melted.year == year]
 
         thresh_pivot = year_df.pivot(index='Country', columns='thresh', values='area')
 
         year_table_name = table_name + ' ' + str(year)
-        check_extent_thresh(thresh_pivot, table_name)
+        check_extent_thresh(thresh_pivot, year_table_name)
 
 
 def check_extent_thresh(df, table_name):
