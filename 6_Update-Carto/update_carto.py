@@ -10,22 +10,19 @@ import matplotlib.pyplot as plt
 matplotlib.style.use('ggplot')
 '''
 def load_json_from_token(file_name):
-
     root_dir = os.path.dirname(os.path.abspath(__file__))
     token_file = os.path.join(root_dir, 'tokens', file_name)
-
+    
     with open(token_file) as data_file:
         data = json.load(data_file)
-
+        
     return data
 
 def get_api_tokens():
     api_key = load_json_from_token('creds.json')['api_key']
-    
+
     return api_key
-
-
-    
+  
 def read_new_loss(loss_processed, level):
 
     new_loss_df = pd.read_csv(loss_processed)
@@ -69,7 +66,6 @@ def create_2016(nat_new_loss, nat_old_loss, level):
     #df.to_csv(file_name, sep='\t', encoding='utf-8')
 
     return join_extent
-
 
 def plot_df():
 
@@ -115,7 +111,6 @@ def qc_new_data(nat_new_loss, nat_old_loss, level):
         print missing_vals
         raise ValueError("there are blanks in the 'area' field of the new data")
  
- 
 def main():
 
     parser = argparse.ArgumentParser(description='update umd carto tables with newest annual data')
@@ -132,7 +127,6 @@ def main():
     old_data = 'umd_{}_final_1'.format(level)
     old_loss_df = cc.read(old_data)
 
-
     print "reading in new loss"
     # read in the new csv data
     nat_new_loss = read_new_loss('gadm28_large_processed.csv', level)
@@ -148,10 +142,11 @@ def main():
     print "appending new df to old"
     # append new df to old df.
     updated_loss = old_loss_df.append(new_2016, ignore_index=True)
+    updated_loss[['thresh']] = updated_loss[['thresh']].apply(pd.to_numeric)
 
     print "writing to carto"
-    # write to carto:
-    updated_loss = updated_loss.drop('country', 1)
+
+    updated_loss.to_csv("updated_loss.csv", encoding='utf-8')
 
     cc.write(updated_loss, 'umd_{}_staging'.format(level), overwrite=True)
     
