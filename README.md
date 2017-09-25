@@ -29,3 +29,7 @@ Write the updated loss tiles using EarthEngine.
 ##### 5 - Update the loss analysis API to include 2016 data
 Should be pretty straightforward after we create the new asset; just need to update the code to point at it and test
 
+##### 6 - Update Carto with new years data
+Need to update the cartoframes code to handle the Country name (utf-8 encoding) and setting index to False
+  Lib\sit-packages\cartogrames\context.py -- line 311:
+  df.drop(geom_col, axis=1, errors='ignore').to_csv(tempfile) -> df.drop(geom_col, axis=1, errors='ignore').to_csv(tempfile, encoding='utf-8', index=False)
