@@ -20,7 +20,7 @@ def main():
 
     extent2000_df = json_to_df(extent2000_src)
     loss_df = json_to_df(loss_src)
-    gain_df = pd.read_csv(gain_src, header=None, names=['iso', 'adm1', 'adm2', 'area'])
+    gain_df = pd.read_csv(gain_src, header=None, names=['iso', 'adm1', 'adm2', 'placeholder', 'area'])
 
     table_list = ['extent', 'loss', 'gain']
     df_list = [extent2000_df, loss_df, gain_df]

@@ -96,8 +96,9 @@ def prep_output_file(excel_template, output_excel, iso):
     
     for sheet in delete_list:
         del wb[sheet]
-        
-    readme_sheet = wb.get_sheet_by_name(readme_sheet_name)
-    readme_sheet.title = 'Read Me'
+    
+    if readme_sheet_name != 'Read Me':
+        readme_sheet = wb.get_sheet_by_name(readme_sheet_name)
+        readme_sheet.title = 'Read Me'
             
     return wb

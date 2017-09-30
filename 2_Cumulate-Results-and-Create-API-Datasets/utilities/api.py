@@ -7,7 +7,7 @@ def create(http_url, environment, tags, dataset_name):
 
     api_url, headers = get_url_and_headers(environment)
 
-    datasets_url = r'{0}/v1/dataset'.format(api_url)
+    datasets_url = r'{0}/dataset'.format(api_url)
     status_code_result = 200
 
     payload = {
@@ -79,7 +79,7 @@ def get_url_and_headers(environment):
         token = util.load_json_from_token('dataset_api_creds.json')['token']
 
     else:
-        api_url = r'http://staging-api.globalforestwatch.org'
+        api_url = r'http://staging-api.globalforestwatch.org/v1'
         token = util.load_json_from_token('dataset_api_creds_staging.json')['token']
 
     headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer {0}'.format(token)}

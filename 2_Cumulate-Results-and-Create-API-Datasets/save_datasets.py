@@ -22,7 +22,6 @@ def check_output_exists(s3_path):
 
 
 def main():
-    tabulate_dir = os.path.join(os.getcwd(), 'gfw-tabulate-hadoop-loss-data')
 
     with open('config.json') as thefile:
         config = json.load(thefile)
@@ -64,7 +63,7 @@ def main():
                     cmd += ['--boundary-fields', ' '.join(raw_boundaries)]
 
                 try:
-                    subprocess.check_call(cmd, cwd=tabulate_dir)
+                    subprocess.check_call(cmd)
                 except:
                     print 'error for dataset {} and type {}'.format(name, analysis_type)
 
