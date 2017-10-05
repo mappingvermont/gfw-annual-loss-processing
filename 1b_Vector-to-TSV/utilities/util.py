@@ -1,5 +1,4 @@
-from layer import Layer
-
+import subprocess
 
 def download_hansen_footprint():
 
@@ -43,3 +42,17 @@ def intersect_layers(layer_a, layer_b):
         # once you have that for both, do ST_Union
         # ogr2ogr out_path.tsv data.vrt -dialect sqlite
         # -sql "SELECT ST_Union(a.geom, b.geom), <unique field name>, a.iso, a.adm1, a.adm2 FROM layer_a a, layer_b b"
+
+def run_subprocess(cmd):
+
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    subprocess_list = []
+
+    # Read from STDOUT and raise an error if we parse one from the output
+    for line in iter(p.stdout.readline, b''):
+        subprocess_list.append(line.strip())
+
+    print '\n'.join(['-'*30] + subprocess_list + ['-'*30])
+
+    return subprocess_list
+
