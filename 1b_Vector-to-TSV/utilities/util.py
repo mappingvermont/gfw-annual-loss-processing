@@ -1,6 +1,10 @@
 import subprocess
 from osgeo import ogr
 import os
+import psycopg2
+
+conn = psycopg2.connect("host=localhost dbname=gis user=gis password=gis")
+cursor = conn.cursor()
 
 
 def download_hansen_footprint():
@@ -109,17 +113,36 @@ def make_vrt(geom_a, geom_b):
         
         
 def intersect_with_gadm28(tile):
-    the_vrt = make_vrt(r'U:\sgibbes\gadm28_adm2_final\gadm28_adm2_final\adm2_final.shp', tile.dataset)
+    the_vrt = make_vrt(r'/home/ubuntu/adm2_final.shp', tile.dataset)
     # use ogr to intersect gadm and geometry and limit to the extent of the bbox
     groupby_columns = ['ISO', 'ID_1', 'ID_2']
     groupby_columns = ", ".join(groupby_columns)
     
-    sql = 'SELECT ST_Intersection(A.geometry, B.geometry) AS geometry, {0} from adm2_final a, {1} b WHERE ST_INTERSECTS(a.geometry, b.geometry)'.format(groupby_columns, tile.dataset_name)
+    #sql = 'SELECT ST_Intersection(A.geometry, B.geometry) AS geometry, {0} from adm2_final a, {0} b WHERE ST_INTERSECTS(a.geometry, b.geometry)'.format(groupby_columns, tile.dataset_name)
+    sql = 'SELECT ST_Intersection(A.geometry, B.geometry) AS geometry from adm2_final a, {0} b WHERE ST_INTERSECTS(a.geometry, b.geometry)'.format(tile.dataset_name)
     bbox = [str(x) for x in tile.bbox]
     cmd = ['ogr2ogr', '-sql', sql, '-dialect', 'SQLITE', tile.output_file, the_vrt, '-clipsrc'] + bbox
     print cmd
+
+    #cmd = ['psql', 'postgresql://gis:gis@localhost/gis', '-c', "SELECT ST_Intersection(a.geom, b.geom) AS geometry INTO out FROM adm2_final a, export_small b WHERE ST_INTERSECTS(a.geom, b.geom)"]
     subprocess.check_call(cmd)
     # download the correct gadm28 tile
     # write VRT so it reads gadm28 TSV correctly
     # intersect
-    
+
+def postgis_intersect(tile):
+    groupby_columns = ['ISO', 'ID_1', 'ID_2']
+    groupby_columns = ", ".join(groupby_columns)
+    bbox = ', '.join([str(x) for x in tile.bbox])
+
+    sql = ('SELECT ST_Intersection(c.geom, b.geom) as geom  '
+           'FROM (SELECT ST_Intersection(a.geom, bbox.geom) as geom '
+           '      FROM adm2_final a '
+           '      JOIN (select ST_MakeEnvelope({bbox}) as geom) bbox '
+           '      ON st_intersects(a.geom, bbox.geom)) AS c, '
+           '{in_data} b '
+           'WHERE ST_Intersects(c.geom, b.geom)'.format(fields=groupby_columns, in_data=tile.dataset_name, bbox=bbox))
+
+    print sql
+
+    cursor.execute(sql)

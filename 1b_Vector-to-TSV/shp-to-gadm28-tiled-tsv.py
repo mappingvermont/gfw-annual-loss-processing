@@ -26,7 +26,7 @@ def main():
     count = multiprocessing.cpu_count()
     pool = multiprocessing.Pool(processes=1)
 
-    pool.map(util.intersect_with_gadm28, l.tile_list)
+    pool.map(util.postgis_intersect, l.tile_list)
         
     #l.upload_to_s3()
 

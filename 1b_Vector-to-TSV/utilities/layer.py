@@ -36,7 +36,7 @@ class Layer(object):
         print 'checking extent of input geometry {}'.format(self.source)
         
         # shapefile of tiles used to tsv aoi
-        tiles = fiona.open(r'grid\footprint_1degree.shp', 'r')
+        tiles = fiona.open(os.path.join('grid', 'footprint_1degree.shp'), 'r')
 
         # aoi we want to tsv (take this out)
         aoi = fiona.open(self.source)
