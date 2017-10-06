@@ -1,5 +1,5 @@
 import argparse
-
+import multiprocessing
 
 from utilities.layer import Layer
 from utilities import util
@@ -20,11 +20,16 @@ def main():
 
     # intersect with Hansen to figure out what tiles we have
     l.build_tile_list()
+    
+    # multithread the clipping
+   
+    count = multiprocessing.cpu_count()
+    pool = multiprocessing.Pool(processes=1)
 
-    # interate over the tile list (multi thread)
-    for t in l.tile_list():
+    pool.map(util.intersect_with_gadm28, l.tile_list)
+        
+    #l.upload_to_s3()
 
-        # download corresponding gadm28 tile + intersect
-        t.intersect_gadm28()
-
-    l.upload_to_s3()
+    
+if __name__ == '__main__':
+    main()
