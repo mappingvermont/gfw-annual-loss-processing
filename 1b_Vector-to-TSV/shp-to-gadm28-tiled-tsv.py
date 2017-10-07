@@ -22,9 +22,8 @@ def main():
     l.build_tile_list()
     
     # multithread the clipping
-   
-    count = multiprocessing.cpu_count()
-    pool = multiprocessing.Pool(processes=1)
+    mp_count = multiprocessing.cpu_count() - 1
+    pool = multiprocessing.Pool(processes=mp_count)
 
     pool.map(util.postgis_intersect, l.tile_list)
         

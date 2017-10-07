@@ -1,10 +1,6 @@
-import subprocess
-from osgeo import ogr
 import os
+import subprocess
 import psycopg2
-
-conn = psycopg2.connect("host=localhost dbname=gis user=gis password=gis")
-cursor = conn.cursor()
 
 
 def download_hansen_footprint():
@@ -19,130 +15,67 @@ def find_tile_overlap(layer_a, layer_b):
 
     # looks at the s3 directory to figure out what tiles both "layers" have in common based on tile id strings
 
+def export(table_name, tile):
 
-def intersect_layers(layer_a, layer_b):
+    shp_dir = os.path.join(tile.out_dir, 'shp')
 
-    # maybe create a new layer called layer_c with it's own output directory?
+    if not os.path.exists(shp_dir):
+        os.mkdir(shp_dir)
 
-    # this should be multithreaded somehow too
-    for tile_id in layer_a.tile_list:
+    shp_filename = tile.tile_id + '.shp'
+    to_shp_cmd = ['pgsql2shp', 'charlie', table_name.lower(), '-f', shp_filename]
+    print to_shp_cmd
 
-        print 'intersecting tile id {} for {} and {}'.format(tile_id, layer_a.source, layer_b.source)
+    # for some reason can't specify a full output path, just a filename
+    # to choose dir, set it to CWD
+    subprocess.check_call(to_shp_cmd, cwd=shp_dir)
 
-        # layer_a and layer_b have the same tile list
-        # write VRT so that it can deal with the TSV format that the data is in currently
-    '''<OGRVRTDataSource>
-        <OGRVRTLayer name="layer_a">
-            <SrcDataSource>{0}.tsv</SrcDataSource>
-            <SrcLayer>{0}</SrcLayer>
-            <GeometryType>wkbPolygon</GeometryType>
-            <GeometryField encoding="WKT" field='field_1'/>
-        </OGRVRTLayer>
-        <OGRVRTLayer name="layer_b">
-            <SrcDataSource>{0}.tsv</SrcDataSource>
-            <SrcLayer>{0}</SrcLayer>
-            <GeometryType>wkbPolygon</GeometryType>
-            <GeometryField encoding="WKT" field='field_1'/>
-        </OGRVRTLayer>
-        </OGRVRTDataSource>'''
+    out_shp = os.path.join(shp_dir, table_name.lower() + '.shp')
+    out_geojson = os.path.join(tile.out_dir, tile.tile_id + '.geojson')
 
-        # once you have that for both, do ST_Union
-        # ogr2ogr out_path.tsv data.vrt -dialect sqlite
-        # -sql "SELECT ST_Union(a.geom, b.geom), <unique field name>, a.iso, a.adm1, a.adm2 FROM layer_a a, layer_b b"
+    # this will ultimately be a TSV, using geojson for now to QC
+    to_geojson_cmd = ['ogr2ogr', '-f', 'GeoJSON', out_geojson, out_shp]
+    print to_geojson_cmd
 
-def run_subprocess(cmd):
-
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    subprocess_list = []
-
-    # Read from STDOUT and raise an error if we parse one from the output
-    for line in iter(p.stdout.readline, b''):
-
-        if 'id (String) =' in line:
-            subprocess_list.append(line.split("=")[-1:][0].strip())
-
-    print '\n'.join(['-'*30] + subprocess_list + ['-'*30])
-
-    return subprocess_list
-
-    
-def get_extent(inShapefile):
-    
-    # Get a Layer's Extent
-
-    inDriver = ogr.GetDriverByName("ESRI Shapefile")
-    inDataSource = inDriver.Open(inShapefile, 0)
-    inLayer = inDataSource.GetLayer()
-    extent = inLayer.GetExtent()
-
-    llx = str(extent[0])
-    urx = str(extent[1])
-    lly = str(extent[2])
-    ury = str(extent[3])
-    
-    ulx = '17.5933497022' # xmin, llx
-    lry = '-1.49411937225'#  ymin, lly
-    lrx = '21.2033510458' # xmax, urx
-    uly = '1.43291359209' # ymax, ury
-    return llx, urx, lly, ury
-    
-    
-def make_vrt(geom_a, geom_b):
-    # make vrt:
-    tiles = geom_a
-    tiles_layer = os.path.basename(tiles).split(".")[0]
-    layer_name = os.path.basename(geom_b).split(".")[0]
-
-    vrt_text = '''<OGRVRTDataSource>
-        <OGRVRTLayer name="{0}">
-        <SrcDataSource>{1}</SrcDataSource>
-        <SrcLayer>{0}</SrcLayer>
-        </OGRVRTLayer>
-        <OGRVRTLayer name="{2}">
-        <SrcDataSource>{3}</SrcDataSource>
-        <SrcLayer>{2}</SrcLayer>
-        </OGRVRTLayer>
-        </OGRVRTDataSource>'''.format(layer_name, geom_b, tiles_layer, tiles)
-
-    the_vrt = 'data.vrt'
-    with open(the_vrt, 'w') as thefile:
-        thefile.write(vrt_text)
-        
-    return the_vrt
-        
-        
-        
-def intersect_with_gadm28(tile):
-    the_vrt = make_vrt(r'/home/ubuntu/adm2_final.shp', tile.dataset)
-    # use ogr to intersect gadm and geometry and limit to the extent of the bbox
-    groupby_columns = ['ISO', 'ID_1', 'ID_2']
-    groupby_columns = ", ".join(groupby_columns)
-    
-    #sql = 'SELECT ST_Intersection(A.geometry, B.geometry) AS geometry, {0} from adm2_final a, {0} b WHERE ST_INTERSECTS(a.geometry, b.geometry)'.format(groupby_columns, tile.dataset_name)
-    sql = 'SELECT ST_Intersection(A.geometry, B.geometry) AS geometry from adm2_final a, {0} b WHERE ST_INTERSECTS(a.geometry, b.geometry)'.format(tile.dataset_name)
-    bbox = [str(x) for x in tile.bbox]
-    cmd = ['ogr2ogr', '-sql', sql, '-dialect', 'SQLITE', tile.output_file, the_vrt, '-clipsrc'] + bbox
-    print cmd
-
-    #cmd = ['psql', 'postgresql://gis:gis@localhost/gis', '-c', "SELECT ST_Intersection(a.geom, b.geom) AS geometry INTO out FROM adm2_final a, export_small b WHERE ST_INTERSECTS(a.geom, b.geom)"]
-    subprocess.check_call(cmd)
-    # download the correct gadm28 tile
-    # write VRT so it reads gadm28 TSV correctly
-    # intersect
+    subprocess.check_call(to_geojson_cmd)
 
 def postgis_intersect(tile):
+
+    # conn = psycopg2.connect("host=localhost dbname=gis user=gis password=gis")
+    conn = psycopg2.connect("host=localhost dbname=charlie user=charlie password=charlie")
+    cursor = conn.cursor()
+
     groupby_columns = ['ISO', 'ID_1', 'ID_2']
     groupby_columns = ", ".join(groupby_columns)
     bbox = ', '.join([str(x) for x in tile.bbox])
 
-    sql = ('SELECT ST_Intersection(c.geom, b.geom) as geom  '
-           'FROM (SELECT ST_Intersection(a.geom, bbox.geom) as geom '
-           '      FROM adm2_final a '
-           '      JOIN (select ST_MakeEnvelope({bbox}) as geom) bbox '
-           '      ON st_intersects(a.geom, bbox.geom)) AS c, '
-           '{in_data} b '
-           'WHERE ST_Intersects(c.geom, b.geom)'.format(fields=groupby_columns, in_data=tile.dataset_name, bbox=bbox))
+    table_name = '{}_{}'.format(tile.dataset_name, tile.tile_id)
 
+
+    sql = ("CREATE TABLE {table_name} AS "
+           "SELECT {fields}, ST_MakeValid(ST_Union(ST_Intersection(ST_MakeValid(c.geom), ST_MakeValid(b.geom)))) as geom "
+           "FROM (SELECT {fields}, ST_MakeValid(ST_Union(ST_MakeValid(ST_Intersection(a.geom, bbox.geom)))) as geom "
+           "      FROM adm2_final a "
+           "      JOIN (select ST_MakeEnvelope({bbox}) as geom) bbox "
+           "      ON ST_Intersects(a.geom, bbox.geom) "
+           "      GROUP BY {fields}) AS c, "
+           "{in_data} b "
+           "WHERE ST_Intersects(c.geom, b.geom) AND ST_GeometryType(c.geom) IN ('ST_Polygon', 'ST_MultiPolygon')"
+           "GROUP BY {fields} ".format(fields=groupby_columns, in_data=tile.dataset_name, bbox=bbox, table_name=table_name))
     print sql
 
     cursor.execute(sql)
+    conn.commit()
+
+    # source: https://stackoverflow.com/questions/4138734/
+    check_table_sql = cursor.execute('SELECT count(*) FROM(SELECT 1 FROM {} LIMIT 1) AS t'.format(table_name))
+
+    if cursor.fetchone()[0]:
+        export(table_name, tile)
+
+    cursor.execute('DROP TABLE {}'.format(table_name))
+    conn.commit()
+
+    conn.close()
+
+

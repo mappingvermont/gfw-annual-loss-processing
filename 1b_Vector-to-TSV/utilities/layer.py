@@ -36,21 +36,23 @@ class Layer(object):
         print 'checking extent of input geometry {}'.format(self.source)
         
         # shapefile of tiles used to tsv aoi
-        tiles = fiona.open(os.path.join('grid', 'footprint_1degree.shp'), 'r')
+        # tiles = fiona.open(os.path.join('grid', 'footprint_1degree.shp'), 'r')
+        tiles = fiona.open(os.path.join('grid', 'lossdata_footprint.geojson'), 'r')
 
         # aoi we want to tsv (take this out)
         aoi = fiona.open(self.source)
     
         # select tiles that are inside of the bounding box of the aoi
-        tiles_in_aoi = tiles.filter(bbox = (aoi.bounds))
+        tiles_in_aoi = tiles.filter(bbox=(aoi.bounds))
 
         for feat in tiles_in_aoi:
             # get the bounding box of the 1deg tile
             bbox = shape(feat['geometry']).bounds 
             
             # get the tile id- used for naming
-            tile_id = feat['properties']['ulx_uly']
-            
+            # tile_id = feat['properties']['ulx_uly']
+            tile_id = feat['properties']['id']
+
             # build the tile object
             t = Tile(self.source, tile_id, bbox, self.layer_dir)
 

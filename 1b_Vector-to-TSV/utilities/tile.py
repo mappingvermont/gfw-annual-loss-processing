@@ -1,7 +1,5 @@
 import os
-import subprocess
 
-import util
 
 class Tile(object):
 
