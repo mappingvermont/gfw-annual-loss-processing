@@ -49,19 +49,19 @@ def postgis_intersect(tile):
     groupby_columns = ", ".join(groupby_columns)
     bbox = ', '.join([str(x) for x in tile.bbox])
 
-    table_name = '{}_{}'.format(tile.dataset_name, tile.tile_id)
-
+#    table_name = '{}_{}'.format(tile.dataset_name, tile.tile_id)
+    table_name = '{}_{}'.format(tile.dataset_name, tile.tile_id).replace('-','x')
 
     sql = ("CREATE TABLE {table_name} AS "
-           "SELECT {fields}, ST_MakeValid(ST_Union(ST_Intersection(ST_MakeValid(c.geom), ST_MakeValid(b.geom)))) as geom "
-           "FROM (SELECT {fields}, ST_MakeValid(ST_Union(ST_MakeValid(ST_Intersection(a.geom, bbox.geom)))) as geom "
-           "      FROM adm2_final a "
-           "      JOIN (select ST_MakeEnvelope({bbox}) as geom) bbox "
-           "      ON ST_Intersects(a.geom, bbox.geom) "
-           "      GROUP BY {fields}) AS c, "
-           "{in_data} b "
-           "WHERE ST_Intersects(c.geom, b.geom) AND ST_GeometryType(c.geom) IN ('ST_Polygon', 'ST_MultiPolygon')"
-           "GROUP BY {fields} ".format(fields=groupby_columns, in_data=tile.dataset_name, bbox=bbox, table_name=table_name))
+           "SELECT {fields}, ST_MakeValid(ST_Union(ST_Intersection(c.geom, ST_MakeValid(b.geom)))) as geom "
+            "FROM adm2_final b, "
+                "(SELECT ST_MakeValid(ST_Union(ST_Intersection(ST_MakeValid(a.geom), bbox.geom))) as geom "
+                " FROM {in_data} a "
+                " JOIN (select ST_MakeEnvelope(145.0, -38.0, 146, -39.0) as geom) bbox "
+                " ON ST_Intersects(ST_MakeValid(a.geom), bbox.geom)) AS c "
+            "WHERE ST_Intersects(c.geom, ST_MakeValid(b.geom)) AND "
+            "ST_GeometryType(c.geom) IN ('ST_Polygon', 'ST_MultiPolygon') "
+            "GROUP BY ISO, ID_1, ID_2")
     print sql
 
     cursor.execute(sql)
