@@ -53,19 +53,18 @@ def clip(table_name, tile, creds):
         os.mkdir(clip_dir)
 
     clip_tablename = table_name + '_clip'
+
     conn_str = 'PG:user={} password={} dbname={} host={}'.format(creds['user'], creds['password'], creds['dbname'], creds['host'])
 
     bbox_list = [str(x) for x in tile.bbox]
 
     col_str = ', '.join([boundary_field_to_sql(field) for field in tile.col_list])
-    print col_str
-#    col_str = '{} AS boundary_field1, {} AS boundary_field2'.format(*tile.col_list)
 
     #TODO fix this so that each tile knows if it needs to save any values (plantation name/type or wpdapid etc)
 
     # ogr2ogr -f PostgreSQL PG:"user=charlie password=charlie dbname=charlie" ~/Desktop/data/wdpa_protected_areas.shp -clipsrc 145 -39 146 -38 -nln wdpa_clip
     cmd = ['ogr2ogr', '-f', 'PostgreSQL', conn_str, tile.dataset, '-nln', clip_tablename, '-nlt', 'PROMOTE_TO_MULTI',
-           '-sql', "SELECT '{0}', {1} FROM {0}".format(tile.dataset_name, col_str), '-lco', 'geometry_name=geom',
+           '-sql', "SELECT '{0}', {1} FROM {0}".format(tile.dataset_name, col_str), '-lco', 'geometry_name=geom', '-overwrite',
             '-s_srs', 'EPSG:4326', '-t_srs', 'EPSG:4326', '-clipsrc'] + bbox_list
 
     print cmd
@@ -93,14 +92,14 @@ def postgis_intersect(tile):
     # conn = psycopg2.connect("host=localhost dbname=gis user=gis password=gis")
     creds = {'host': 'localhost', 'password': 'gis', 'dbname': 'gis', 'user': 'gis'}
 
+    conn = psycopg2.connect(**creds)
+    cursor = conn.cursor()
+
     # table_name = '{}_{}'.format(tile.dataset_name, tile.tile_id)
     table_name = '{}_{}'.format(tile.dataset_name, tile.tile_id).replace('-', 'x')
 
     # run ogr2ogr first to clip the tile
     clip_table = clip(table_name, tile, creds)
-
-    conn = psycopg2.connect(**creds)
-    cursor = conn.cursor()
 
     if table_has_rows(cursor, clip_table):
 
@@ -109,7 +108,7 @@ def postgis_intersect(tile):
         print groupby_columns
 
         sql = ("CREATE TABLE {table_name} AS "
-               "SELECT {fields}, (ST_Dump(ST_MakeValid(ST_Union(ST_Intersection(c.geom, b.geom))))).geom as geom "
+               "SELECT {fields}, (ST_Dump(ST_Union(ST_MakeValid(ST_Intersection(ST_MakeValid(c.geom), b.geom))))).geom as geom "
                "FROM {clip_table} c, adm2_final b "
                "WHERE ST_Intersects(c.geom, b.geom) AND ST_GeometryType(c.geom) IN ('ST_Polygon', 'ST_MultiPolygon') "
                "GROUP BY {fields};".format(table_name=table_name, clip_table=clip_table, fields=groupby_columns))
