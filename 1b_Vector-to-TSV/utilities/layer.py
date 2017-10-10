@@ -36,14 +36,14 @@ class Layer(object):
 
         # if none specified, build dummy list
         if not self.col_list:
-            self.col_list = ['1', '1']
+            self.col_list = ['boundary_field1', 'boundary_field2']
 
         elif len(self.col_list) > 2:
             raise ValueError('Can only save 2 or fewer columns from this dataset')
 
         # if len(col_list) is 0 or 1, fill empty space with dummy value of '1'
-        elif len(self.col_list) < 2:
-            self.col_list = self.col_list + ['1'] * (2 - len(self.col_list))
+        elif len(self.col_list) == 1:
+            self.col_list += ['boundary_field2']
 
     def build_tile_list(self):
 
@@ -52,7 +52,7 @@ class Layer(object):
         
         # shapefile of tiles used to tsv aoi
         # tiles = fiona.open(os.path.join('grid', 'footprint_1degree.shp'), 'r')
-        tiles = fiona.open(os.path.join('grid', 'lossdata_footprint.geojson'), 'r')
+        tiles = fiona.open(os.path.join('grid', 'lossdata_footprint_filter.geojson'), 'r')
 
         # aoi we want to tsv (take this out)
         aoi = fiona.open(self.source)
@@ -66,7 +66,7 @@ class Layer(object):
             
             # get the tile id- used for naming
             # tile_id = feat['properties']['ulx_uly']
-            tile_id = feat['properties']['id']
+            tile_id = feat['properties']['ID']
 
             # build the tile object
             t = Tile(self.source, self.col_list, tile_id, bbox, self.layer_dir)

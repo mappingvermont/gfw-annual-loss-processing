@@ -18,10 +18,10 @@ def main():
 
     # intersect with Hansen to figure out what tiles we have
     l.build_tile_list()
-    
+
     # multithread the clipping
     mp_count = multiprocessing.cpu_count() - 1
-    pool = multiprocessing.Pool(processes=1)
+    pool = multiprocessing.Pool(processes=mp_count)
 
     pool.map(util.postgis_intersect, l.tile_list)
         
