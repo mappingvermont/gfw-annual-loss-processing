@@ -3,9 +3,10 @@ import os
 
 class Tile(object):
 
-    def __init__(self, dataset, tile_id, bbox, out_dir):
+    def __init__(self, dataset, col_list, tile_id, bbox, out_dir):
 
         self.tile_id = tile_id
+        self.col_list = col_list
         self.dataset = dataset
         self.bbox = bbox
         self.out_dir = out_dir

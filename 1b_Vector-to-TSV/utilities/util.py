@@ -3,17 +3,12 @@ import subprocess
 import psycopg2
 
 
-def download_hansen_footprint():
-
-    print 'downloading hansen footprint to data folder'
-    # hansen footprint source:
-    # s3://gfw2-data/alerts-tsv/gis_source/lossdata_footprint.geojson
-
 def find_tile_overlap(layer_a, layer_b):
 
     print 'finding tile overlap'
 
     # looks at the s3 directory to figure out what tiles both "layers" have in common based on tile id strings
+
 
 def export(table_name, tile):
 
@@ -39,41 +34,83 @@ def export(table_name, tile):
 
     subprocess.check_call(to_geojson_cmd)
 
+
+def clip(table_name, tile, creds):
+
+    clip_dir = os.path.join(tile.out_dir, 'clip')
+
+    if not os.path.exists(clip_dir):
+        os.mkdir(clip_dir)
+
+    clip_tablename = table_name + '_clip'
+    conn_str = 'PG:user={} password={} dbname={}'.format(creds['user'], creds['password'], creds['dbname'])
+
+    bbox_list = [str(x) for x in tile.bbox]
+    col_list = ', '.join(tile.col_list)
+
+    #TODO fix this so that each tile knows if it needs to save any values (plantation name/type or wpdapid etc)
+
+    # ogr2ogr -f PostgreSQL PG:"user=charlie password=charlie dbname=charlie" ~/Desktop/data/wdpa_protected_areas.shp -clipsrc 145 -39 146 -38 -nln wdpa_clip
+    cmd = ['ogr2ogr', '-f', 'PostgreSQL', conn_str, tile.dataset, '-nln', clip_tablename, '-nlt', 'PROMOTE_TO_MULTI',
+           '-sql', "SELECT '{0}', {1} FROM {0}".format(tile.dataset_name, col_list), '-lco', 'geometry_name=geom',
+            '-s_srs', 'EPSG:4326', '-t_srs', 'EPSG:4326', '-clipsrc'] + bbox_list
+
+    print cmd
+
+    subprocess.check_call(cmd)
+
+    return clip_tablename
+
+
+def table_has_rows(cursor, table_name):
+
+    has_rows = False
+
+    # source: https://stackoverflow.com/questions/4138734/
+    cursor.execute('SELECT count(*) FROM (SELECT 1 FROM {} LIMIT 1) AS t'.format(table_name))
+
+    if cursor.fetchone()[0]:
+        has_rows = True
+
+    return has_rows
+
+
 def postgis_intersect(tile):
 
     # conn = psycopg2.connect("host=localhost dbname=gis user=gis password=gis")
-    conn = psycopg2.connect("host=localhost dbname=charlie user=charlie password=charlie")
+    creds = {'host': 'localhost', 'password': 'charlie', 'dbname': 'charlie', 'user': 'charlie'}
+
+    # table_name = '{}_{}'.format(tile.dataset_name, tile.tile_id)
+    table_name = '{}_{}'.format(tile.dataset_name, tile.tile_id).replace('-', 'x')
+
+    # run ogr2ogr first to clip the tile
+    clip_table = clip(table_name, tile, creds)
+
+    conn = psycopg2.connect(**creds)
     cursor = conn.cursor()
 
-    groupby_columns = ['ISO', 'ID_1', 'ID_2']
-    groupby_columns = ", ".join(groupby_columns)
-    bbox = ', '.join([str(x) for x in tile.bbox])
+    if table_has_rows(cursor, clip_table):
 
-#    table_name = '{}_{}'.format(tile.dataset_name, tile.tile_id)
-    table_name = '{}_{}'.format(tile.dataset_name, tile.tile_id).replace('-','x')
+        admin2_columns = ['ISO', 'ID_1', 'ID_2']
+        groupby_columns = ", ".join(admin2_columns + tile.col_list)
 
-    sql = ("CREATE TABLE {table_name} AS "
-           "SELECT {fields}, ST_MakeValid(ST_Union(ST_Intersection(c.geom, ST_MakeValid(b.geom)))) as geom "
-            "FROM adm2_final b, "
-                "(SELECT ST_MakeValid(ST_Union(ST_Intersection(ST_MakeValid(a.geom), bbox.geom))) as geom "
-                " FROM {in_data} a "
-                " JOIN (select ST_MakeEnvelope(145.0, -38.0, 146, -39.0) as geom) bbox "
-                " ON ST_Intersects(ST_MakeValid(a.geom), bbox.geom)) AS c "
-            "WHERE ST_Intersects(c.geom, ST_MakeValid(b.geom)) AND "
-            "ST_GeometryType(c.geom) IN ('ST_Polygon', 'ST_MultiPolygon') "
-            "GROUP BY ISO, ID_1, ID_2")
-    print sql
+        sql = ("CREATE TABLE {table_name} AS "
+               "SELECT {fields}, (ST_Dump(ST_MakeValid(ST_Union(ST_Intersection(c.geom, b.geom))))).geom as geom "
+               "FROM {clip_table} c, adm2_final b "
+               "WHERE ST_Intersects(c.geom, b.geom) AND ST_GeometryType(c.geom) IN ('ST_Polygon', 'ST_MultiPolygon') "
+               "GROUP BY {fields};".format(table_name=table_name, clip_table=clip_table, fields=groupby_columns))
 
-    cursor.execute(sql)
-    conn.commit()
+        print sql
 
-    # source: https://stackoverflow.com/questions/4138734/
-    check_table_sql = cursor.execute('SELECT count(*) FROM(SELECT 1 FROM {} LIMIT 1) AS t'.format(table_name))
+        cursor.execute(sql)
+        conn.commit()
 
-    if cursor.fetchone()[0]:
-        export(table_name, tile)
+        if table_has_rows(cursor, table_name):
+            export(table_name, tile)
 
-    cursor.execute('DROP TABLE {}'.format(table_name))
+        cursor.execute('DROP TABLE {}'.format(table_name))
+
+    cursor.execute('DROP TABLE {}'.format(clip_table))
     conn.commit()
 
     conn.close()

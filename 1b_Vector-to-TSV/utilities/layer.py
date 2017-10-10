@@ -1,19 +1,21 @@
 import os
 import uuid
 import fiona 
-from shapely.geometry import shape, mapping
+from shapely.geometry import shape
 
 from tile import Tile
-import util
 
 class Layer(object):
 
-    def __init__(self, source):
+    def __init__(self, source, col_list):
 
         self.source = source
+        self.col_list = col_list
         self.layer_dir = self.create_out_dir()
 
         self.tile_list = []
+
+        self.build_col_list()
 
         print 'Starting layer class for source {}'.format(self.source)
 
@@ -30,14 +32,27 @@ class Layer(object):
 
         return layer_dir
 
+    def build_col_list(self):
+
+        # if none specified, build dummy list
+        if not self.col_list:
+            self.col_list = ['1', '1']
+
+        elif len(self.col_list) > 2:
+            raise ValueError('Can only save 2 or fewer columns from this dataset')
+
+        # if len(col_list) is 0 or 1, fill empty space with dummy value of '1'
+        elif len(self.col_list) < 2:
+            self.col_list = self.col_list + ['1'] * (2 - len(self.col_list))
+
     def build_tile_list(self):
 
         print 'Building tile list'
         print 'checking extent of input geometry {}'.format(self.source)
         
         # shapefile of tiles used to tsv aoi
-        tiles = fiona.open(os.path.join('grid', 'footprint_1degree.shp'), 'r')
-        #tiles = fiona.open(os.path.join('grid', 'lossdata_footprint.geojson'), 'r')
+        # tiles = fiona.open(os.path.join('grid', 'footprint_1degree.shp'), 'r')
+        tiles = fiona.open(os.path.join('grid', 'lossdata_footprint.geojson'), 'r')
 
         # aoi we want to tsv (take this out)
         aoi = fiona.open(self.source)
@@ -50,16 +65,15 @@ class Layer(object):
             bbox = shape(feat['geometry']).bounds 
             
             # get the tile id- used for naming
-            tile_id = feat['properties']['ulx_uly']
-            #tile_id = feat['properties']['id']
+            # tile_id = feat['properties']['ulx_uly']
+            tile_id = feat['properties']['id']
 
             # build the tile object
-            t = Tile(self.source, tile_id, bbox, self.layer_dir)
+            t = Tile(self.source, self.col_list, tile_id, bbox, self.layer_dir)
 
             # add the tile bbox to the tile_list
             self.tile_list.append(t)
-                   
-        
+
     def upload_to_s3(self):
 
         print 'uploading everything in {} to s3'.format(self.layer_dir)

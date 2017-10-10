@@ -9,21 +9,19 @@ def main():
 
     parser = argparse.ArgumentParser(description='Generate Hansen-tiled TSVs for Hadoop PIP')
     parser.add_argument('--source', '-s', help='the source dataset', required=True)
+    parser.add_argument('--col_list', '-c', help='columns to include in the output TSV from the source', nargs='+')
 
     args = parser.parse_args()
 
-    # create data folder and download Hansen tile geojson
-    util.download_hansen_footprint()
-
     # create layer object
-    l = Layer(args.source)
+    l = Layer(args.source, args.col_list)
 
     # intersect with Hansen to figure out what tiles we have
     l.build_tile_list()
     
     # multithread the clipping
     mp_count = multiprocessing.cpu_count() - 1
-    pool = multiprocessing.Pool(processes=mp_count)
+    pool = multiprocessing.Pool(processes=1)
 
     pool.map(util.postgis_intersect, l.tile_list)
         
