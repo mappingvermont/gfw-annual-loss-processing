@@ -69,8 +69,3 @@ def table_has_rows(cursor, table_name):
         has_rows = True
 
     return has_rows
-
-
-
-
-

@@ -16,8 +16,7 @@ def load():
         print 'GADM 28 data already in PostGIS'
 
     else:
-        # gadm28_shp = download_gadm28()
-        gadm28_shp = '/tmp/adm2_final.shp'
+        gadm28_shp = download_gadm28()
 
         table_name = insert_into_postgis(creds, gadm28_shp)
 
@@ -66,7 +65,7 @@ def download_gadm28():
     unzip_cmd = ['unzip', out_file]
     subprocess.check_call(unzip_cmd, cwd=out_dir)
 
-    return os.path.join(os.path.splitext(out_file)[0] + '.shp')
+    return os.path.join(out_dir + 'adm2_final.shp')
 
 
 def check_table_exists(cursor, table_name):

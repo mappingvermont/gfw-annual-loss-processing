@@ -1,4 +1,5 @@
 import argparse
+import logging
 import multiprocessing
 from Queue import Queue
 from threading import Thread
@@ -14,6 +15,8 @@ def main():
     parser.add_argument('--col_list', '-c', help='columns to include in the output TSV from the source', nargs='+')
 
     args = parser.parse_args()
+
+    logging.basicConfig(filename='output.log',level=logging.DEBUG)
 
     # create queue
     q = Queue()

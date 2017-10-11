@@ -1,6 +1,7 @@
 import os
 import subprocess
 import psycopg2
+import logging
 
 import util
 
@@ -57,20 +58,29 @@ def postgis_intersect(q):
             print groupby_columns
 
             sql = ("CREATE TABLE {table_name} AS "
-                   "SELECT {fields}, (ST_Dump(ST_Union(ST_MakeValid(ST_Intersection(ST_MakeValid(c.geom), b.geom))))).geom as geom "
+                   "SELECT {fields}, (ST_Dump(ST_Union(ST_Buffer(ST_MakeValid(ST_Intersection(ST_MakeValid(c.geom), b.geom)), 0.0000001)))).geom as geom "
                    "FROM {clip_table} c, adm2_final b "
                    "WHERE ST_Intersects(c.geom, b.geom) AND ST_GeometryType(c.geom) IN ('ST_Polygon', 'ST_MultiPolygon') "
                    "GROUP BY {fields};".format(table_name=table_name, clip_table=clip_table, fields=groupby_columns))
 
             print sql
 
-            cursor.execute(sql)
-            conn.commit()
+            valid_intersect = True
 
-            if util.table_has_rows(cursor, table_name):
-                util.export(table_name, tile, creds)
+            try:
+                cursor.execute(sql)
+                logging.info('Intersect for {} successful'.format(table_name))
+            except Exception, e:
+                valid_intersect = False
+                logging.error('Error {} in sql statement {}'.format(sql, e))
 
-            cursor.execute('DROP TABLE {}'.format(table_name))
+            if valid_intersect:
+                conn.commit()
+
+                if util.table_has_rows(cursor, table_name):
+                    util.export(table_name, tile, creds)
+
+                cursor.execute('DROP TABLE {}'.format(table_name))
 
         cursor.execute('DROP TABLE {}'.format(clip_table))
         conn.commit()
