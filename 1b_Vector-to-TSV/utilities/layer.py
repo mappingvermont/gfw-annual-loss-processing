@@ -5,6 +5,7 @@ from shapely.geometry import shape
 
 from tile import Tile
 
+
 class Layer(object):
 
     def __init__(self, source, col_list):
@@ -45,7 +46,7 @@ class Layer(object):
         elif len(self.col_list) == 1:
             self.col_list += ['boundary_field2']
 
-    def build_tile_list(self):
+    def build_tile_list(self, q):
 
         print 'Building tile list'
         print 'checking extent of input geometry {}'.format(self.source)
@@ -73,6 +74,9 @@ class Layer(object):
 
             # add the tile bbox to the tile_list
             self.tile_list.append(t)
+
+            # add tile to the q
+            q.put(t)
 
     def upload_to_s3(self):
 

@@ -1,8 +1,10 @@
 import argparse
 import multiprocessing
+from Queue import Queue
+from threading import Thread
 
 from utilities.layer import Layer
-from utilities import util
+from utilities import geop, load_gadm28
 
 
 def main():
@@ -13,19 +15,30 @@ def main():
 
     args = parser.parse_args()
 
+    # create queue
+    q = Queue()
+
     # create layer object
     l = Layer(args.source, args.col_list)
 
-    # intersect with Hansen to figure out what tiles we have
-    l.build_tile_list()
+    # load gadm28 into postGIS if it doesn't exist already
+    load_gadm28.load()
 
-    # multithread the clipping
+    # intersect with tile footprint and add tiles to queue
+    l.build_tile_list(q)
+
+    # start our threads
     mp_count = multiprocessing.cpu_count() - 1
-    pool = multiprocessing.Pool(processes=mp_count)
 
-    pool.map(util.postgis_intersect, l.tile_list)
-        
-    #l.upload_to_s3()
+    for i in range(mp_count):
+        worker = Thread(target=geop.postgis_intersect, args=(q,))
+        worker.setDaemon(True)
+        worker.start()
+
+    # process all jobs in the queue
+    q.join()
+
+    l.upload_to_s3()
 
     
 if __name__ == '__main__':
