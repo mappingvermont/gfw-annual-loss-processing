@@ -3,22 +3,27 @@ import os
 
 class Tile(object):
 
-    def __init__(self, dataset, col_list, tile_id, bbox, out_dir):
+    def __init__(self, dataset, col_list, tile_id, bbox, postgis_table=None):
 
-        self.tile_id = tile_id
-        self.col_list = col_list
         self.dataset = dataset
+        self.col_list = col_list
+        self.tile_id = tile_id
         self.bbox = bbox
-        self.out_dir = out_dir
-        self.dataset_name = os.path.splitext(os.path.basename(self.dataset))[0]
-        
-        if os.name == 'nt':
-            ext = 'shp'
-        else:
-            ext = 'tsv'
-        output_name = '{0}__{1}.{2}'.format(self.dataset_name, tile_id, ext)
+        self.postgis_table = postgis_table
 
-        self.output_file = os.path.join(out_dir, output_name)
+        if self.dataset:
+            self.dataset_name = os.path.splitext(os.path.basename(self.dataset))[0]
+        else:
+            self.dataset_name = None
+
+        
+        # if os.name == 'nt':
+        #     ext = 'shp'
+        # else:
+        #     ext = 'tsv'
+        # output_name = '{0}__{1}.{2}'.format(self.dataset_name, tile_id, ext)
+
+        # self.output_file = os.path.join(out_dir, output_name)
 
         #print 'Creating tile {} for geometry {}'.format(self.tile_id, self.dataset)
 

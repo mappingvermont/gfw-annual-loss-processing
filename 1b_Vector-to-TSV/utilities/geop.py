@@ -4,64 +4,63 @@ import psycopg2
 import logging
 
 import util
+from tile import Tile
 
 
-def clip(table_name, tile, creds):
+def clip(q):
 
-    clip_dir = os.path.join(tile.out_dir, 'clip')
+    while True:
+        tile = q.get()
+        tile.postgis_table = '_'.join([tile.dataset_name, tile.tile_id,  'clip'])
 
-    if not os.path.exists(clip_dir):
-        os.mkdir(clip_dir)
+        creds = util.get_creds()
+        conn_str = 'PG:user={user} password={password} dbname={dbname} host={host}'.format(**creds)
 
-    clip_tablename = table_name + '_clip'
+        bbox_list = [str(x) for x in tile.bbox]
 
-    conn_str = 'PG:user={user} password={password} dbname={dbname} host={host}'.format(**creds)
+        col_str = ', '.join([util.boundary_field_to_sql(field) for field in tile.col_list])
 
-    bbox_list = [str(x) for x in tile.bbox]
+        ogr2ogr_layer_name = os.path.splitext(os.path.basename(tile.dataset))[0]
 
-    col_str = ', '.join([util.boundary_field_to_sql(field) for field in tile.col_list])
+        cmd = ['ogr2ogr', '-f', 'PostgreSQL', conn_str, tile.dataset, '-nln', tile.postgis_table, '-nlt', 'PROMOTE_TO_MULTI',
+               '-sql', "SELECT '{0}', {1} FROM {0}".format(ogr2ogr_layer_name, col_str), '-lco', 'geometry_name=geom',
+               '-overwrite', '-s_srs', 'EPSG:4326', '-t_srs', 'EPSG:4326', '-clipsrc'] + bbox_list
 
-    # ogr2ogr -f PostgreSQL PG:"user=charlie password=charlie dbname=charlie" ~/Desktop/data/wdpa_protected_areas.shp
-    # -clipsrc 145 -39 146 -38 -nln wdpa_clip
-    cmd = ['ogr2ogr', '-f', 'PostgreSQL', conn_str, tile.dataset, '-nln', clip_tablename, '-nlt', 'PROMOTE_TO_MULTI',
-           '-sql', "SELECT '{0}', {1} FROM {0}".format(tile.dataset_name, col_str), '-lco', 'geometry_name=geom',
-           '-overwrite', '-s_srs', 'EPSG:4326', '-t_srs', 'EPSG:4326', '-clipsrc'] + bbox_list
+        print cmd
 
-    print cmd
+        subprocess.check_call(cmd)
 
-    subprocess.check_call(cmd)
-
-    return clip_tablename
+        q.task_done()
 
 
-def postgis_intersect(q):
+def intersect_layers(q):
 
     # source: https://pymotw.com/2/Queue/
     while True:
-        tile = q.get()
+        output_layer, tile1, tile2 = q.get()
 
         creds = util.get_creds()
 
         conn = psycopg2.connect(**creds)
         cursor = conn.cursor()
 
-        # table_name = '{}_{}'.format(tile.dataset_name, tile.tile_id)
-        table_name = '{}_{}'.format(tile.dataset_name, tile.tile_id).replace('-', 'x')
+        table_name = '{}_{}_{}'.format(tile1.postgis_table, tile2.postgis_table, tile1.tile_id)
 
-        # run ogr2ogr first to clip the tile
-        clip_table = clip(table_name, tile, creds)
 
-        if util.table_has_rows(cursor, clip_table):
+        if util.table_has_rows(cursor, tile1.postgis_table):
 
             admin2_columns = ['ISO', 'ID_1', 'ID_2']
-            groupby_columns = ", ".join(admin2_columns + tile.col_list)
+            groupby_columns = ", ".join(admin2_columns + tile1.col_list + tile2.col_list)
             print groupby_columns
 
             sql = ("CREATE TABLE {table_name} AS "
-                   "SELECT {fields}, (ST_Dump(ST_Union(ST_Buffer(ST_MakeValid(ST_Intersection(ST_MakeValid(c.geom), b.geom)), 0.0000001)))).geom as geom "
-                   "FROM {clip_table} c, adm2_final b "
-                   "WHERE ST_Intersects(c.geom, b.geom) AND ST_GeometryType(c.geom) IN ('ST_Polygon', 'ST_MultiPolygon') "
-                   "GROUP BY {fields};".format(table_name=table_name, clip_table=clip_table, fields=groupby_columns))
+                   "SELECT {fields}, (ST_Dump(ST_Union(ST_Buffer(ST_MakeValid(ST_Intersection(ST_MakeValid("
+                   "c.geom), b.geom)), 0.0000001)))).geom as geom "
+                   "FROM {table1} c, {table2} b "
+                   "WHERE ST_Intersects(c.geom, b.geom) AND "
+                   "ST_GeometryType(c.geom) IN ('ST_Polygon', 'ST_MultiPolygon') "
+                   "GROUP BY {fields};".format(table_name=table_name, table1=tile1.postgis_table,
+                                               table2=tile2.postgis_table, fields=groupby_columns))
 
             print sql
 
@@ -78,11 +77,10 @@ def postgis_intersect(q):
                 conn.commit()
 
                 if util.table_has_rows(cursor, table_name):
-                    util.export(table_name, tile, creds)
+                    output_tile = Tile(None, None, None, None, table_name)
+                    output_layer.tile_list.append(output_tile)
 
-                cursor.execute('DROP TABLE {}'.format(table_name))
-
-        cursor.execute('DROP TABLE {}'.format(clip_table))
+        cursor.execute('DROP TABLE {}'.format(tile1.postgis_table))
         conn.commit()
 
         conn.close()

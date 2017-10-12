@@ -3,6 +3,8 @@ import psycopg2
 import subprocess
 
 import util
+from layer import Layer
+from tile import Tile
 
 
 def load():
@@ -14,6 +16,7 @@ def load():
 
     if check_table_exists(cursor, 'adm2_final'):
         print 'GADM 28 data already in PostGIS'
+        gadm28_shp = None
 
     else:
         gadm28_shp = download_gadm28()
@@ -25,6 +28,11 @@ def load():
         conn.commit()
 
     conn.close()
+
+    l = Layer('adm2_final', [])
+    l.tile_list = [Tile(l.input_dataset, [], None, None, l.input_dataset)]
+
+    return l
 
 
 def insert_into_postgis(creds, src_shp):
