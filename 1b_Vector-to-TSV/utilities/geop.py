@@ -3,8 +3,7 @@ import subprocess
 import psycopg2
 import logging
 
-import util
-from tile import Tile
+import util, tile, layer
 
 
 def clip(q):
@@ -13,18 +12,17 @@ def clip(q):
         tile = q.get()
         tile.postgis_table = '_'.join([tile.dataset_name, tile.tile_id,  'clip'])
 
-        creds = util.get_creds()
-        conn_str = 'PG:user={user} password={password} dbname={dbname} host={host}'.format(**creds)
-
+        conn_str = util.build_ogr_pg_conn()
         bbox_list = [str(x) for x in tile.bbox]
 
         col_str = ', '.join([util.boundary_field_to_sql(field) for field in tile.col_list])
 
         ogr2ogr_layer_name = os.path.splitext(os.path.basename(tile.dataset))[0]
+        sql = "SELECT '{0}', {1} FROM {0}".format(ogr2ogr_layer_name, col_str)
 
-        cmd = ['ogr2ogr', '-f', 'PostgreSQL', conn_str, tile.dataset, '-nln', tile.postgis_table, '-nlt', 'PROMOTE_TO_MULTI',
-               '-sql', "SELECT '{0}', {1} FROM {0}".format(ogr2ogr_layer_name, col_str), '-lco', 'geometry_name=geom',
-               '-overwrite', '-s_srs', 'EPSG:4326', '-t_srs', 'EPSG:4326', '-clipsrc'] + bbox_list
+        cmd = ['ogr2ogr', '-f', 'PostgreSQL', conn_str, tile.dataset, '-nln', tile.postgis_table,
+               '-nlt', 'PROMOTE_TO_MULTI','-sql', sql, '-lco', 'geometry_name=geom', '-overwrite',
+               '-s_srs', 'EPSG:4326', '-t_srs', 'EPSG:4326', '-dim', '2', '-clipsrc'] + bbox_list
 
         print cmd
 
@@ -45,7 +43,6 @@ def intersect_layers(q):
         cursor = conn.cursor()
 
         table_name = '{}_{}_{}'.format(tile1.postgis_table, tile2.postgis_table, tile1.tile_id)
-
 
         if util.table_has_rows(cursor, tile1.postgis_table):
 
@@ -77,7 +74,7 @@ def intersect_layers(q):
                 conn.commit()
 
                 if util.table_has_rows(cursor, table_name):
-                    output_tile = Tile(None, None, None, None, table_name)
+                    output_tile = tile.Tile(None, None, tile1.tile_id, tile1.bbox, table_name)
                     output_layer.tile_list.append(output_tile)
 
         cursor.execute('DROP TABLE {}'.format(tile1.postgis_table))
@@ -86,3 +83,60 @@ def intersect_layers(q):
         conn.close()
 
         q.task_done()
+
+
+def export(layer_dir, output_name, tile, output_format):
+
+    conn_str = util.build_ogr_pg_conn()
+
+    cmd = ['ogr2ogr', '-f']
+    sql = 'SELECT * FROM {}'.format(tile.postgis_table)
+
+    if output_format in ['geojson', 'shp']:
+        output_lkp = {'shp': 'ESRI Shapefile','geojson': 'GeoJSON'}
+        output_str = output_lkp[output_format]
+
+        cmd += [output_str]
+
+        output_path = os.path.join(layer_dir, '{}__{}.{}'.format(output_name, tile.tile_id, output_format))
+        tile.final_output = output_path
+
+    else:
+        cmd += ['CSV', '-lco', 'GEOMETRY=AS_WKT', '-lco', 'GEOMETRY_NAME=geom']
+
+        # for some reason ogr2ogr wants to create a directory and THEN the CSV
+        output_path = os.path.join(layer_dir, '{}'.format(tile.tile_id))
+
+    cmd += [output_path, conn_str, '-sql', sql]
+    print cmd
+
+    subprocess.check_call(cmd)
+
+    if output_format == 'tsv':
+        csv_output = os.path.join(output_path, 'sql_statement.csv')
+        tsv_output = os.path.join(layer_dir, '{}__{}.tsv'.format(output_name, tile.tile_id))
+
+        cmd = ['cat', csv_output, '|', 'tr', '","', '"\\t"', '>', tsv_output]
+        print cmd
+
+        subprocess.check_call(' '.join(cmd), shell=True)
+
+        tile.final_output = tsv_output
+
+    util.drop_table(tile.postgis_table)
+
+
+
+
+def intersect_gadm(source_layer, gadm_layer):
+
+    input_list = []
+
+    output_layer = layer.Layer(None, [])
+
+    for t in source_layer.tile_list:
+        input_list.append((output_layer, t, gadm_layer.tile_list[0]))
+
+    util.exec_multiprocess(intersect_layers, input_list)
+
+    return output_layer

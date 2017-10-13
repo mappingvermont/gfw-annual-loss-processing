@@ -1,7 +1,9 @@
 import os
 import uuid
+import subprocess
 
 from tile import Tile
+import geop
 
 
 class Layer(object):
@@ -46,9 +48,18 @@ class Layer(object):
         elif len(self.col_list) == 1:
             self.col_list += ['boundary_field2']
 
-    def upload_to_s3(self, output_name, output_format, s3_out_dir):
+    def upload_to_s3(self, output_format, s3_out_dir):
 
-        print 'exporting all tiles to output dir, then uploading to s3'.format(self.layer_dir)
+        if output_format == 'tsv':
+
+            print 'uploading {} to {}'.format(self.layer_dir, s3_out_dir)
+            for t in self.tile_list:
+
+                cmd = ['aws', 's3', 'cp', t.final_output, s3_out_dir, '--dryrun']
+                subprocess.check_call(cmd)
+
+        else:
+            print 'Output format is {}, not uploading anything to s3'
 
     def download_s3_tile(self, tile_id):
 
@@ -59,3 +70,9 @@ class Layer(object):
 
         # then append it to this layers tile list
         self.tile_list.append(t)
+
+    def export(self, output_name, output_format):
+
+        for t in self.tile_list:
+            geop.export(self.layer_dir, output_name, t, output_format)
+

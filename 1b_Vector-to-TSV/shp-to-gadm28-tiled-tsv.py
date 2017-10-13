@@ -36,12 +36,11 @@ def main():
     util.exec_multiprocess(geop.clip, source_layer.tile_list)
 
     # intersect all tiles of source layer with gadm28
-    l = util.intersect_gadm(source_layer, gadm28_layer)
+    l = geop.intersect_gadm(source_layer, gadm28_layer)
 
-    # todo -- export this layer
-    print l.tile_list[0].postgis_table
+    l.export(args.output_name, args.output_format)
 
-    l.upload_to_s3(args.output_name, args.output_format, args.s3_out_dir)
+    l.upload_to_s3(args.output_format, args.s3_out_dir)
 
 
 if __name__ == '__main__':

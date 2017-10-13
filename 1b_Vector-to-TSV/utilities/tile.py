@@ -11,23 +11,12 @@ class Tile(object):
         self.bbox = bbox
         self.postgis_table = postgis_table
 
+        self.final_output = None
+
         if self.dataset:
             self.dataset_name = os.path.splitext(os.path.basename(self.dataset))[0]
         else:
             self.dataset_name = None
-
-        
-        # if os.name == 'nt':
-        #     ext = 'shp'
-        # else:
-        #     ext = 'tsv'
-        # output_name = '{0}__{1}.{2}'.format(self.dataset_name, tile_id, ext)
-
-        # self.output_file = os.path.join(out_dir, output_name)
-
-        #print 'Creating tile {} for geometry {}'.format(self.tile_id, self.dataset)
-
-
 
     def create_plain_tile(self):
 

@@ -1,18 +1,16 @@
 import os
-import subprocess
 import multiprocessing
 from threading import Thread
 from Queue import Queue
+import psycopg2
+
 import fiona
 from shapely.geometry import shape
 
-import geop
-from layer import Layer
 from tile import Tile
 
 
 def get_creds():
-
     try:
         creds = {'host': os.environ['PG_HOST'],
                  'user': os.environ['PG_USER'],
@@ -25,38 +23,30 @@ def get_creds():
     return creds
 
 
+def build_ogr_pg_conn():
+    creds = get_creds()
+
+    return 'PG:user={user} password={password} dbname={dbname} host={host}'.format(**creds)
+
+
+def drop_table(tablename):
+
+    creds = get_creds()
+    conn = psycopg2.connect(**creds)
+
+    cursor = conn.cursor()
+    cursor.execute('DROP TABLE {}'.format(tablename))
+
+    conn.commit()
+    conn.close()
+
+
+
 def find_tile_overlap(layer_a, layer_b):
 
     print 'finding tile overlap'
 
     # looks at the s3 directory to figure out what tiles both "layers" have in common based on tile id strings
-
-
-def export(table_name, tile, creds):
-
-    shp_dir = os.path.join(tile.out_dir, 'shp')
-
-    if not os.path.exists(shp_dir):
-        os.mkdir(shp_dir)
-
-    shp_filename = tile.tile_id + '.shp'
-
-    to_shp_cmd = ['pgsql2shp', '-u', creds['user'], '-P', creds['password'], '-h', 'localhost',
-                  creds['dbname'], table_name.lower(), '-f', shp_filename]
-    print to_shp_cmd
-
-    # for some reason can't specify a full output path, just a filename
-    # to choose dir, set it to CWD
-    subprocess.check_call(to_shp_cmd, cwd=shp_dir)
-
-    out_shp = os.path.join(shp_dir, table_name.lower() + '.shp')
-    out_geojson = os.path.join(tile.out_dir, tile.tile_id + '.geojson')
-
-    # this will ultimately be a TSV, using geojson for now to QC
-    to_geojson_cmd = ['ogr2ogr', '-f', 'GeoJSON', out_geojson, out_shp]
-    print to_geojson_cmd
-
-    subprocess.check_call(to_geojson_cmd)
 
 
 def boundary_field_to_sql(field_name):
@@ -100,31 +90,16 @@ def exec_multiprocess(input_func, input_list):
     q.join()
 
 
-def intersect_gadm(source_layer, gadm_layer):
-
-    input_list = []
-
-    output_layer = Layer(None, [])
-
-    for t in source_layer.tile_list:
-        input_list.append((output_layer, t, gadm_layer.tile_list[0]))
-
-    exec_multiprocess(geop.intersect_layers, input_list)
-
-    return output_layer
-
-
 def build_gadm28_tile_list(source_layer, is_test):
 
     print 'Building tile list'
     print 'checking extent of input geometry {}'.format(source_layer.input_dataset)
 
     # shapefile of tiles used to tsv aoi
-    # tiles = fiona.open(os.path.join('grid', 'footprint_1degree.shp'), 'r')
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     tiles = fiona.open(os.path.join(root_dir, 'grid', 'lossdata_footprint_filter.geojson'), 'r')
 
-    # aoi we want to tsv (take this out)
+    # aoi we want to tsv
     aoi = fiona.open(source_layer.input_dataset)
 
     # select tiles that are inside of the bounding box of the aoi
