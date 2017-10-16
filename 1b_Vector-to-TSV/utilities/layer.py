@@ -48,14 +48,22 @@ class Layer(object):
         elif len(self.col_list) == 1:
             self.col_list += ['boundary_field2']
 
-    def upload_to_s3(self, output_format, s3_out_dir):
+    def upload_to_s3(self, output_format, s3_out_dir, is_test):
 
         if output_format == 'tsv':
 
             print 'uploading {} to {}'.format(self.layer_dir, s3_out_dir)
-            for t in self.tile_list:
 
-                cmd = ['aws', 's3', 'cp', t.final_output, s3_out_dir, '--dryrun']
+            # check to make sure this has data
+            out_tsv_list = [x.final_output for x in self.tile_list if os.stat(x.final_output).st_size]
+
+            for out_tsv in out_tsv_list:
+
+                cmd = ['aws', 's3', 'cp', out_tsv, s3_out_dir]
+
+                if is_test:
+                    cmd += ['--dryrun']
+
                 subprocess.check_call(cmd)
 
         else:

@@ -2,6 +2,7 @@ import os
 import subprocess
 import psycopg2
 import logging
+import pandas as pd
 
 import util, tile, layer
 
@@ -101,31 +102,50 @@ def export(layer_dir, output_name, tile, output_format):
         output_path = os.path.join(layer_dir, '{}__{}.{}'.format(output_name, tile.tile_id, output_format))
         tile.final_output = output_path
 
-    else:
-        cmd += ['CSV', '-lco', 'GEOMETRY=AS_WKT', '-lco', 'GEOMETRY_NAME=geom']
-
-        # for some reason ogr2ogr wants to create a directory and THEN the CSV
-        output_path = os.path.join(layer_dir, '{}'.format(tile.tile_id))
-
-    cmd += [output_path, conn_str, '-sql', sql]
-    print cmd
-
-    subprocess.check_call(cmd)
-
-    if output_format == 'tsv':
-        csv_output = os.path.join(output_path, 'sql_statement.csv')
-        tsv_output = os.path.join(layer_dir, '{}__{}.tsv'.format(output_name, tile.tile_id))
-
-        cmd = ['cat', csv_output, '|', 'tr', '","', '"\\t"', '>', tsv_output]
+        cmd += [output_path, conn_str, '-sql', sql]
         print cmd
 
-        subprocess.check_call(' '.join(cmd), shell=True)
+        subprocess.check_call(cmd)
 
-        tile.final_output = tsv_output
+    else:
+        export_tsv(layer_dir, output_name, tile)
 
-    util.drop_table(tile.postgis_table)
+    if tile.postgis_table:
+        util.drop_table(tile.postgis_table)
 
 
+def export_tsv(layer_dir, output_name, tile):
+
+    cmd = ['ogr2ogr', '-f', 'CSV', '-lco', 'GEOMETRY=AS_WKT']
+
+    # for some reason ogr2ogr wants to create a directory and THEN the CSV
+    output_path = os.path.join(layer_dir, '{}'.format(tile.tile_id))
+    cmd += [output_path]
+
+    # if we're exporting already clipped data from PostGIS . . .
+    if tile.postgis_table:
+
+        conn_str = util.build_ogr_pg_conn()
+
+        sql = 'SELECT * FROM {}'.format(tile.postgis_table)
+        cmd += [conn_str, '-sql', sql, '-lco', 'GEOMETRY_NAME=geom']
+
+        csv_output = os.path.join(output_path, 'sql_statement.csv')
+
+    # or if we're clipping an existing TSV
+    else:
+        cmd += [tile.dataset, '-clipsrc'] + [str(x) for x in tile.bbox]
+        csv_output = os.path.join(output_path, 'data.csv')
+
+    print cmd
+    subprocess.check_call(cmd)
+
+    df = pd.read_csv(csv_output)
+
+    tsv_output = os.path.join(layer_dir, '{}__{}.tsv'.format(output_name, tile.tile_id))
+    df.to_csv(tsv_output, sep='\t', header=None, index=False)
+
+    tile.final_output = tsv_output
 
 
 def intersect_gadm(source_layer, gadm_layer):

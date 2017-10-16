@@ -41,7 +41,6 @@ def drop_table(tablename):
     conn.close()
 
 
-
 def find_tile_overlap(layer_a, layer_b):
 
     print 'finding tile overlap'
@@ -114,7 +113,7 @@ def build_gadm28_tile_list(source_layer, is_test):
         tile_id = feat['properties']['ID']
 
         # build the tile object
-        t = Tile(source_layer.input_dataset, source_layer.col_list, tile_id, bbox, source_layer.layer_dir)
+        t = Tile(source_layer.input_dataset, source_layer.col_list, tile_id, bbox)
 
         # add the tile bbox to the tile_list
         source_layer.tile_list.append(t)
