@@ -52,6 +52,7 @@ def tabulate(input_data, args):
         joined_df['emissions_raw'].fillna(0, inplace=True)
 
     print 'grouping by boundary fields, year and thresh'
+
     if args.emissions:
         grouped_df = joined_df.groupby(join_fields)['area_raw', 'emissions_raw'].sum().reset_index()
     else:
@@ -90,10 +91,7 @@ def source_to_df(input_data, args):
     if args.emissions:
         base_fields += ['emissions_raw']
 
-    if args.boundary_fields:
-        boundary_fields = args.boundary_fields
-    else:
-        boundary_fields = ['iso', 'adm1', 'adm2']
+    boundary_fields = ['polyname', 'bound1', 'bound2', 'bound3', 'bound4', 'iso', 'adm1', 'adm2']
 
     print 'Reading df'
     if os.path.isdir(input_data):
@@ -104,12 +102,13 @@ def source_to_df(input_data, args):
     num_cols = len(df.columns)
     expected_num = len(boundary_fields) + len(base_fields)
 
-    if num_cols != expected_num:
-        raise ValueError('Expected {} columns based on the input, found {} instead'.format(expected_num, num_cols))
-    else:
-        col_list = boundary_fields + base_fields
-        df.columns = col_list
-
+    col_list = boundary_fields + base_fields
+    df.columns = col_list
+    
+    # replace Nan values with -9999 so the groupby works
+    for field in ['bound1', 'bound2', 'bound3', 'bound4']:
+        df[field].fillna(-9999, inplace=True)
+        
     df = df.apply(lambda x: pd.to_numeric(x, errors='ignore'))
     
     # catch issue where thresh and year columns are in the wrong order
