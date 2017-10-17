@@ -127,6 +127,8 @@ def export_tsv(layer_dir, output_name, tile):
     output_path = os.path.join(layer_dir, '{}'.format(tile.tile_id))
     cmd += [output_path]
 
+    duplicate_geom_field = False
+
     # if we're exporting already clipped data from PostGIS . . .
     if tile.postgis_table:
 
@@ -142,10 +144,16 @@ def export_tsv(layer_dir, output_name, tile):
         cmd += [tile.dataset, '-clipsrc'] + [str(x) for x in tile.bbox]
         csv_output = os.path.join(output_path, 'data.csv')
 
+        # ogr2ogr duplicates this for some reason
+        duplicate_geom_field = True
+
     print cmd
     subprocess.check_call(cmd)
 
     df = pd.read_csv(csv_output)
+
+    if duplicate_geom_field:
+        del df['field_1']
 
     tsv_output = os.path.join(layer_dir, '{}__{}.tsv'.format(output_name, tile.tile_id))
     df.to_csv(tsv_output, sep='\t', header=None, index=False)
