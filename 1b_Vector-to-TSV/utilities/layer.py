@@ -3,7 +3,7 @@ import uuid
 import subprocess
 
 from tile import Tile
-import geop
+import geop, util
 
 
 class Layer(object):
@@ -81,6 +81,10 @@ class Layer(object):
 
     def export(self, output_name, output_format):
 
+        input_list = []
+
         for t in self.tile_list:
-            geop.export(self.layer_dir, output_name, t, output_format)
+            input_list.append((self.layer_dir, output_name, t, output_format))
+
+        util.exec_multiprocess(geop.export, input_list)
 

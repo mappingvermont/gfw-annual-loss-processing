@@ -77,8 +77,8 @@ def exec_multiprocess(input_func, input_list):
         q.put(i)
 
     # start our threads
-    # mp_count = multiprocessing.cpu_count() - 1
-    mp_count = 1
+    mp_count = multiprocessing.cpu_count() - 1
+    # mp_count = 1
 
     for i in range(mp_count):
         worker = Thread(target=input_func, args=(q,))

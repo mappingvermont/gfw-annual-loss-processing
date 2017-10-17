@@ -86,32 +86,37 @@ def intersect_layers(q):
         q.task_done()
 
 
-def export(layer_dir, output_name, tile, output_format):
+def export(q):
 
-    conn_str = util.build_ogr_pg_conn()
+    while True:
+        layer_dir, output_name, tile, output_format = q.get()
 
-    cmd = ['ogr2ogr', '-f']
-    sql = 'SELECT * FROM {}'.format(tile.postgis_table)
+        conn_str = util.build_ogr_pg_conn()
 
-    if output_format in ['geojson', 'shp']:
-        output_lkp = {'shp': 'ESRI Shapefile','geojson': 'GeoJSON'}
-        output_str = output_lkp[output_format]
+        cmd = ['ogr2ogr', '-f']
+        sql = 'SELECT * FROM {}'.format(tile.postgis_table)
 
-        cmd += [output_str]
+        if output_format in ['geojson', 'shp']:
+            output_lkp = {'shp': 'ESRI Shapefile','geojson': 'GeoJSON'}
+            output_str = output_lkp[output_format]
 
-        output_path = os.path.join(layer_dir, '{}__{}.{}'.format(output_name, tile.tile_id, output_format))
-        tile.final_output = output_path
+            cmd += [output_str]
 
-        cmd += [output_path, conn_str, '-sql', sql]
-        print cmd
+            output_path = os.path.join(layer_dir, '{}__{}.{}'.format(output_name, tile.tile_id, output_format))
+            tile.final_output = output_path
 
-        subprocess.check_call(cmd)
+            cmd += [output_path, conn_str, '-sql', sql]
+            print cmd
 
-    else:
-        export_tsv(layer_dir, output_name, tile)
+            subprocess.check_call(cmd)
 
-    if tile.postgis_table:
-        util.drop_table(tile.postgis_table)
+        else:
+            export_tsv(layer_dir, output_name, tile)
+
+        if tile.postgis_table:
+            util.drop_table(tile.postgis_table)
+
+        q.task_done()
 
 
 def export_tsv(layer_dir, output_name, tile):

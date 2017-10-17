@@ -2,7 +2,7 @@ import argparse
 import logging
 
 from utilities.layer import Layer
-from utilities import util, geop, decode_tsv
+from utilities import util, decode_tsv
 
 
 def main():
@@ -28,10 +28,13 @@ def main():
     # download dataset from s3 and create VRT
     decode_tsv.decode(l)
 
-    # create blueprint for the source dataset in postgis
+    # create blueprint for the source dataset based on Hansen grid
     util.build_gadm28_tile_list(l, args.test)
 
     # export the source TSV to a clipped, tiled TSV
+    # multithreaded given that this is the only process
+    # other exports are already multithreaded because they're attached
+    # to a multithread clip/intersection operation
     l.export(args.output_name, args.output_format)
 
     l.upload_to_s3(args.output_format, args.s3_out_dir, args.test)
