@@ -29,6 +29,31 @@ def build_ogr_pg_conn():
     return 'PG:user={user} password={password} dbname={dbname} host={host}'.format(**creds)
 
 
+def find_admin_columns(cursor, tile1, tile2):
+
+    tile_with_cols = None
+    iso_col_list = ['iso', 'id_1', 'id_2']
+
+    for tile_id, t in zip(('a', 'b'), (tile1, tile2)):
+        cursor.execute("select column_name from information_schema.columns WHERE table_name=%s", (t.postgis_table,))
+        col_names = [row[0] for row in cursor]
+
+        print t.postgis_table
+        print col_names
+
+        # check if iso col list is part of the larger table column list
+        if set(iso_col_list).issubset(set(col_names)):
+            tile_with_cols = tile_id
+
+    if not tile_with_cols:
+        raise ValueError('Neither {} or {} have iso, id_1, id_2 columns'.format(tile1.postgis_table, tile2.postgis_table))
+
+    leading_col_str = ', {}.'.format(tile_with_cols)
+
+    # a.ISO, a.ID_1, a.ID_2
+    return [tile_with_cols + '.' + x for x in iso_col_list]
+
+
 def drop_table(tablename):
 
     creds = get_creds()

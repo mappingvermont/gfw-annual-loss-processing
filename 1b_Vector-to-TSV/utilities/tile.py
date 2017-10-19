@@ -26,3 +26,7 @@ class Tile(object):
         # https://github.com/wri/raster-vector-to-tsv/blob/master/processing/vector/tile_vector.py#L42-L43
 
         print 'creating plain tile {} for {}, extent'.format(self.tile_id, self.dataset, ', '.join(self.bbox))
+
+    def alias_columns(self, tile_alias):
+
+        return [tile_alias + '.' + x for x in self.col_list]

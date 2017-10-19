@@ -14,14 +14,15 @@ def load():
     conn = psycopg2.connect(**creds)
     cursor = conn.cursor()
 
+    boundary_fields = ['boundary_field1', 'boundary_field2']
+
     if check_table_exists(cursor, 'adm2_final'):
         print 'GADM 28 data already in PostGIS'
-        gadm28_shp = None
 
     else:
         gadm28_shp = download_gadm28()
 
-        table_name = insert_into_postgis(creds, gadm28_shp)
+        table_name = insert_into_postgis(creds, gadm28_shp, boundary_fields)
 
         fix_geometry(cursor, table_name)
 
@@ -30,12 +31,12 @@ def load():
     conn.close()
 
     l = Layer('adm2_final', [])
-    l.tile_list = [Tile(l.input_dataset, [], None, None, l.input_dataset)]
+    l.tile_list = [Tile(l.input_dataset, boundary_fields, None, None, l.input_dataset)]
 
     return l
 
 
-def insert_into_postgis(creds, src_shp):
+def insert_into_postgis(creds, src_shp, dummy_fields):
 
     conn_str = 'postgresql://{user}:{password}@{host}'.format(**creds)
 
@@ -45,6 +46,19 @@ def insert_into_postgis(creds, src_shp):
     subprocess.check_call(' '.join(cmd), shell=True)
 
     table_name = os.path.splitext(os.path.basename(src_shp))[0]
+
+    # add dummy column names
+    conn = psycopg2.connect(**creds)
+    cursor = conn.cursor()
+
+    # add these to match schema of other intersects
+    for field_name in dummy_fields:
+        cursor.execute('ALTER TABLE {} ADD COLUMN {} varchar(30)'.format(table_name, field_name))
+        cursor.execute("UPDATE {} SET {} = '1'")
+
+    conn.commit()
+    conn.close()
+
 
     return table_name
 

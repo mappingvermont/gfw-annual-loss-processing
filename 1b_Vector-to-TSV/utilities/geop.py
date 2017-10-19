@@ -47,18 +47,34 @@ def intersect_layers(q):
 
         if util.table_has_rows(cursor, tile1.postgis_table):
 
-            admin2_columns = ['ISO', 'ID_1', 'ID_2']
-            groupby_columns = ", ".join(admin2_columns + tile1.col_list + tile2.col_list)
+            # find which table has ISO/ID_1/ID_2 columns
+            # will return ['a.ISO', 'a.ID_1', 'a._ID_2'] or b., depending on if first or second tile has admin columns
+            admin2_columns = util.find_admin_columns(cursor, tile1, tile2)
+
+            # tile1 and tile2 could have same column names (boundary_field1, boundary_field2)
+            # need to alias them to ensure that they're referenced properly
+            tile1_cols = tile1.alias_columns('a')
+            tile2_cols = tile1.alias_columns('b')
+
+            tile_cols_aliased = []
+
+            # rename boundary fields
+            for i, fieldname in enumerate(tile1_cols + tile2_cols):
+                tile_cols_aliased.append(fieldname + ' AS boundary_field{}'.format(str(i)))
+
+            select_cols = ", ".join(tile_cols_aliased + admin2_columns)
+            groupby_columns = ", ".join(tile1_cols + tile2_cols + admin2_columns)
+
             print groupby_columns
 
             sql = ("CREATE TABLE {table_name} AS "
-                   "SELECT {fields}, (ST_Dump(ST_Union(ST_Buffer(ST_MakeValid(ST_Intersection(ST_MakeValid("
-                   "c.geom), b.geom)), 0.0000001)))).geom as geom "
-                   "FROM {table1} c, {table2} b "
-                   "WHERE ST_Intersects(c.geom, b.geom) AND "
-                   "ST_GeometryType(c.geom) IN ('ST_Polygon', 'ST_MultiPolygon') "
-                   "GROUP BY {fields};".format(table_name=table_name, table1=tile1.postgis_table,
-                                               table2=tile2.postgis_table, fields=groupby_columns))
+                   "SELECT {s}, (ST_Dump(ST_Union(ST_Buffer(ST_MakeValid(ST_Intersection(ST_MakeValid("
+                   "a.geom), b.geom)), 0.0000001)))).geom as geom "
+                   "FROM {table1} a, {table2} b "
+                   "WHERE ST_Intersects(a.geom, b.geom) AND "
+                   "ST_GeometryType(a.geom) IN ('ST_Polygon', 'ST_MultiPolygon') "
+                   "GROUP BY {g};".format(s=select_cols, table_name=table_name, table1=tile1.postgis_table,
+                                               table2=tile2.postgis_table, g=groupby_columns))
 
             print sql
 
@@ -93,14 +109,14 @@ def export(q):
 
         conn_str = util.build_ogr_pg_conn()
 
-        cmd = ['ogr2ogr', '-f']
-        sql = 'SELECT * FROM {}'.format(tile.postgis_table)
-
         if output_format in ['geojson', 'shp']:
+
+            sql = "SELECT '{}' as table__name, * FROM {}".format(output_name, tile.postgis_table)
+
             output_lkp = {'shp': 'ESRI Shapefile','geojson': 'GeoJSON'}
             output_str = output_lkp[output_format]
 
-            cmd += [output_str]
+            cmd = ['ogr2ogr', '-f', output_str]
 
             output_path = os.path.join(layer_dir, '{}__{}.{}'.format(output_name, tile.tile_id, output_format))
             tile.final_output = output_path
@@ -121,11 +137,10 @@ def export(q):
 
 def export_tsv(layer_dir, output_name, tile):
 
-    cmd = ['ogr2ogr', '-f', 'CSV', '-lco', 'GEOMETRY=AS_WKT']
-
     # for some reason ogr2ogr wants to create a directory and THEN the CSV
     output_path = os.path.join(layer_dir, '{}'.format(tile.tile_id))
-    cmd += [output_path]
+
+    cmd = ['ogr2ogr', '-f', 'CSV', '-lco', 'GEOMETRY=AS_WKT', output_path]
 
     duplicate_geom_field = False
 
@@ -134,7 +149,7 @@ def export_tsv(layer_dir, output_name, tile):
 
         conn_str = util.build_ogr_pg_conn()
 
-        sql = 'SELECT * FROM {}'.format(tile.postgis_table)
+        sql = "SELECT '{}' as table__name, * FROM {}".format(output_name, tile.postgis_table)
         cmd += [conn_str, '-sql', sql, '-lco', 'GEOMETRY_NAME=geom']
 
         csv_output = os.path.join(output_path, 'sql_statement.csv')
