@@ -19,7 +19,7 @@ def clip(q):
         col_str = ', '.join([util.boundary_field_to_sql(field) for field in tile.col_list])
 
         ogr2ogr_layer_name = os.path.splitext(os.path.basename(tile.dataset))[0]
-        sql = "SELECT '{0}', {1} FROM {0}".format(ogr2ogr_layer_name, col_str)
+        sql = "SELECT {0} FROM {1}".format(col_str, ogr2ogr_layer_name)
 
         cmd = ['ogr2ogr', '-f', 'PostgreSQL', conn_str, tile.dataset, '-nln', tile.postgis_table,
                '-nlt', 'PROMOTE_TO_MULTI','-sql', sql, '-lco', 'geometry_name=geom', '-overwrite',
@@ -54,7 +54,7 @@ def intersect_layers(q):
             # tile1 and tile2 could have same column names (boundary_field1, boundary_field2)
             # need to alias them to ensure that they're referenced properly
             tile1_cols = tile1.alias_columns('a')
-            tile2_cols = tile1.alias_columns('b')
+            tile2_cols = tile2.alias_columns('b')
 
             tile_cols_aliased = []
 

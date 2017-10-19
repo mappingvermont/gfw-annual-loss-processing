@@ -54,7 +54,7 @@ def insert_into_postgis(creds, src_shp, dummy_fields):
     # add these to match schema of other intersects
     for field_name in dummy_fields:
         cursor.execute('ALTER TABLE {} ADD COLUMN {} varchar(30)'.format(table_name, field_name))
-        cursor.execute("UPDATE {} SET {} = '1'")
+        cursor.execute("UPDATE {} SET {} = '1'".format(table_name, field_name))
 
     conn.commit()
     conn.close()

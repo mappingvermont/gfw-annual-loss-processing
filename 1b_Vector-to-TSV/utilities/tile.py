@@ -29,4 +29,4 @@ class Tile(object):
 
     def alias_columns(self, tile_alias):
 
-        return [tile_alias + '.' + x for x in self.col_list]
+        return [tile_alias + '.' + x.lower() for x in self.col_list]
