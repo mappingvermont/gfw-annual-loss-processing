@@ -1,6 +1,7 @@
 import os
 import psycopg2
 import subprocess
+import logging
 
 import util
 from layer import Layer
@@ -14,10 +15,10 @@ def load():
     conn = psycopg2.connect(**creds)
     cursor = conn.cursor()
 
-    boundary_fields = ['boundary_field1', 'boundary_field2']
+    boundary_fields = [{'boundary_field1': 'boundary_field1'}, {'boundary_field2': 'boundary_field2'}]
 
     if check_table_exists(cursor, 'adm2_final'):
-        print 'GADM 28 data already in PostGIS'
+        logging.info('GADM 28 data already in PostGIS')
 
     else:
         gadm28_shp = download_gadm28()
@@ -59,14 +60,13 @@ def insert_into_postgis(creds, src_shp, dummy_fields):
     conn.commit()
     conn.close()
 
-
     return table_name
 
 
 def fix_geometry(cursor, table_name):
 
     sql = "UPDATE {} SET geom = ST_MakeValid(geom) WHERE ST_IsValid(geom) <> '1'".format(table_name)
-    print sql
+    logging.info(sql)
 
     cursor.execute(sql)
 
@@ -75,7 +75,7 @@ def download_gadm28():
 
     zip_name = 'gadm28_adm2_final.zip'
 
-    print 'loading gadm28 table into postGIS'
+    logging.info('loading gadm28 table into postGIS')
     s3_src = r's3://gfw2-data/alerts-tsv/gis_source/' + zip_name
 
     out_dir = r'/tmp/'

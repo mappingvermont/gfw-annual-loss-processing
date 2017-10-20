@@ -1,17 +1,23 @@
 import os
 import uuid
 import subprocess
+import boto3
+from urlparse import urlparse
+import logging
 
 from tile import Tile
-import geop, util
+import geop, util, decode_tsv
 
 
 class Layer(object):
 
-    def __init__(self, input_dataset, col_list):
+    def __init__(self, input_dataset, col_list, iso_col_dict=None):
+
+        logging.info('Starting layer class for source {}'.format(input_dataset))
 
         self.input_dataset = input_dataset
         self.col_list = col_list
+        self.iso_col_dict = iso_col_dict
 
         self.build_col_list()
         self.layer_dir = None
@@ -19,8 +25,6 @@ class Layer(object):
         self.create_out_dir()
 
         self.tile_list = []
-
-        print 'Starting layer class for source {}'.format(self.input_dataset)
 
     def create_out_dir(self):
 
@@ -39,23 +43,42 @@ class Layer(object):
 
         # if none specified, build dummy list
         if not self.col_list:
-            self.col_list = ['boundary_field1', 'boundary_field2']
+            self.col_list = [{'1': 'boundary_field1'}, {'1': 'boundary_field2'}]
 
         elif len(self.col_list) > 2:
+            logging.error(self.col_list)
             raise ValueError('Can only save 2 or fewer columns from this dataset')
 
-        # if len(col_list) is 0 or 1, fill empty space with dummy value of '1'
-        elif len(self.col_list) == 1:
-            self.col_list += ['boundary_field2']
+        # for command line args, just want to pass in column names
+        # don't care what boundary_field name they're aliased to
+        elif isinstance(self.col_list[0], str):
+
+            output_list = []
+
+            for i, fieldname in enumerate(self.col_list):
+                boundary_fieldname = 'boundary_field{}'.format(str(i + 1))
+
+                output_list.append({fieldname: boundary_fieldname})
+
+            self.col_list = output_list
+
+        # if len(col_list) is 1, fill empty space with dummy value of '1'
+        if len(self.col_list) == 1:
+            self.col_list.append({'1': 'boundary_field2'})
+
+        # if we're passing in ISO information, add this as well
+        # important for when we're intersecting two pre-tiled datasets
+        if self.iso_col_dict:
+            for k, v in self.iso_col_dict.iteritems():
+                self.col_list.append({k: v})
 
     def upload_to_s3(self, output_format, s3_out_dir, is_test):
 
         if output_format == 'tsv':
+            logging.info('uploading {} to {}'.format(self.layer_dir, s3_out_dir))
 
-            print 'uploading {} to {}'.format(self.layer_dir, s3_out_dir)
-
-            # check to make sure this has data
-            out_tsv_list = [x.final_output for x in self.tile_list if os.stat(x.final_output).st_size]
+            # check to make sure we've written out some data
+            out_tsv_list = [x.final_output for x in self.tile_list if x.final_output and os.stat(x.final_output).st_size]
 
             for out_tsv in out_tsv_list:
 
@@ -67,14 +90,29 @@ class Layer(object):
                 subprocess.check_call(cmd)
 
         else:
-            print 'Output format is {}, not uploading anything to s3'
+            logging.info('Output format is {}, not uploading anything to s3')
 
-    def download_s3_tile(self, tile_id):
+    def download_s3_tile(self, dataset_name, s3_path, tile_id):
 
-        # download tile from s3 and save to this self.layer_dir
+        s3 = boto3.resource('s3')
+        parsed = urlparse(s3_path)
+        bucket = parsed.netloc
+
+        tsv_name = tile_id + '.tsv'
+
+        s3_path = '{}{}__{}'.format(parsed.path[1:], dataset_name, tsv_name)
+        output_path = os.path.join(self.layer_dir, tsv_name)
+
+        logging.info('Downloading {}__{}'.format(dataset_name, tsv_name))
+
+        s3.Bucket(bucket).download_file(s3_path, output_path)
+        vrt_path = os.path.splitext(output_path)[0] + '.vrt'
+
+        tile_vrt = decode_tsv.build_vrt(output_path, vrt_path)
+        postgis_table = '_'.join([dataset_name, tile_id]).lower()
 
         # then create a tile object
-        t = Tile(self.input_dataset, tile_id, self.layer_dir)
+        t = Tile(tile_vrt, self.col_list, tile_id, None, postgis_table)
 
         # then append it to this layers tile list
         self.tile_list.append(t)

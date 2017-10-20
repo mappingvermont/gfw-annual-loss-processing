@@ -11,28 +11,37 @@ def clip(q):
 
     while True:
         tile = q.get()
-        tile.postgis_table = '_'.join([tile.dataset_name, tile.tile_id,  'clip'])
 
         conn_str = util.build_ogr_pg_conn()
-        bbox_list = [str(x) for x in tile.bbox]
+        col_str = util.boundary_field_dict_to_sql_str(tile.col_list)
 
-        col_str = ', '.join([util.boundary_field_to_sql(field) for field in tile.col_list])
+        if not tile.postgis_table:
+            dataset_name = os.path.splitext(os.path.basename(tile.dataset))[0]
+            tile.postgis_table = '_'.join([dataset_name, tile.tile_id,  'clip'])
 
-        ogr2ogr_layer_name = os.path.splitext(os.path.basename(tile.dataset))[0]
-        sql = "SELECT {0} FROM {1}".format(col_str, ogr2ogr_layer_name)
+        # any TSV name will have the data as it's layer, otherwise use the actual shape
+        if os.path.splitext(tile.dataset)[1] == '.shp':
+            ogr_layer_name = os.path.splitext(os.path.basename(tile.dataset))[0]
+        else:
+            ogr_layer_name = 'data'
+
+        sql = "SELECT {}, GEOMETRY FROM {}".format(col_str, ogr_layer_name)
 
         cmd = ['ogr2ogr', '-f', 'PostgreSQL', conn_str, tile.dataset, '-nln', tile.postgis_table,
-               '-nlt', 'PROMOTE_TO_MULTI','-sql', sql, '-lco', 'geometry_name=geom', '-overwrite',
-               '-s_srs', 'EPSG:4326', '-t_srs', 'EPSG:4326', '-dim', '2', '-clipsrc'] + bbox_list
+               '-nlt', 'PROMOTE_TO_MULTI', '-dialect', 'sqlite', '-sql', sql, '-lco', 'geometry_name=geom',
+               '-overwrite', '-s_srs', 'EPSG:4326', '-t_srs', 'EPSG:4326', '-dim', '2']
 
-        print cmd
+        if tile.bbox:
+            bbox_list = [str(x) for x in tile.bbox]
+            cmd += ['-clipsrc'] + bbox_list
 
+        logging.info(cmd)
         subprocess.check_call(cmd)
 
         q.task_done()
 
 
-def intersect_layers(q):
+def intersect(q):
 
     # source: https://pymotw.com/2/Queue/
     while True:
@@ -53,8 +62,8 @@ def intersect_layers(q):
 
             # tile1 and tile2 could have same column names (boundary_field1, boundary_field2)
             # need to alias them to ensure that they're referenced properly
-            tile1_cols = tile1.alias_columns('a')
-            tile2_cols = tile2.alias_columns('b')
+            tile1_cols = tile1.alias_select_columns('a')
+            tile2_cols = tile2.alias_select_columns('b')
 
             tile_cols_aliased = []
 
@@ -65,8 +74,6 @@ def intersect_layers(q):
             select_cols = ", ".join(tile_cols_aliased + admin2_columns)
             groupby_columns = ", ".join(tile1_cols + tile2_cols + admin2_columns)
 
-            print groupby_columns
-
             sql = ("CREATE TABLE {table_name} AS "
                    "SELECT {s}, (ST_Dump(ST_Union(ST_Buffer(ST_MakeValid(ST_Intersection(ST_MakeValid("
                    "a.geom), b.geom)), 0.0000001)))).geom as geom "
@@ -76,7 +83,7 @@ def intersect_layers(q):
                    "GROUP BY {g};".format(s=select_cols, table_name=table_name, table1=tile1.postgis_table,
                                                table2=tile2.postgis_table, g=groupby_columns))
 
-            print sql
+            logging.info(sql)
 
             valid_intersect = True
 
@@ -94,9 +101,7 @@ def intersect_layers(q):
                     output_tile = tile.Tile(None, None, tile1.tile_id, tile1.bbox, table_name)
                     output_layer.tile_list.append(output_tile)
 
-        cursor.execute('DROP TABLE {}'.format(tile1.postgis_table))
         conn.commit()
-
         conn.close()
 
         q.task_done()
@@ -122,7 +127,7 @@ def export(q):
             tile.final_output = output_path
 
             cmd += [output_path, conn_str, '-sql', sql]
-            print cmd
+            logging.info(cmd)
 
             subprocess.check_call(cmd)
 
@@ -162,7 +167,7 @@ def export_tsv(layer_dir, output_name, tile):
         # ogr2ogr duplicates this for some reason
         duplicate_geom_field = True
 
-    print cmd
+    logging.info(cmd)
     subprocess.check_call(cmd)
 
     df = pd.read_csv(csv_output)
@@ -185,6 +190,20 @@ def intersect_gadm(source_layer, gadm_layer):
     for t in source_layer.tile_list:
         input_list.append((output_layer, t, gadm_layer.tile_list[0]))
 
-    util.exec_multiprocess(intersect_layers, input_list)
+    util.exec_multiprocess(intersect, input_list)
+
+    return output_layer
+
+
+def intersect_layers(layer_a, layer_b):
+
+    input_list = []
+
+    output_layer = layer.Layer(None, [])
+
+    for a, b in zip(layer_a.tile_list, layer_b.tile_list):
+        input_list.append((output_layer, a, b))
+
+    util.exec_multiprocess(intersect, input_list)
 
     return output_layer

@@ -1,5 +1,4 @@
 import argparse
-import logging
 
 from utilities.layer import Layer
 from utilities import util, decode_tsv
@@ -16,11 +15,7 @@ def main():
     parser.add_argument('--test', dest='test', action='store_true')
 
     args = parser.parse_args()
-    logging.basicConfig(filename='output.log', level=logging.DEBUG)
-
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    logging.getLogger('').addHandler(console)
+    util.start_logging()
 
     # create layer object
     l = Layer(args.input_s3_path, None)
@@ -32,9 +27,6 @@ def main():
     util.build_gadm28_tile_list(l, args.test)
 
     # export the source TSV to a clipped, tiled TSV
-    # multithreaded given that this is the only process
-    # other exports are already multithreaded because they're attached
-    # to a multithread clip/intersection operation
     l.export(args.output_name, args.output_format)
 
     l.upload_to_s3(args.output_format, args.s3_out_dir, args.test)

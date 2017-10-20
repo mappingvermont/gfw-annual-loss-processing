@@ -3,6 +3,7 @@ import multiprocessing
 from threading import Thread
 from Queue import Queue
 import psycopg2
+import logging
 
 import fiona
 from shapely.geometry import shape
@@ -38,17 +39,12 @@ def find_admin_columns(cursor, tile1, tile2):
         cursor.execute("select column_name from information_schema.columns WHERE table_name=%s", (t.postgis_table,))
         col_names = [row[0] for row in cursor]
 
-        print t.postgis_table
-        print col_names
-
         # check if iso col list is part of the larger table column list
         if set(iso_col_list).issubset(set(col_names)):
             tile_with_cols = tile_id
 
     if not tile_with_cols:
         raise ValueError('Neither {} or {} have iso, id_1, id_2 columns'.format(tile1.postgis_table, tile2.postgis_table))
-
-    leading_col_str = ', {}.'.format(tile_with_cols)
 
     # a.ISO, a.ID_1, a.ID_2
     return [tile_with_cols + '.' + x for x in iso_col_list]
@@ -66,19 +62,13 @@ def drop_table(tablename):
     conn.close()
 
 
-def find_tile_overlap(layer_a, layer_b):
+def boundary_field_dict_to_sql_str(field_list):
+    out_list = []
 
-    print 'finding tile overlap'
+    for field_dict in field_list:
+        out_list += ['{} AS {}'.format(k, v) for k, v in field_dict.iteritems()]
 
-    # looks at the s3 directory to figure out what tiles both "layers" have in common based on tile id strings
-
-
-def boundary_field_to_sql(field_name):
-
-    if 'boundary_field' in field_name:
-        field_name = '1 AS ' + field_name
-
-    return field_name
+    return ', '.join(out_list)
 
 
 def table_has_rows(cursor, table_name):
@@ -93,7 +83,7 @@ def table_has_rows(cursor, table_name):
     return has_rows
 
 
-def exec_multiprocess(input_func, input_list):
+def exec_multiprocess(input_func, input_list, is_test=False):
 
     # create queue
     q = Queue()
@@ -102,8 +92,10 @@ def exec_multiprocess(input_func, input_list):
         q.put(i)
 
     # start our threads
-    mp_count = multiprocessing.cpu_count() - 1
-    # mp_count = 1
+    if is_test:
+        mp_count = 1
+    else:
+        mp_count = multiprocessing.cpu_count() - 1
 
     for i in range(mp_count):
         worker = Thread(target=input_func, args=(q,))
@@ -116,8 +108,8 @@ def exec_multiprocess(input_func, input_list):
 
 def build_gadm28_tile_list(source_layer, is_test):
 
-    print 'Building tile list'
-    print 'checking extent of input geometry {}'.format(source_layer.input_dataset)
+    logging.info('Building tile list')
+    logging.info('checking extent of input geometry {}'.format(source_layer.input_dataset))
 
     # shapefile of tiles used to tsv aoi
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -146,3 +138,16 @@ def build_gadm28_tile_list(source_layer, is_test):
     # if this is a test, only do one tile
     if is_test:
         source_layer.tile_list = source_layer.tile_list[0:1]
+
+
+def start_logging():
+
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    log_file = os.path.join(root_dir, 'output.log')
+    logging.basicConfig(filename=log_file, level=logging.INFO)
+
+    logging.getLogger('botocore').setLevel(logging.ERROR)
+
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    logging.getLogger('').addHandler(console)

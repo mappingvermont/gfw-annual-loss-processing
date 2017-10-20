@@ -1,5 +1,4 @@
 import argparse
-import logging
 
 from utilities.layer import Layer
 from utilities import util, geop, load_gadm28
@@ -8,23 +7,20 @@ from utilities import util, geop, load_gadm28
 def main():
     parser = argparse.ArgumentParser(description='Generate Hansen-tiled TSVs for Hadoop PIP')
     parser.add_argument('--input-dataset', '-i', help='the input dataset', required=True)
-    parser.add_argument('--col-list', '-c', help='columns to include in the output TSV from the source', nargs='+')
+    parser.add_argument('--col-dict', '-c', help='columns to include in the output TSV from the source', nargs='+')
 
     parser.add_argument('--output-format', '-o', help='output format', default='tsv', choices=('tsv', 'shp', 'geojson'))
     parser.add_argument('--output-name', '-n', help='output name', required=True)
-    parser.add_argument('--s3-out-dir', '-s', help='s3 out dir', default='s3://gfw2-data/alerts-tsv/gadm28-poly-tsvs/')
+    parser.add_argument('--s3-out-dir', '-s', help='s3 out dir', default='s3://gfw2-data/alerts-tsv/tsv-boundaries-tiled/')
 
     parser.add_argument('--test', dest='test', action='store_true')
 
     args = parser.parse_args()
-    logging.basicConfig(filename='output.log', level=logging.DEBUG)
 
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    logging.getLogger('').addHandler(console)
+    util.start_logging()
 
     # create layer object
-    source_layer = Layer(args.input_dataset, args.col_list)
+    source_layer = Layer(args.input_dataset, args.col_dict)
 
     # load gadm28 into postGIS if it doesn't exist already
     gadm28_layer = load_gadm28.load()

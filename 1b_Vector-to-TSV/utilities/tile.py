@@ -18,15 +18,10 @@ class Tile(object):
         else:
             self.dataset_name = None
 
-    def create_plain_tile(self):
+    def alias_select_columns(self, tile_alias):
 
-        # use ogr2ogr to do extract tile from bounding box using -spat flag
-        # and save to that crazy TSV format
-        # example ogr2ogr statement here:
-        # https://github.com/wri/raster-vector-to-tsv/blob/master/processing/vector/tile_vector.py#L42-L43
+        # remove any iso/id_1/id_2 columns associated; they'll be added separately
+        column_names = [x.values()[0] for x in self.col_list]
+        select_columns = [x for x in column_names if x not in ['iso', 'id_1', 'id_2']]
 
-        print 'creating plain tile {} for {}, extent'.format(self.tile_id, self.dataset, ', '.join(self.bbox))
-
-    def alias_columns(self, tile_alias):
-
-        return [tile_alias + '.' + x.lower() for x in self.col_list]
+        return [tile_alias + '.' + x.lower() for x in select_columns]
