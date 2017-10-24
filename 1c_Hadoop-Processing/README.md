@@ -19,18 +19,34 @@
 
 This code will iterate over every polygon in the TSV directory, grabbing it's extent using `ogrinfo` and writing an `application.properties` file. It will then call spark-pip, process the file, and upload the output to the proper folder on s3.
 
-###### Application.properties example file
+###### Application.properties example file -- LOSS
 ```
 spark.app.name=YARN Points in World
 output.path=hdfs:///user/hadoop/output
 output.sep=,
 points.y=1
 points.path=s3a://gfw2-data/alerts-tsv/loss_2016/
-points.fields=0,1,2,3,4,5
+points.fields=2,3,4,5
 points.x=0
 reduce.size=0.5
-polygons.path=s3a://gfw2-data/alerts-tsv/tsv-boundaries-gadm28/wdpa_final_int_diss_wdpaid_gadm28.tsv
+polygons.path=s3a://gfw2-data/alerts-tsv/tsv-boundaries-climate/
 polygons.wkt=0
-polygons.fields=1,2,3,4
+polygons.fields=1,2,3,4,5,6,7,8
 analysis.type=loss
+```
+
+###### Application.properties example file -- EXTENT
+```
+spark.app.name=YARN Points in World
+output.path=hdfs:///user/hadoop/output
+output.sep=,
+points.y=1
+points.path=s3a://gfw2-data/alerts-tsv/extent_2000/00N* 
+points.fields=2,3
+points.x=0
+reduce.size=0.5
+polygons.path=s3a://gfw2-data/alerts-tsv/tsv-boundaries-climate/
+polygons.wkt=0
+polygons.fields=1,2,3,4,5,6,7,8
+analysis.type=extent
 ```
