@@ -127,7 +127,7 @@ def source_to_df(input_data, args):
 
 def folder_to_df(folder_path):
 
-    csv_list = [os.path.join(folder_path, x) for x in os.listdir(folder_path)]
+    csv_list = [os.path.join(folder_path, x) for x in os.listdir(folder_path) if os.stat(x).st_size > 0]
     df_list = [pd.read_csv(csv, header=None) for csv in csv_list]
 
     df = pd.concat(df_list)
