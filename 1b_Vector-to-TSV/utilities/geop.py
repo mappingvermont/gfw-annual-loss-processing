@@ -28,7 +28,7 @@ def clip(q):
         sql = "SELECT {}, GEOMETRY FROM {}".format(col_str, ogr_layer_name)
 
         cmd = ['ogr2ogr', '-f', 'PostgreSQL', conn_str, tile.dataset, '-nln', tile.postgis_table,
-               '-nlt', 'PROMOTE_TO_MULTI', '-dialect', 'sqlite', '-sql', sql, '-lco', 'geometry_name=geom',
+                '-nlt', 'GEOMETRY', '-dialect', 'sqlite', '-sql', sql, '-lco', 'geometry_name=geom',
                '-overwrite', '-s_srs', 'EPSG:4326', '-t_srs', 'EPSG:4326', '-dim', '2']
 
         if tile.bbox:
@@ -37,6 +37,21 @@ def clip(q):
 
         logging.info(cmd)
         subprocess.check_call(cmd)
+
+        creds = util.get_creds()
+        conn = psycopg2.connect(**creds)
+        cursor = conn.cursor()
+
+        # remove linestings and points from collections
+        sql = "UPDATE {} SET geom = ST_CollectionExtract(geom, 3)".format(tile.postgis_table)
+        cursor.execute(sql)
+
+        # might as well make geometry valid while we're at it
+        sql = "UPDATE {} SET geom = ST_MakeValid(geom) WHERE ST_IsValid(geom) <> '1'".format(tile.postgis_table)
+        cursor.execute(sql)
+
+        conn.commit()
+        conn.close()
 
         q.task_done()
 
