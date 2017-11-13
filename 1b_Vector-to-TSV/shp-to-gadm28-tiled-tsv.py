@@ -1,4 +1,5 @@
 import argparse
+import os
 
 from utilities.layer import Layer
 from utilities import util, geop, load_gadm28
@@ -27,6 +28,9 @@ def main():
 
     # create blueprint for the source dataset in postgis
     util.build_gadm28_tile_list(source_layer, args.test)
+
+    if os.path.splitext(args.input_dataset)[1] == '.tif':
+        source_layer.raster_to_vector()
 
     # process clip jobs above-- this loads tiles into PostGIS
     util.exec_multiprocess(geop.clip, source_layer.tile_list)

@@ -6,7 +6,7 @@ from urlparse import urlparse
 import logging
 
 from tile import Tile
-import geop, util, decode_tsv
+import geop, util, decode_tsv, export
 
 
 class Layer(object):
@@ -72,6 +72,9 @@ class Layer(object):
             for k, v in self.iso_col_dict.iteritems():
                 self.col_list.append({k: v})
 
+    def raster_to_vector(self):
+        geop.raster_to_vector(self.layer_dir, self.tile_list)
+
     def upload_to_s3(self, output_format, s3_out_dir, is_test):
 
         if output_format == 'tsv':
@@ -124,5 +127,4 @@ class Layer(object):
         for t in self.tile_list:
             input_list.append((self.layer_dir, output_name, t, output_format))
 
-        util.exec_multiprocess(geop.export, input_list)
-
+        util.exec_multiprocess(export.export, input_list)

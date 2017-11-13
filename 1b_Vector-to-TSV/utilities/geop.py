@@ -20,20 +20,31 @@ def clip(q):
             tile.postgis_table = '_'.join([dataset_name, tile.tile_id,  'clip'])
 
         # any TSV name will have the data as it's layer, otherwise use the actual shape
-        if os.path.splitext(tile.dataset)[1] == '.shp':
-            ogr_layer_name = os.path.splitext(os.path.basename(tile.dataset))[0]
+        file_ext = os.path.splitext(tile.dataset)[1]
+
+        if file_ext in ['.shp', '.tsv']:
+            if file_ext == '.shp':
+                ogr_layer_name = os.path.splitext(os.path.basename(tile.dataset))[0]
+            else:
+                ogr_layer_name = 'data'
+
+            sql = "SELECT {}, GEOMETRY FROM {}".format(col_str, ogr_layer_name)
+
+            cmd = ['ogr2ogr', '-f', 'PostgreSQL', conn_str, tile.dataset, '-nln', tile.postgis_table,
+                    '-nlt', 'GEOMETRY', '-dialect', 'sqlite', '-sql', sql, '-lco', 'geometry_name=geom',
+                   '-overwrite', '-s_srs', 'EPSG:4326', '-t_srs', 'EPSG:4326', '-dim', '2']
+
+            if tile.bbox:
+                bbox_list = [str(x) for x in tile.bbox]
+                cmd += ['-clipsrc'] + bbox_list
+
+        elif file_ext == '.tif':
+            cmd = ['gdal_polygonize.py', tile.dataset, '-f', 'PostgreSQL',
+                   conn_str, tile.postgis_table]
+
         else:
-            ogr_layer_name = 'data'
+            raise ValueError('Unknown file extension {}, expecting shp, tif or tsv'.format(file_ext))
 
-        sql = "SELECT {}, GEOMETRY FROM {}".format(col_str, ogr_layer_name)
-
-        cmd = ['ogr2ogr', '-f', 'PostgreSQL', conn_str, tile.dataset, '-nln', tile.postgis_table,
-                '-nlt', 'GEOMETRY', '-dialect', 'sqlite', '-sql', sql, '-lco', 'geometry_name=geom',
-               '-overwrite', '-s_srs', 'EPSG:4326', '-t_srs', 'EPSG:4326', '-dim', '2']
-
-        if tile.bbox:
-            bbox_list = [str(x) for x in tile.bbox]
-            cmd += ['-clipsrc'] + bbox_list
 
         logging.info(cmd)
         subprocess.check_call(cmd)
@@ -122,80 +133,6 @@ def intersect(q):
         q.task_done()
 
 
-def export(q):
-
-    while True:
-        layer_dir, output_name, tile, output_format = q.get()
-
-        conn_str = util.build_ogr_pg_conn()
-
-        if output_format in ['geojson', 'shp']:
-
-            sql = "SELECT '{}' as table__name, * FROM {}".format(output_name, tile.postgis_table)
-
-            output_lkp = {'shp': 'ESRI Shapefile','geojson': 'GeoJSON'}
-            output_str = output_lkp[output_format]
-
-            cmd = ['ogr2ogr', '-f', output_str]
-
-            output_path = os.path.join(layer_dir, '{}__{}.{}'.format(output_name, tile.tile_id, output_format))
-            tile.final_output = output_path
-
-            cmd += [output_path, conn_str, '-sql', sql]
-            logging.info(cmd)
-
-            subprocess.check_call(cmd)
-
-        else:
-            export_tsv(layer_dir, output_name, tile)
-
-        if tile.postgis_table:
-            util.drop_table(tile.postgis_table)
-
-        q.task_done()
-
-
-def export_tsv(layer_dir, output_name, tile):
-
-    # for some reason ogr2ogr wants to create a directory and THEN the CSV
-    output_path = os.path.join(layer_dir, '{}'.format(tile.tile_id))
-
-    cmd = ['ogr2ogr', '-f', 'CSV', '-lco', 'GEOMETRY=AS_WKT', output_path]
-
-    duplicate_geom_field = False
-
-    # if we're exporting already clipped data from PostGIS . . .
-    if tile.postgis_table:
-
-        conn_str = util.build_ogr_pg_conn()
-
-        sql = "SELECT '{}' as table__name, * FROM {}".format(output_name, tile.postgis_table)
-        cmd += [conn_str, '-sql', sql, '-lco', 'GEOMETRY_NAME=geom']
-
-        csv_output = os.path.join(output_path, 'sql_statement.csv')
-
-    # or if we're clipping an existing TSV
-    else:
-        cmd += [tile.dataset, '-clipsrc'] + [str(x) for x in tile.bbox]
-        csv_output = os.path.join(output_path, 'data.csv')
-
-        # ogr2ogr duplicates this for some reason
-        duplicate_geom_field = True
-
-    logging.info(cmd)
-    subprocess.check_call(cmd)
-
-    df = pd.read_csv(csv_output)
-
-    if duplicate_geom_field:
-        del df['field_1']
-
-    tsv_output = os.path.join(layer_dir, '{}__{}.tsv'.format(output_name, tile.tile_id))
-    df.to_csv(tsv_output, sep='\t', header=None, index=False)
-
-    tile.final_output = tsv_output
-
-
 def intersect_gadm(source_layer, gadm_layer):
 
     input_list = []
@@ -208,6 +145,46 @@ def intersect_gadm(source_layer, gadm_layer):
     util.exec_multiprocess(intersect, input_list)
 
     return output_layer
+
+def vectorize(q):
+
+    while True:
+        output_dir, tile = q.get()
+
+        dataset_name = os.path.splitext(os.path.basename(tile.dataset))[0]
+        tiled_fname = '_'.join([dataset_name, tile.tile_id,  'clip']) + '.tif'
+        clipped_ras = os.path.join(output_dir, tiled_fname)
+
+        # stringify bbox and then reorder for gdal_translate
+        bbox_list = [str(x) for x in tile.bbox]
+        ordered = [0, 3, 2, 1]
+        bbox_list = [bbox_list[i] for i in ordered]
+
+        clip_cmd = ['gdal_translate', tile.dataset, clipped_ras,
+                    '-co', 'COMPRESS=LZW', '-projwin'] + bbox_list
+
+        logging.info(clip_cmd)
+        subprocess.check_call(clip_cmd)
+
+        # set this clipped tile as our input dataset
+        # we can use this with the clip function above, using gdal_polygonize
+        # instead of the standard ogr2ogr approach
+        tile.dataset = clipped_ras
+        tile.bbox = None
+
+        q.task_done()
+
+
+def raster_to_vector(layer_dir, tile_list):
+
+    input_list = []
+
+    for t in tile_list:
+        input_list.append((layer_dir, t))
+
+    util.exec_multiprocess(vectorize, input_list)
+
+    return
 
 
 def intersect_layers(layer_a, layer_b):

@@ -6,6 +6,7 @@ import psycopg2
 import logging
 
 import fiona
+import rasterio
 from shapely.geometry import shape
 
 from tile import Tile
@@ -116,10 +117,14 @@ def build_gadm28_tile_list(source_layer, is_test):
     tiles = fiona.open(os.path.join(root_dir, 'grid', 'lossdata_footprint_filter.geojson'), 'r')
 
     # aoi we want to tsv
-    aoi = fiona.open(source_layer.input_dataset)
+    if os.path.splitext(source_layer.input_dataset)[1] == '.tif':
+        with rasterio.open(source_layer.input_dataset) as src:
+            aoi_bounds = src.bounds
+    else:
+        aoi_bounds = fiona.open(source_layer.input_dataset).bounds
 
     # select tiles that are inside of the bounding box of the aoi
-    tiles_in_aoi = tiles.filter(bbox=aoi.bounds)
+    tiles_in_aoi = tiles.filter(bbox=aoi_bounds)
 
     for feat in tiles_in_aoi:
         # get the bounding box of the 1deg tile
