@@ -40,7 +40,7 @@ def clip(q):
 
         elif file_ext == '.tif':
             cmd = ['gdal_polygonize.py', tile.dataset, '-f', 'PostgreSQL',
-                   conn_str, tile.postgis_table]
+                   conn_str, tile.postgis_table, 'boundary_field1']
 
         else:
             raise ValueError('Unknown file extension {}, expecting shp, tif or tsv'.format(file_ext))
@@ -52,6 +52,15 @@ def clip(q):
         creds = util.get_creds()
         conn = psycopg2.connect(**creds)
         cursor = conn.cursor()
+
+        # a few other things required to get our raster data to match vector
+        if file_ext == '.tif':
+            sql_list = ["ALTER TABLE {} RENAME wkb_geometry to geom",
+                        "ALTER TABLE {} ADD COLUMN boundary_field2 integer",
+                        "UPDATE {} SET boundary_field2 = 1"]
+
+            for sql in sql_list:
+                cursor.execute(sql.format(tile.postgis_table))
 
         # remove linestings and points from collections
         sql = "UPDATE {} SET geom = ST_CollectionExtract(geom, 3)".format(tile.postgis_table)
