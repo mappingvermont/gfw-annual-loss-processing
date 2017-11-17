@@ -29,7 +29,11 @@ def find_tile_overlap(wildcard_a, wildcard_b, s3_dir, is_test):
 
         for name in filename_only_list:
 
-            if name.split("__")[0] == boundary:
+            # ignore files with multiple __, they're already 
+            # combination TSVs (like wdpa__primary__10N_030W.tsv)
+	    if len(name.split("__")) > 2:
+                pass
+            elif name.split("__")[0] == boundary:
                 tile_id = name.split("__")[-1:][0].strip(".tsv")
                 boundary_tiles.append(tile_id)
 
@@ -38,6 +42,8 @@ def find_tile_overlap(wildcard_a, wildcard_b, s3_dir, is_test):
     # find tiles that are the same in both lists from the dictionary
     match_list = list(set(boundary_dict[wildcard_a]) & set(boundary_dict[wildcard_b]))
 
+    print boundary_dict[wildcard_a]
+    print boundary_dict[wildcard_b]
     if is_test:
         match_list = match_list[0:1]
 

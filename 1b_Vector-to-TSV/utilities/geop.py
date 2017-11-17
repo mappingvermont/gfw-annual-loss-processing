@@ -22,7 +22,9 @@ def clip(q):
         # any TSV name will have the data as it's layer, otherwise use the actual shape
         file_ext = os.path.splitext(tile.dataset)[1]
 
-        if file_ext in ['.shp', '.tsv']:
+	# why VRT here? so we can read the TSVs that are already created
+	# which requires a crazy vector VRT file
+        if file_ext in ['.shp', '.tsv', '.vrt']:
             if file_ext == '.shp':
                 ogr_layer_name = os.path.splitext(os.path.basename(tile.dataset))[0]
             else:
