@@ -96,7 +96,7 @@ def exec_multiprocess(input_func, input_list, is_test=False):
     if is_test:
         mp_count = 1
     else:
-        mp_count = multiprocessing.cpu_count() - 1
+        mp_count = 15
 
     for i in range(mp_count):
         worker = Thread(target=input_func, args=(q,))
@@ -156,3 +156,13 @@ def start_logging():
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
     logging.getLogger('').addHandler(console)
+
+
+def check_table_exists(cursor, table_name):
+
+    # source: https://stackoverflow.com/questions/1874113/
+    sql = "select exists(select * from information_schema.tables where table_name=%s)"
+    cursor.execute(sql, (table_name,))
+
+    return cursor.fetchone()[0]
+

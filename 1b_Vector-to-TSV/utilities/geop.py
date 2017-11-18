@@ -15,64 +15,70 @@ def clip(q):
         conn_str = util.build_ogr_pg_conn()
         col_str = util.boundary_field_dict_to_sql_str(tile.col_list)
 
-        if not tile.postgis_table:
-            dataset_name = os.path.splitext(os.path.basename(tile.dataset))[0]
-            tile.postgis_table = '_'.join([dataset_name, tile.tile_id,  'clip'])
-
-        # any TSV name will have the data as it's layer, otherwise use the actual shape
-        file_ext = os.path.splitext(tile.dataset)[1]
-
-	# why VRT here? so we can read the TSVs that are already created
-	# which requires a crazy vector VRT file
-        if file_ext in ['.shp', '.tsv', '.vrt']:
-            if file_ext == '.shp':
-                ogr_layer_name = os.path.splitext(os.path.basename(tile.dataset))[0]
-            else:
-                ogr_layer_name = 'data'
-
-            sql = "SELECT {}, GEOMETRY FROM {}".format(col_str, ogr_layer_name)
-
-            cmd = ['ogr2ogr', '-f', 'PostgreSQL', conn_str, tile.dataset, '-nln', tile.postgis_table,
-                    '-nlt', 'GEOMETRY', '-dialect', 'sqlite', '-sql', sql, '-lco', 'geometry_name=geom',
-                   '-overwrite', '-s_srs', 'EPSG:4326', '-t_srs', 'EPSG:4326', '-dim', '2']
-
-            if tile.bbox:
-                bbox_list = [str(x) for x in tile.bbox]
-                cmd += ['-clipsrc'] + bbox_list
-
-        elif file_ext == '.tif':
-            cmd = ['gdal_polygonize.py', tile.dataset, '-f', 'PostgreSQL',
-                   conn_str, tile.postgis_table, 'boundary_field1']
-
-        else:
-            raise ValueError('Unknown file extension {}, expecting shp, tif or tsv'.format(file_ext))
-
-
-        logging.info(cmd)
-        subprocess.check_call(cmd)
-
         creds = util.get_creds()
         conn = psycopg2.connect(**creds)
         cursor = conn.cursor()
 
-        # a few other things required to get our raster data to match vector
-        if file_ext == '.tif':
-            sql_list = ["ALTER TABLE {} RENAME wkb_geometry to geom",
-                        "ALTER TABLE {} ADD COLUMN boundary_field2 integer",
-                        "UPDATE {} SET boundary_field2 = 1"]
+        if not tile.postgis_table:
+            dataset_name = os.path.splitext(os.path.basename(tile.dataset))[0]
+            tile.postgis_table = '_'.join([dataset_name, tile.tile_id,  'clip'])
 
-            for sql in sql_list:
-                cursor.execute(sql.format(tile.postgis_table))
+        if util.check_table_exists(cursor, tile.postgis_table):
+            pass
 
-        # remove linestings and points from collections
-        sql = "UPDATE {} SET geom = ST_CollectionExtract(geom, 3)".format(tile.postgis_table)
-        cursor.execute(sql)
+        else:
 
-        # might as well make geometry valid while we're at it
-        sql = "UPDATE {} SET geom = ST_MakeValid(geom) WHERE ST_IsValid(geom) <> '1'".format(tile.postgis_table)
-        cursor.execute(sql)
+		# any TSV name will have the data as it's layer, otherwise use the actual shape
+		file_ext = os.path.splitext(tile.dataset)[1]
 
-        conn.commit()
+		# why VRT here? so we can read the TSVs that are already created
+		# which requires a crazy vector VRT file
+		if file_ext in ['.shp', '.tsv', '.vrt']:
+		    if file_ext == '.shp':
+			ogr_layer_name = os.path.splitext(os.path.basename(tile.dataset))[0]
+		    else:
+			ogr_layer_name = 'data'
+
+		    sql = "SELECT {}, GEOMETRY FROM {}".format(col_str, ogr_layer_name)
+
+		    cmd = ['ogr2ogr', '-f', 'PostgreSQL', conn_str, tile.dataset, '-nln', tile.postgis_table,
+			    '-nlt', 'GEOMETRY', '-dialect', 'sqlite', '-sql', sql, '-lco', 'geometry_name=geom',
+			   '-overwrite', '-s_srs', 'EPSG:4326', '-t_srs', 'EPSG:4326', '-dim', '2']
+
+		    if tile.bbox:
+			bbox_list = [str(x) for x in tile.bbox]
+			cmd += ['-clipsrc'] + bbox_list
+
+		elif file_ext == '.tif':
+		    cmd = ['gdal_polygonize.py', tile.dataset, '-f', 'PostgreSQL',
+			   conn_str, tile.postgis_table, 'boundary_field1']
+
+		else:
+		    raise ValueError('Unknown file extension {}, expecting shp, tif or tsv'.format(file_ext))
+
+
+		logging.info(cmd)
+		subprocess.check_call(cmd)
+
+		# a few other things required to get our raster data to match vector
+		if file_ext == '.tif':
+		    sql_list = ["ALTER TABLE {} RENAME wkb_geometry to geom",
+				"ALTER TABLE {} ADD COLUMN boundary_field2 integer",
+				"UPDATE {} SET boundary_field2 = 1"]
+
+		    for sql in sql_list:
+			cursor.execute(sql.format(tile.postgis_table))
+
+		# remove linestings and points from collections
+		sql = "UPDATE {} SET geom = ST_CollectionExtract(geom, 3)".format(tile.postgis_table)
+		cursor.execute(sql)
+
+		# might as well make geometry valid while we're at it
+		sql = "UPDATE {} SET geom = ST_MakeValid(geom) WHERE ST_IsValid(geom) <> '1'".format(tile.postgis_table)
+		cursor.execute(sql)
+
+		conn.commit()
+
         conn.close()
 
         q.task_done()
