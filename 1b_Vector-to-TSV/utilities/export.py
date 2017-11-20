@@ -50,8 +50,6 @@ def export_tsv(layer_dir, output_name, tile):
 
     cmd = ['ogr2ogr', '-f', 'CSV', '-lco', 'GEOMETRY=AS_WKT', output_path]
 
-    duplicate_geom_field = False
-
     # if we're exporting already clipped data from PostGIS . . .
     if tile.postgis_table:
 
@@ -67,11 +65,10 @@ def export_tsv(layer_dir, output_name, tile):
         cmd += [tile.dataset, '-clipsrc'] + [str(x) for x in tile.bbox]
         csv_output = os.path.join(output_path, 'data.csv')
 
-        # ogr2ogr duplicates this for some reason
-        duplicate_geom_field = True
-
     logging.info(cmd)
     subprocess.check_call(cmd)
+
+    write_df = True
 
     # if we're not using postgis, need to clean up
     # some geometry collections left by ogr2ogr
@@ -80,28 +77,34 @@ def export_tsv(layer_dir, output_name, tile):
         output_vrt = os.path.join(output_path, 'data.vrt')
         src_vrt = decode_tsv.build_vrt(csv_output, output_vrt)
 
-        # load in the df first, then make sure we're using field_1
-	# for our geometry field
-        load_df = gpd.read_file(src_vrt)
-        geometry = load_df.field_1.map(shapely.wkt.loads)
+        # check that we have data in our output first
+        test_df = pd.read_csv(csv_output)
 
-	# then filter ou tthe bad geometries, extracting polygons
-	# from collections where they exist
-        df = gpd.GeoDataFrame(load_df, geometry=geometry)
-        df.geometry = df.apply(lambda row: explode_columns(row), axis=1)
+        if test_df.empty:
+            write_df = False
 
-	df = df[df.geometry != False]
-	df.field_1 = df.geometry
-	del df['geometry']
+        else:
+            load_df = gpd.read_file(src_vrt)
+
+     	    geometry = load_df.WKT.map(shapely.wkt.loads)
+
+	    # then filter ou tthe bad geometries, extracting polygons
+	    # from collections where they exist
+	    df = gpd.GeoDataFrame(load_df, geometry=geometry)
+	    df.geometry = df.apply(lambda row: explode_columns(row), axis=1)
+
+	    # save geometry to the WKT field, the first one in our TSV
+            df = df[df.geometry != False]
+	    df.WKT = df.geometry
+	    del df['geometry'], df['field_1']
 
     else:
         df = pd.read_csv(csv_output)
 
-    if duplicate_geom_field:
-        del df['field_1']
-
     tsv_output = os.path.join(layer_dir, '{}__{}.tsv'.format(output_name, tile.tile_id))
-    df.to_csv(tsv_output, sep='\t', header=None, index=False)
+
+    if write_df:
+        df.to_csv(tsv_output, sep='\t', header=None, index=False)
 
     tile.final_output = tsv_output
 
