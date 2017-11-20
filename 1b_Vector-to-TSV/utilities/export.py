@@ -1,9 +1,13 @@
 import os
 import logging
 import subprocess
-import pandas as pd
 
-import util
+import pandas as pd
+import geopandas as gpd
+import shapely.wkt
+from shapely.geometry.multipolygon import MultiPolygon
+
+import util, decode_tsv
 
 
 def export(q):
@@ -69,7 +73,29 @@ def export_tsv(layer_dir, output_name, tile):
     logging.info(cmd)
     subprocess.check_call(cmd)
 
-    df = pd.read_csv(csv_output)
+    # if we're not using postgis, need to clean up
+    # some geometry collections left by ogr2ogr
+    if not tile.postgis_table:
+
+        output_vrt = os.path.join(output_path, 'data.vrt')
+        src_vrt = decode_tsv.build_vrt(csv_output, output_vrt)
+
+        # load in the df first, then make sure we're using field_1
+	# for our geometry field
+        load_df = gpd.read_file(src_vrt)
+        geometry = load_df.field_1.map(shapely.wkt.loads)
+
+	# then filter ou tthe bad geometries, extracting polygons
+	# from collections where they exist
+        df = gpd.GeoDataFrame(load_df, geometry=geometry)
+        df.geometry = df.apply(lambda row: explode_columns(row), axis=1)
+
+	df = df[df.geometry != False]
+	df.field_1 = df.geometry
+	del df['geometry']
+
+    else:
+        df = pd.read_csv(csv_output)
 
     if duplicate_geom_field:
         del df['field_1']
@@ -78,3 +104,34 @@ def export_tsv(layer_dir, output_name, tile):
     df.to_csv(tsv_output, sep='\t', header=None, index=False)
 
     tile.final_output = tsv_output
+
+
+# filter columns based on geometry type
+# if it's a geometry collection, return only polygon geoms
+def explode_columns(row):
+
+    if row.geometry.geom_type in ['Polygon', 'MultiPolygon']:
+         return row.geometry
+
+    elif row.geometry.geom_type in ['Point', 'LineString']:
+         return False
+
+    else:
+         valid_shapes = ['Point', 'LineString', 'Polygon', 'geometrycollection']
+         invalid_geoms = [x for x in row.geometry if x.geom_type not in valid_shapes]
+
+         if invalid_geoms:
+             example_type = invalid_geoms[0].geom_type
+             raise ValueError('Found shape of type {}'.format(example_type))
+
+         geom_list = [x for x in row.geometry if x.geom_type == 'Polygon']
+
+         if len(geom_list) > 1:
+             return MultiPolygon(geom_list)
+         elif len(geom_list) == 1:
+             return geom_list[0]
+         else:
+             return False
+
+
+
