@@ -131,8 +131,8 @@ class Layer(object):
 
             if os.path.splitext(f)[1] == '.tsv':
 
-                vrt_path = os.path.splitext(f)[0] + '.vrt'
-                tile_vrt = decode_tsv.build_vrt(f, vrt_path)
+                vrt_path = os.path.join(self.layer_dir, os.path.splitext(f)[0] + '.vrt')
+                tile_vrt = decode_tsv.build_vrt(os.path.join(self.layer_dir, f), vrt_path)
 
                 basename = os.path.splitext(os.path.basename(f))[0]
                 tile_id = basename.split('__')[-1]
