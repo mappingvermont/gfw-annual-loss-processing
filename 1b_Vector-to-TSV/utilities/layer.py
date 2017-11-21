@@ -120,6 +120,24 @@ class Layer(object):
         # then append it to this layers tile list
         self.tile_list.append(t)
 
+    def build_tile_list_from_dir(self):
+
+        for f in os.listdir(self.layer_dir):
+
+            if os.path.splitext(f)[1] == '.vrt' and f != 'data.vrt':
+
+                tile_vrt = os.path.join(self.layer_dir, f)
+
+                basename = os.path.splitext(os.path.basename(f))[0]
+                tile_id = basename.split('__')[-1]
+
+                postgis_table = '_'.join([self.input_dataset, tile_id]).lower()
+
+                t = Tile(tile_vrt, self.col_list, tile_id, None, postgis_table)
+
+                self.tile_list.append(t)
+
+
     def export(self, output_name, output_format):
 
         input_list = []

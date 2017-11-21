@@ -18,13 +18,11 @@ def main():
     parser.add_argument('--root-s3-dir', '-r', help='root s3 dir', default=default_s3_dir)
     parser.add_argument('--s3-out-dir', '-s', help='s3 out dir', default=default_s3_dir)
 
+    parser.add_argument('--batch', dest='batch', action='store_true')
     parser.add_argument('--test', dest='test', action='store_true')
     args = parser.parse_args()
 
     util.start_logging()
-
-    # figure out what tiles they have in common by looking at datasets on S3
-    overlap_list = s3_list_tiles.find_tile_overlap(args.dataset_a, args.dataset_b, args.root_s3_dir, args.test)
 
     # these boundary fields already exist in the TSV
     # may be empty, but could contain stuff like plantation type/species, etc
@@ -38,10 +36,20 @@ def main():
     layer_a = Layer(args.dataset_a, col_list[:], iso_col_dict)
     layer_b = Layer(args.dataset_b, col_list[:])
 
-    # download all tiles in common, build layer.tile_list for each layer
-    for tile_id in overlap_list:
-        layer_a.download_s3_tile(args.dataset_a, args.root_s3_dir, tile_id)
-        layer_b.download_s3_tile(args.dataset_b, args.root_s3_dir, tile_id)
+    if args.batch:
+        s3_list_tiles.batch_download(layer_a, layer_b, args.root_s3_dir)
+
+        for l in [layer_a, layer_b]:
+            l.build_tile_list_from_dir()
+
+    else:
+        # figure out what tiles they have in common by looking at datasets on S3
+        overlap_list = s3_list_tiles.find_tile_overlap(args.dataset_a, args.dataset_b, args.root_s3_dir, args.test)
+
+        # download all tiles in common, build layer.tile_list for each layer
+        for tile_id in overlap_list:
+            layer_a.download_s3_tile(args.dataset_a, args.root_s3_dir, tile_id)
+            layer_b.download_s3_tile(args.dataset_b, args.root_s3_dir, tile_id)
 
     # load every tile into PostGIS
     for vrt_tile in [layer_a.tile_list + layer_b.tile_list]:

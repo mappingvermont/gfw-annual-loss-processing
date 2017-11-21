@@ -1,8 +1,17 @@
 from boto.s3.connection import S3Connection
+import os
 from urlparse import urlparse
 
 
 conn = S3Connection(host="s3.amazonaws.com")
+
+# hardcode this temporarily
+def batch_download(layer_a, layer_b, s3_dir):
+
+    root_dir = '/home/ubuntu/gfw-annual-loss-processing/1b_Vector-to-TSV/data/'
+
+    layer_a.layer_dir = os.path.join(root_dir, '42b3b2b1-0084-45c6-98f9-d1d4dac81df9')
+    layer_b.layer_dir = os.path.join(root_dir, '6d3928b5-1340-41bf-96cb-23693ad72594')
 
 
 def find_tile_overlap(wildcard_a, wildcard_b, s3_dir, is_test):
