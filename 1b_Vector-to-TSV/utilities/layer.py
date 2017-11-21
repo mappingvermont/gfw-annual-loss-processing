@@ -120,13 +120,19 @@ class Layer(object):
         # then append it to this layers tile list
         self.tile_list.append(t)
 
-    def build_tile_list_from_dir(self):
+    def batch_download(self, s3_root_dir):
 
+        cmd = ['aws', 's3', 'cp', '--recursive', s3_root_dir, self.layer_dir,
+               '--exclude', '*', '--include', '{}*'.format(self.input_dataset)]
+
+        subprocess.check_call(cmd)
+        
         for f in os.listdir(self.layer_dir):
 
-            if os.path.splitext(f)[1] == '.vrt' and f != 'data.vrt':
+            if os.path.splitext(f)[1] == '.tsv':
 
-                tile_vrt = os.path.join(self.layer_dir, f)
+                vrt_path = os.path.splitext(f)[0] + '.vrt'
+                tile_vrt = decode_tsv.build_vrt(f, vrt_path)
 
                 basename = os.path.splitext(os.path.basename(f))[0]
                 tile_id = basename.split('__')[-1]

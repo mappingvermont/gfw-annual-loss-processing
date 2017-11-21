@@ -37,10 +37,11 @@ def main():
     layer_b = Layer(args.dataset_b, col_list[:])
 
     if args.batch:
-        s3_list_tiles.batch_download(layer_a, layer_b, args.root_s3_dir)
 
         for l in [layer_a, layer_b]:
-            l.build_tile_list_from_dir()
+            l.batch_download(args.root_s3_dir)
+
+        s3_list_tiles.find_local_overlap(layer_a, layer_b)
 
     else:
         # figure out what tiles they have in common by looking at datasets on S3
