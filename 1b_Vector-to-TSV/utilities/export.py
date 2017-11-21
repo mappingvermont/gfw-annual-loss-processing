@@ -106,7 +106,10 @@ def export_tsv(layer_dir, output_name, tile):
     if write_df:
         df.to_csv(tsv_output, sep='\t', header=None, index=False)
 
-    tile.final_output = tsv_output
+        tile.final_output = tsv_output
+
+    else:
+        tile.final_output = None
 
 
 # filter columns based on geometry type
