@@ -35,9 +35,9 @@ def clip(q):
 		# which requires a crazy vector VRT file
 		if file_ext in ['.shp', '.tsv', '.vrt']:
 		    if file_ext == '.shp':
-			ogr_layer_name = os.path.splitext(os.path.basename(tile.dataset))[0]
+			    ogr_layer_name = os.path.splitext(os.path.basename(tile.dataset))[0]
 		    else:
-			ogr_layer_name = 'data'
+			    ogr_layer_name = 'data'
 
 		    sql = "SELECT {}, GEOMETRY FROM {}".format(col_str, ogr_layer_name)
 
@@ -46,8 +46,8 @@ def clip(q):
 			   '-overwrite', '-s_srs', 'EPSG:4326', '-t_srs', 'EPSG:4326', '-dim', '2']
 
 		    if tile.bbox:
-			bbox_list = [str(x) for x in tile.bbox]
-			cmd += ['-clipsrc'] + bbox_list
+			    bbox_list = [str(x) for x in tile.bbox]
+			    cmd += ['-clipsrc'] + bbox_list
 
 		elif file_ext == '.tif':
 		    cmd = ['gdal_polygonize.py', tile.dataset, '-f', 'PostgreSQL',
@@ -63,11 +63,11 @@ def clip(q):
 		# a few other things required to get our raster data to match vector
 		if file_ext == '.tif':
 		    sql_list = ["ALTER TABLE {} RENAME wkb_geometry to geom",
-				"ALTER TABLE {} ADD COLUMN boundary_field2 integer",
-				"UPDATE {} SET boundary_field2 = 1"]
+				        "ALTER TABLE {} ADD COLUMN boundary_field2 integer",
+				        "UPDATE {} SET boundary_field2 = 1"]
 
 		    for sql in sql_list:
-			cursor.execute(sql.format(tile.postgis_table))
+			    cursor.execute(sql.format(tile.postgis_table))
 
 		# remove linestings and points from collections
 		sql = "UPDATE {} SET geom = ST_CollectionExtract(geom, 3)".format(tile.postgis_table)
@@ -121,8 +121,7 @@ def intersect(q):
                    "SELECT {s}, (ST_Dump(ST_Union(ST_Buffer(ST_MakeValid(ST_Intersection(ST_MakeValid("
                    "a.geom), b.geom)), 0.0000001)))).geom as geom "
                    "FROM {table1} a, {table2} b "
-                   "WHERE ST_Intersects(a.geom, b.geom) AND "
-                   "ST_GeometryType(a.geom) IN ('ST_Polygon', 'ST_MultiPolygon') "
+                   "WHERE ST_Intersects(a.geom, b.geom) "
                    "GROUP BY {g};".format(s=select_cols, table_name=table_name, table1=tile1.postgis_table,
                                                table2=tile2.postgis_table, g=groupby_columns))
 
