@@ -1,4 +1,5 @@
 import argparse
+import logging
 
 
 from utilities.layer import Layer
@@ -41,7 +42,13 @@ def main():
         for l in [layer_a, layer_b]:
             l.batch_download(args.root_s3_dir)
 
+        logging.info(len(layer_a.tile_list))
+        logging.info(len(layer_b.tile_list))
+
         s3_list_tiles.find_local_overlap(layer_a, layer_b)
+
+        logging.info(len(layer_a.tile_list))
+        logging.info(len(layer_b.tile_list))
 
     else:
         # figure out what tiles they have in common by looking at datasets on S3
@@ -63,7 +70,7 @@ def main():
     layer_c.export(args.output_name, args.output_format)
 
     # upload output
-    layer_c.upload_to_s3(args.output_format, args.s3_out_dir, args.test)
+    layer_c.upload_to_s3(args.output_format, args.s3_out_dir, args.test, args.batch)
 
 
 if __name__ == '__main__':

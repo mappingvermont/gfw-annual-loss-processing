@@ -11,14 +11,11 @@ def find_local_overlap(layer_a, layer_b):
     layer_b_ids = [x.tile_id for x in layer_b.tile_list]
 
     overlap = set(layer_a_ids).intersection(layer_b_ids)
-    
-    for l in layer_a, layer_b:
-        for i, t in enumerate(l.tile_list):
 
-            if t.tile_id not in overlap:
-                del l.tile_list[i]
-            
+    for l in [layer_a, layer_b]:    
+        l.tile_list = [t for t in l.tile_list if t.tile_id in overlap]
 
+           
 def find_tile_overlap(wildcard_a, wildcard_b, s3_dir, is_test):
 
     parsed = urlparse(s3_dir)

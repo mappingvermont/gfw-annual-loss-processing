@@ -75,22 +75,28 @@ class Layer(object):
     def raster_to_vector(self):
         geop.raster_to_vector(self.layer_dir, self.tile_list)
 
-    def upload_to_s3(self, output_format, s3_out_dir, is_test):
+    def upload_to_s3(self, output_format, s3_out_dir, is_test, batch_upload):
 
         if output_format == 'tsv':
             logging.info('uploading {} to {}'.format(self.layer_dir, s3_out_dir))
 
-            # check to make sure we've written out some data
-            out_tsv_list = [x.final_output for x in self.tile_list if x.final_output and os.stat(x.final_output).st_size]
-
-            for out_tsv in out_tsv_list:
-
-                cmd = ['aws', 's3', 'cp', out_tsv, s3_out_dir]
-
-                if is_test:
-                    cmd += ['--dryrun']
-
+            if batch_upload:
+                cmd = ['aws', 's3', 'cp', '--recursive', self.layer_dir, s3_out_dir, '--exclude', '*', '--include', '*.tsv', '--dryrun']
                 subprocess.check_call(cmd)
+
+            else:
+
+		    # check to make sure we've written out some data
+		    out_tsv_list = [x.final_output for x in self.tile_list if x.final_output and os.stat(x.final_output).st_size]
+
+		    for out_tsv in out_tsv_list:
+
+			cmd = ['aws', 's3', 'cp', out_tsv, s3_out_dir]
+
+			if is_test:
+			    cmd += ['--dryrun']
+
+			subprocess.check_call(cmd)
 
         else:
             logging.info('Output format is {}, not uploading anything to s3')
