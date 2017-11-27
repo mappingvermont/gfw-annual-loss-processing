@@ -209,6 +209,10 @@ def intersect_layers(layer_a, layer_b):
 
     output_layer = layer.Layer(None, [])
 
+    # need to sort tiles to make sure both lists line up
+    layer_a.tile_list.sort(key=lambda x: x.tile_id)
+    layer_b.tile_list.sort(key=lambda x: x.tile_id)
+
     for a, b in zip(layer_a.tile_list, layer_b.tile_list):
         input_list.append((output_layer, a, b))
 
