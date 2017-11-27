@@ -81,7 +81,7 @@ class Layer(object):
             logging.info('uploading {} to {}'.format(self.layer_dir, s3_out_dir))
 
             if batch_upload:
-                cmd = ['aws', 's3', 'cp', '--recursive', self.layer_dir, s3_out_dir, '--exclude', '*', '--include', '*.tsv', '--dryrun']
+                cmd = ['aws', 's3', 'cp', '--recursive', self.layer_dir, s3_out_dir, '--exclude', '*', '--include', '*.tsv']
                 subprocess.check_call(cmd)
 
             else:
