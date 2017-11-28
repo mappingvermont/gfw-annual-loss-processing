@@ -40,7 +40,7 @@ def main():
 
     l.export(args.output_name, args.output_format)
 
-    l.upload_to_s3(args.output_format, args.s3_out_dir, args.test)
+    l.upload_to_s3(args.output_format, args.s3_out_dir, args.test, False)
 
 
 if __name__ == '__main__':
