@@ -166,3 +166,28 @@ def check_table_exists(cursor, table_name):
 
     return cursor.fetchone()[0]
 
+
+def create_area_table():
+
+    creds = get_creds()
+    conn = psycopg2.connect(**creds)
+
+    cursor = conn.cursor()
+
+    if not check_table_exists(cursor, 'aoi_area'):
+        
+        sql = ("CREATE TABLE aoi_area ( "
+               "polyname character varying, "
+               "boundary_field1 character varying, "
+               "boundary_field2 character varying, "
+               "iso character varying, "
+               "id_1 character varying, "
+               "id_2 character varying, "
+               "area_ha double precision "
+               ");")
+
+        cursor.execute(sql)
+        conn.commit()
+
+    conn.close()
+

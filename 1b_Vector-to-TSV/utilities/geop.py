@@ -7,6 +7,31 @@ import pandas as pd
 import util, tile, layer
 
 
+def tabulate_area(q):
+
+    while True:
+        tile = q.get()
+
+        creds = util.get_creds()
+        conn = psycopg2.connect(**creds)
+        cursor = conn.cursor()
+
+        col_list = ['polyname', 'boundary_field1', 'boundary_field2', 
+                    'iso', 'id_1', 'id_2']
+        col_str = ', '.join(col_list)
+
+        sql = ("INSERT INTO aoi_area "
+               "SELECT {c}, sum(ST_Area(geometry(geom))) AS area_ha "
+               "FROM {t} " 
+               "GROUP BY {c} ".format(t=tile.postgis_table, c=col_str))
+        
+        cursor.execute(sql)
+        conn.commit()
+
+        conn.close()
+        q.task_done()
+        
+
 def clip(q):
 
     while True:

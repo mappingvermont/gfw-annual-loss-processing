@@ -16,38 +16,56 @@ def main():
     loss_df = read_df(args.loss_dataset)
     extent_df = read_df(args.extent_dataset)
 
-    merged = join_loss_extent(loss_df, extent_df)
+    field_list = ['polyname', 'bound1', 'bound2', 'bound3', 'bound4', 'thresh'] 
     
-    print 'dumping to output json'
-    as_dict = {'data': merged.to_dict(orient='records')}
+    merged = join_loss_extent(loss_df, extent_df, field_list)
 
-    with io.open('final.json', 'w', encoding='utf-8') as thefile:
+    for adm_level in range(0, 3):
+        write_output(merged, adm_level, field_list)
+
+
+def write_output(df, adm_level, field_list):
+
+    # build field list for grouping
+    adm_list = ['iso', 'adm1', 'adm2'][0: adm_level + 1]
+
+    area_fields = ['area_extent', 'area_gadm28', 'area_loss', 'emissions']
+    group_list = field_list + adm_list
+
+    print 'grouping data by adm level {} and polygon'.format(adm_level)
+    # source: https://stackoverflow.com/questions/40470954/
+    # first group and sum to adm0/adm1/adm2 level as appropriate
+    # then group again to collapse year/loss/emissions into nested JSON
+    grouped = (df.groupby(group_list + ['year'])
+                 .sum()[area_fields]
+                 .reset_index()
+                 .groupby(group_list, as_index=False)
+                 .apply(lambda x: x[['year', 'area_loss', 'emissions']].to_dict('r'))
+                 .reset_index()
+                 .rename(columns={0: 'year_data'}))
+
+    print 'dumping to output json'
+    as_dict = {'data': grouped.to_dict(orient='records')}
+
+    with io.open('adm{}.json'.format(adm_level), 'w', encoding='utf-8') as thefile:
         thefile.write(json.dumps(as_dict, ensure_ascii=False))
 
 
-def join_loss_extent(loss_df, extent_df):
+def join_loss_extent(loss_df, extent_df, field_list):
     
-    join_list = ['polyname', 'bound1', 'bound2', 'bound3', 'bound4', 
-                 'iso', 'adm1', 'adm2', 'thresh']
+    join_list = field_list + ['iso', 'adm1', 'adm2']
     suffixes = ['_extent', '_loss']
 
     merged = pd.merge(extent_df, loss_df, how='left', on=join_list, suffixes=suffixes)
     
     # temporarily set nodata to -9999 - pandas can't group nd values
     merged = merged.fillna(-9999)
-    merged['year'] = merged.year.astype(int)
 
-    # add area_extent to join list for grouping
-    join_list.extend(['area_extent', 'area_gadm28'])
-
-    print 'grouping data by adm2 and polygon'
-    # source: https://stackoverflow.com/questions/40470954/
-    grouped = (merged.groupby(join_list, as_index=False)
-                 .apply(lambda x: x[['year', 'area_loss', 'emissions']].to_dict('r'))
-                 .reset_index()
-                 .rename(columns={0: 'year_data'}))
-
-    return grouped
+    # explicitly set proper fieldnames to int
+    for field_name in ['year', 'adm1', 'adm2']:
+        merged[field_name] = merged[field_name].astype(int)
+    
+    return merged
 
 
 def read_df(csv_path):

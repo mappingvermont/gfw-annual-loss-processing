@@ -128,8 +128,13 @@ class Layer(object):
 
     def batch_download(self, s3_root_dir):
 
+        if self.input_dataset:
+            wildcard = '{}*'.format(self.input_dataset)
+        else:
+            wildcard = '*'
+
         cmd = ['aws', 's3', 'cp', '--recursive', s3_root_dir, self.layer_dir,
-               '--exclude', '*', '--include', '{}*'.format(self.input_dataset)]
+               '--exclude', '*', '--include', wildcard] 
 
         subprocess.check_call(cmd)
         
@@ -143,7 +148,14 @@ class Layer(object):
                 basename = os.path.splitext(os.path.basename(f))[0]
                 tile_id = basename.split('__')[-1]
 
-                postgis_table = '_'.join([self.input_dataset, tile_id]).lower()
+                # required for use case where we need to download all
+                # the tiles in an s3 dir and tabulate area
+                if self.input_dataset:
+                    src_table_basename = self.input_dataset
+                else:
+                    src_table_basename = '__'.join(basename.split('__')[:-1])
+
+                postgis_table = '_'.join([src_table_basename, tile_id]).lower()
 
                 t = Tile(tile_vrt, self.col_list, tile_id, None, postgis_table)
 
