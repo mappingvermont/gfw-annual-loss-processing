@@ -20,7 +20,9 @@ def main():
 
     # could be empty, but important for plantations/etc
     # need to register the iso columns as well
-    col_list = [{'field_2': 'polyname', 'field_3': 'boundary_field1'}, {'field_4': 'boundary_field2'}]
+    col_list = [{'field_2': 'polyname', 'field_3': 'boundary_field1'}, {'field_4': 'boundary_field2'},
+                {'field_5': 'boundary_field3'}, {'field_6', 'boundary_field4'}]
+
     iso_col_dict = {'field_7': 'iso', 'field_8': 'id_1', 'field_9': 'id_2'}
 
     l = Layer(None, col_list[:], iso_col_dict)

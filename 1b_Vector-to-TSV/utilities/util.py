@@ -180,6 +180,8 @@ def create_area_table():
                "polyname character varying, "
                "boundary_field1 character varying, "
                "boundary_field2 character varying, "
+               "boundary_field3 character varying, "
+               "boundary_field4 character varying, "
                "iso character varying, "
                "id_1 character varying, "
                "id_2 character varying, "
