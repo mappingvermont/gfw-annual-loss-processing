@@ -37,18 +37,15 @@ def main():
     layer_a = Layer(args.dataset_a, col_list[:], iso_col_dict)
     layer_b = Layer(args.dataset_b, col_list[:])
 
+    # If we're working with smaller grids (0.25 x 0.25 degrees),
+    # download all tiles from s3 that match the dataset name supplied
     if args.batch:
 
         for l in [layer_a, layer_b]:
             l.batch_download(args.root_s3_dir)
 
-        logging.info(len(layer_a.tile_list))
-        logging.info(len(layer_b.tile_list))
-
+        # from the local tiles downloaded, find overlap between the two layers
         s3_list_tiles.find_local_overlap(layer_a, layer_b)
-
-        logging.info(len(layer_a.tile_list))
-        logging.info(len(layer_b.tile_list))
 
     else:
         # figure out what tiles they have in common by looking at datasets on S3

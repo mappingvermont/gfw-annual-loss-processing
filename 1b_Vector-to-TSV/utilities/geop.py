@@ -16,21 +16,21 @@ def tabulate_area(q):
         conn = psycopg2.connect(**creds)
         cursor = conn.cursor()
 
-        col_list = ['polyname', 'boundary_field1', 'boundary_field2', 
+        col_list = ['polyname', 'boundary_field1', 'boundary_field2',
                     'iso', 'id_1', 'id_2']
         col_str = ', '.join(col_list)
 
         sql = ("INSERT INTO aoi_area "
                "SELECT {c}, sum(ST_Area(geometry(geom))) AS area_ha "
-               "FROM {t} " 
+               "FROM {t} "
                "GROUP BY {c} ".format(t=tile.postgis_table, c=col_str))
-        
+
         cursor.execute(sql)
         conn.commit()
 
         conn.close()
         q.task_done()
-        
+
 
 def clip(q):
 
@@ -103,7 +103,6 @@ def clip(q):
 		cursor.execute(sql)
 
 		conn.commit()
-
         conn.close()
 
         q.task_done()
