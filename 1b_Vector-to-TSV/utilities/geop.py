@@ -36,10 +36,13 @@ def clip(q):
             cmd += ['-clipsrc'] + bbox_list
 
         logging.info(cmd)
-        subprocess.check_call(cmd)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        
+        for line in iter(p.stdout.readline, b''):
+            if 'error' in line:
+                logging.error('Error {} in sql statement {}'.format(sql, e))
 
         q.task_done()
-
 
 def intersect(q):
 
