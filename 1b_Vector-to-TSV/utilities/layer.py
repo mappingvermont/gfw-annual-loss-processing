@@ -45,7 +45,7 @@ class Layer(object):
         if not self.col_list:
             self.col_list = [{'1': 'boundary_field1'}, {'1': 'boundary_field2'}]
 
-        elif len(self.col_list) > 2:
+        elif self.input_dataset and len(self.col_list) > 2:
             logging.error(self.col_list)
             raise ValueError('Can only save 2 or fewer columns from this dataset')
 

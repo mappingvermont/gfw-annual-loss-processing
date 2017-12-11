@@ -17,11 +17,11 @@ def tabulate_area(q):
         cursor = conn.cursor()
 
         col_list = ['polyname', 'boundary_field1', 'boundary_field2',
-                    'iso', 'id_1', 'id_2']
+                    'boundary_field3', 'boundary_field4', 'iso', 'id_1', 'id_2']
         col_str = ', '.join(col_list)
 
         sql = ("INSERT INTO aoi_area "
-               "SELECT {c}, sum(ST_Area(geometry(geom))) AS area_ha "
+               "SELECT {c}, sum(ST_Area(geography(geom))) / 10000 AS area_ha "
                "FROM {t} "
                "GROUP BY {c} ".format(t=tile.postgis_table, c=col_str))
 
@@ -47,6 +47,7 @@ def clip(q):
         if not tile.postgis_table:
             dataset_name = os.path.splitext(os.path.basename(tile.dataset))[0]
             tile.postgis_table = '_'.join([dataset_name, tile.tile_id,  'clip'])
+
 
         if util.check_table_exists(cursor, tile.postgis_table):
             pass
