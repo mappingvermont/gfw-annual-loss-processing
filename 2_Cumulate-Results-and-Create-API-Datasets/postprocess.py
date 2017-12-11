@@ -45,10 +45,10 @@ def write_output(df, adm_level, field_list):
     # source: https://stackoverflow.com/questions/40470954/
     # first group and sum to adm0/adm1/adm2 level as appropriate
     # then group again to collapse year/loss/emissions into nested JSON
-    grouped = (df.groupby(group_list + ['year'])
-                 .sum()[area_fields]
+    grouped = (df.groupby(group_list + ['year'])[area_fields]
+                 .sum()
                  .reset_index()
-                 .groupby(group_list, as_index=False)
+                 .groupby(group_list + area_fields[0:3], as_index=False)
                  .apply(lambda x: x[['year', 'area_loss', 'emissions']].to_dict('r'))
                  .reset_index()
                  .rename(columns={0: 'year_data'}))
@@ -73,6 +73,9 @@ def add_area_to_extent_df(extent_df, adm2_area_df, poly_area_df):
 
     join_field_list.extend(['polyname', 'bound1', 'bound2', 'bound3', 'bound4'])
     second_merge = pd.merge(first_merge, poly_area_df, how='left', on=join_field_list)
+
+    # gadm28 polygons don't have a default area_poly_aoi, so set it = gadm area
+    second_merge.loc[second_merge.area_poly_aoi.isnull(), 'area_poly_aoi'] = second_merge['area_gadm28']
     print second_merge.shape
 
     return second_merge
@@ -94,6 +97,23 @@ def join_loss_extent(loss_df, extent_df, field_list):
 
     for field_name in ['bound1', 'bound2', 'bound3', 'bound4']:
         merged[field_name] = merged[field_name].astype(unicode)
+        
+    # there are many adm2 areas with extent data but without loss
+    # these are currently rows in the dataset with a single loss year
+    # of -9999. Need to join to these, and a create a record
+    # for each year with 0 loss and 0 emissions
+    dummy_df = pd.DataFrame(range(2001, 2017), columns=['dummy_year'])
+    dummy_df['year'] = -9999
+
+    # now join this dummy dataframe to merged
+    merged = pd.merge(merged, dummy_df, how='left', on='year')
+
+    # then update anything where year = -9999 to be the dummy_year value
+    # and set loss and emissions for these instances to 0
+    merged.loc[merged.year == -9999, ['area_loss', 'emissions']] = 0
+    merged.loc[merged.year == -9999, ['year']] = merged['dummy_year']
+
+    del merged['dummy_year']
 
     return merged
 
