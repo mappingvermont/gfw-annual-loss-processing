@@ -6,7 +6,7 @@ from utilities import util, decode_tsv
 
 def main():
     parser = argparse.ArgumentParser(description='Tile an existing TSV')
-    parser.add_argument('--input-s3-path', '-i', help='the input dataset as vector VRT', required=True)
+    parser.add_argument('--input-s3-path', '-i', help='the input TSV on S3', required=True)
 
     parser.add_argument('--output-format', '-o', help='output format', default='tsv', choices=('tsv', 'shp', 'geojson'))
     parser.add_argument('--output-name', '-n', help='output name', required=True)

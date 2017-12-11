@@ -5,6 +5,17 @@ from urlparse import urlparse
 conn = S3Connection(host="s3.amazonaws.com")
 
 
+def find_local_overlap(layer_a, layer_b):
+
+    layer_a_ids = [x.tile_id for x in layer_a.tile_list]
+    layer_b_ids = [x.tile_id for x in layer_b.tile_list]
+
+    overlap = set(layer_a_ids).intersection(layer_b_ids)
+
+    for l in [layer_a, layer_b]:    
+        l.tile_list = [t for t in l.tile_list if t.tile_id in overlap]
+
+           
 def find_tile_overlap(wildcard_a, wildcard_b, s3_dir, is_test):
 
     parsed = urlparse(s3_dir)
@@ -29,7 +40,11 @@ def find_tile_overlap(wildcard_a, wildcard_b, s3_dir, is_test):
 
         for name in filename_only_list:
 
-            if name.split("__")[0] == boundary:
+            # ignore files with multiple __, they're already 
+            # combination TSVs (like wdpa__primary__10N_030W.tsv)
+	    if len(name.split("__")) > 2:
+                pass
+            elif name.split("__")[0] == boundary:
                 tile_id = name.split("__")[-1:][0].strip(".tsv")
                 boundary_tiles.append(tile_id)
 
@@ -38,6 +53,8 @@ def find_tile_overlap(wildcard_a, wildcard_b, s3_dir, is_test):
     # find tiles that are the same in both lists from the dictionary
     match_list = list(set(boundary_dict[wildcard_a]) & set(boundary_dict[wildcard_b]))
 
+    print boundary_dict[wildcard_a]
+    print boundary_dict[wildcard_b]
     if is_test:
         match_list = match_list[0:1]
 

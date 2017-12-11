@@ -1,4 +1,5 @@
 import argparse
+import os
 
 from utilities.layer import Layer
 from utilities import util, geop, load_gadm28
@@ -28,6 +29,9 @@ def main():
     # create blueprint for the source dataset in postgis
     util.build_gadm28_tile_list(source_layer, args.test)
 
+    if os.path.splitext(args.input_dataset)[1] == '.tif':
+        source_layer.raster_to_vector()
+
     # process clip jobs above-- this loads tiles into PostGIS
     util.exec_multiprocess(geop.clip, source_layer.tile_list)
 
@@ -36,7 +40,7 @@ def main():
 
     l.export(args.output_name, args.output_format)
 
-    l.upload_to_s3(args.output_format, args.s3_out_dir, args.test)
+    l.upload_to_s3(args.output_format, args.s3_out_dir, args.test, False)
 
 
 if __name__ == '__main__':

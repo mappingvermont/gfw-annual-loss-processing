@@ -6,7 +6,7 @@ from urlparse import urlparse
 import logging
 
 from tile import Tile
-import geop, util, decode_tsv
+import geop, util, decode_tsv, export
 
 
 class Layer(object):
@@ -45,7 +45,7 @@ class Layer(object):
         if not self.col_list:
             self.col_list = [{'1': 'boundary_field1'}, {'1': 'boundary_field2'}]
 
-        elif len(self.col_list) > 2:
+        elif self.input_dataset and len(self.col_list) > 2:
             logging.error(self.col_list)
             raise ValueError('Can only save 2 or fewer columns from this dataset')
 
@@ -72,22 +72,31 @@ class Layer(object):
             for k, v in self.iso_col_dict.iteritems():
                 self.col_list.append({k: v})
 
-    def upload_to_s3(self, output_format, s3_out_dir, is_test):
+    def raster_to_vector(self):
+        geop.raster_to_vector(self.layer_dir, self.tile_list)
+
+    def upload_to_s3(self, output_format, s3_out_dir, is_test, batch_upload):
 
         if output_format == 'tsv':
             logging.info('uploading {} to {}'.format(self.layer_dir, s3_out_dir))
 
-            # check to make sure we've written out some data
-            out_tsv_list = [x.final_output for x in self.tile_list if x.final_output and os.stat(x.final_output).st_size]
-
-            for out_tsv in out_tsv_list:
-
-                cmd = ['aws', 's3', 'cp', out_tsv, s3_out_dir]
-
-                if is_test:
-                    cmd += ['--dryrun']
-
+            if batch_upload:
+                cmd = ['aws', 's3', 'cp', '--recursive', self.layer_dir, s3_out_dir, '--exclude', '*', '--include', '*.tsv']
                 subprocess.check_call(cmd)
+
+            else:
+
+		    # check to make sure we've written out some data
+		    out_tsv_list = [x.final_output for x in self.tile_list if x.final_output and os.stat(x.final_output).st_size]
+
+		    for out_tsv in out_tsv_list:
+
+			cmd = ['aws', 's3', 'cp', out_tsv, s3_out_dir]
+
+			if is_test:
+			    cmd += ['--dryrun']
+
+			subprocess.check_call(cmd)
 
         else:
             logging.info('Output format is {}, not uploading anything to s3')
@@ -117,6 +126,42 @@ class Layer(object):
         # then append it to this layers tile list
         self.tile_list.append(t)
 
+    def batch_download(self, s3_root_dir):
+
+        if self.input_dataset:
+            wildcard = '{}*'.format(self.input_dataset)
+        else:
+            wildcard = '*'
+
+        cmd = ['aws', 's3', 'cp', '--recursive', s3_root_dir, self.layer_dir,
+               '--exclude', '*', '--include', wildcard] 
+
+        subprocess.check_call(cmd)
+        
+        for f in os.listdir(self.layer_dir):
+
+            if os.path.splitext(f)[1] == '.tsv':
+
+                vrt_path = os.path.join(self.layer_dir, os.path.splitext(f)[0] + '.vrt')
+                tile_vrt = decode_tsv.build_vrt(os.path.join(self.layer_dir, f), vrt_path)
+
+                basename = os.path.splitext(os.path.basename(f))[0]
+                tile_id = basename.split('__')[-1]
+
+                # required for use case where we need to download all
+                # the tiles in an s3 dir and tabulate area
+                if self.input_dataset:
+                    src_table_basename = self.input_dataset
+                else:
+                    src_table_basename = '__'.join(basename.split('__')[:-1])
+
+                postgis_table = '_'.join([src_table_basename, tile_id]).lower()
+
+                t = Tile(tile_vrt, self.col_list, tile_id, None, postgis_table)
+
+                self.tile_list.append(t)
+
+
     def export(self, output_name, output_format):
 
         input_list = []
@@ -124,5 +169,4 @@ class Layer(object):
         for t in self.tile_list:
             input_list.append((self.layer_dir, output_name, t, output_format))
 
-        util.exec_multiprocess(geop.export, input_list)
-
+        util.exec_multiprocess(export.export, input_list)

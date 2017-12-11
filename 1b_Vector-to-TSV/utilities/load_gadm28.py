@@ -17,7 +17,7 @@ def load():
 
     boundary_fields = [{'boundary_field1': 'boundary_field1'}, {'boundary_field2': 'boundary_field2'}]
 
-    if check_table_exists(cursor, 'adm2_final'):
+    if util.check_table_exists(cursor, 'adm2_final'):
         logging.info('GADM 28 data already in PostGIS')
 
     else:
@@ -53,7 +53,8 @@ def insert_into_postgis(creds, src_shp, dummy_fields):
     cursor = conn.cursor()
 
     # add these to match schema of other intersects
-    for field_name in dummy_fields:
+    for field_dict in dummy_fields:
+        field_name = field_dict.keys()[0]
         cursor.execute('ALTER TABLE {} ADD COLUMN {} varchar(30)'.format(table_name, field_name))
         cursor.execute("UPDATE {} SET {} = '1'".format(table_name, field_name))
 
@@ -89,12 +90,4 @@ def download_gadm28():
 
     return os.path.join(out_dir + 'adm2_final.shp')
 
-
-def check_table_exists(cursor, table_name):
-
-    # source: https://stackoverflow.com/questions/1874113/
-    sql = "select exists(select * from information_schema.tables where table_name=%s)"
-    cursor.execute(sql, (table_name,))
-
-    return cursor.fetchone()[0]
 
