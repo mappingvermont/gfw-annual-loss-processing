@@ -39,7 +39,7 @@ def clip(q):
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         
         for line in iter(p.stdout.readline, b''):
-            if 'error' in line:
+            if 'error' in line.lower():
                 logging.error('Error {} in sql statement {}'.format(sql, e))
 
         q.task_done()

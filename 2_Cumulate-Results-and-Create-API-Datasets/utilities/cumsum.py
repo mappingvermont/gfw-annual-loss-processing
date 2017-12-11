@@ -4,81 +4,103 @@ import pandas as pd
 
 def tabulate(input_data, args):
 
-    df, boundary_fields = source_to_df(input_data, args)
+    if args.biomass_thresh:
+        # no need to cumsum since we are running biomass extent one thresh at a time.
+        df = read_df(input_data)
+        
+        # add in a thresh column
+        df.insert(8, 'thresh', args.biomass_thresh)
 
-    # years in this CSV are stored as 1 - 14, should be 2001 - 2014
-    if args.years:
-        df['year'] = df['year'] + 2000
+        boundary_fields = ['polyname', 'bound1', 'bound2', 'bound3', 'bound4', 'iso', 'adm1', 'adm2', 'thresh', 'bio_per_pixel']
+        df.columns = boundary_fields
+        
+        return df
+        
+    else:
+        df, boundary_fields = source_to_df(input_data, args)
 
-    # convert area in m2 to area in ha
-    df['area_raw'] = df['area_raw'] / 10000
-
-    # ID full universe of ISO/ADM1/ADM2 (or custom) combinations
-    all_combo_df = df.groupby(boundary_fields).size().reset_index()
-
-    # delete the count column that was added
-    del all_combo_df[0]
-
-    # create dummy df and store all possible combinations
-    dummy_df = pd.DataFrame()
-
-    # create a record for every combination of threshold
-    # and year, in addition to the above iso/adm1/adm2
-    for dummy_thresh in [0, 10, 15, 20, 25, 30, 50, 75]:
-        all_combo_df['thresh'] = dummy_thresh
-
+        # years in this CSV are stored as 1 - 14, should be 2001 - 2014
         if args.years:
-            for dummy_year in range(2001, 2017):
-                all_combo_df['year'] = dummy_year
+            df['year'] = df['year'] + 2000
+
+        # convert area in m2 to area in ha
+        df['area_raw'] = df['area_raw'] / 10000
+
+        # ID full universe of ISO/ADM1/ADM2 (or custom) combinations
+        all_combo_df = df.groupby(boundary_fields).size().reset_index()
+
+        # delete the count column that was added
+        del all_combo_df[0]
+
+        # create dummy df and store all possible combinations
+        dummy_df = pd.DataFrame()
+
+        # create a record for every combination of threshold
+        # and year, in addition to the above iso/adm1/adm2
+        for dummy_thresh in [0, 10, 15, 20, 25, 30, 50, 75]:
+            all_combo_df['thresh'] = dummy_thresh
+
+            if args.years:
+                for dummy_year in range(2001, 2017):
+                    all_combo_df['year'] = dummy_year
+                    dummy_df = dummy_df.append(all_combo_df)
+
+            else:
                 dummy_df = dummy_df.append(all_combo_df)
 
+        # outer join our dummy_df to df, so that we get proper
+        # Nan values where we don't have data
+        print 'joining to dummy data'
+        join_fields = boundary_fields + ['thresh']
+        if args.years:
+            join_fields += ['year']
+
+        joined_df = pd.merge(dummy_df, df, how='left', on=join_fields)
+
+        # update all Nan values to be 0, so that they will be included
+        # in the sum when we cumsum
+        joined_df['area_raw'].fillna(0, inplace=True)
+
+        if args.emissions:
+            joined_df['emissions_raw'].fillna(0, inplace=True)
+
+        print 'grouping by boundary fields, year and thresh'
+
+        if args.emissions:
+            grouped_df = joined_df.groupby(join_fields)['area_raw', 'emissions_raw'].sum().reset_index()
         else:
-            dummy_df = dummy_df.append(all_combo_df)
+            grouped_df = joined_df.groupby(join_fields)['area_raw'].sum().reset_index()
 
-    # outer join our dummy_df to df, so that we get proper
-    # Nan values where we don't have data
-    print 'joining to dummy data'
-    join_fields = boundary_fields + ['thresh']
-    if args.years:
-        join_fields += ['year']
+        print 'Tabluating cum sum for thresh'
+        # First sort the DF by threshold DESC, then cumsum, grouping by iso and year
+        grouped_df = grouped_df.sort_values('thresh', ascending=False)
 
-    joined_df = pd.merge(dummy_df, df, how='left', on=join_fields)
+        if args.years:
+            cumsum_fields = boundary_fields + ['year']
+        else:
+            cumsum_fields = boundary_fields
 
-    # update all Nan values to be 0, so that they will be included
-    # in the sum when we cumsum
-    joined_df['area_raw'].fillna(0, inplace=True)
+        grouped_df['area'] = grouped_df.groupby(cumsum_fields)['area_raw'].cumsum()
 
-    if args.emissions:
-        joined_df['emissions_raw'].fillna(0, inplace=True)
+        # Delete the area_raw column-- this shouldn't go in the database
+        del grouped_df['area_raw']
 
-    print 'grouping by boundary fields, year and thresh'
+        if args.emissions:
+            grouped_df['biomass'] = grouped_df.groupby(cumsum_fields)['emissions_raw'].cumsum()
+            del grouped_df['emissions_raw']
 
-    if args.emissions:
-        grouped_df = joined_df.groupby(join_fields)['area_raw', 'emissions_raw'].sum().reset_index()
+        return grouped_df
+
+def read_df(input_data):
+    print 'Reading df'
+    if os.path.isdir(input_data):
+        df = folder_to_df(input_data)
     else:
-        grouped_df = joined_df.groupby(join_fields)['area_raw'].sum().reset_index()
-
-    print 'Tabluating cum sum for thresh'
-    # First sort the DF by threshold DESC, then cumsum, grouping by iso and year
-    grouped_df = grouped_df.sort_values('thresh', ascending=False)
-
-    if args.years:
-        cumsum_fields = boundary_fields + ['year']
-    else:
-        cumsum_fields = boundary_fields
-
-    grouped_df['area'] = grouped_df.groupby(cumsum_fields)['area_raw'].cumsum()
-
-    # Delete the area_raw column-- this shouldn't go in the database
-    del grouped_df['area_raw']
-
-    if args.emissions:
-        grouped_df['emissions'] = grouped_df.groupby(cumsum_fields)['emissions_raw'].cumsum()
-        del grouped_df['emissions_raw']
-
-    return grouped_df
-
-
+        df = pd.read_csv(input_data, header=None)
+        
+    return df
+    
+    
 def source_to_df(input_data, args):
 
     base_fields = ['thresh']
@@ -94,10 +116,7 @@ def source_to_df(input_data, args):
     boundary_fields = ['polyname', 'bound1', 'bound2', 'bound3', 'bound4', 'iso', 'adm1', 'adm2']
 
     print 'Reading df'
-    if os.path.isdir(input_data):
-        df = folder_to_df(input_data)
-    else:
-        df = pd.read_csv(input_data, header=None)
+    df = read_df(input_data)
 
     num_cols = len(df.columns)
     expected_num = len(boundary_fields) + len(base_fields)
@@ -126,8 +145,9 @@ def source_to_df(input_data, args):
 
 
 def folder_to_df(folder_path):
-
-    csv_list = [os.path.join(folder_path, x) for x in os.listdir(folder_path) if os.stat(x).st_size > 0]
+    # loop through folder, for each csv, check if it has data
+    csv_list = [os.path.join(folder_path, x) for x in os.listdir(folder_path) if os.stat(os.path.join(folder_path, x)).st_size > 0]
+    # read each csv into a list
     df_list = [pd.read_csv(csv, header=None) for csv in csv_list]
 
     df = pd.concat(df_list)

@@ -13,6 +13,7 @@ def main():
     parser.add_argument('--dataset-id', '-d', help='the ID of the dataset to overwrite')
     parser.add_argument('--tags', '-t', nargs='+', help='tags for the dataset, required if creating a new dataset')
     parser.add_argument('--name', '-n', help='dataset name, if creating a new dataset')
+    parser.add_argument('--biomass-thresh', '-b', help='10,20,30 etc. whatever thresh the biomass raster was created for')
 
     parser.add_argument('--no-emissions', dest='emissions', action='store_false')
     parser.set_defaults(emissions=True)
