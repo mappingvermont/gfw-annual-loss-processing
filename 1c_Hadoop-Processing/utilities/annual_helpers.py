@@ -3,9 +3,6 @@ import os
 import subprocess
 from boto.s3.connection import S3Connection
 
-import calc_tsv_extent
-
-
 conn = S3Connection(host="s3.amazonaws.com")
 bucket = conn.get_bucket('gfw2-data')
 
@@ -71,7 +68,8 @@ def check_output_exists(analysis_type, output_folder, ns_tile=None):
     
         out_csv = ns_tile
         prefix = '{}/{}/{}'.format(output_folder, analysis_type, ns_tile)
-        
+        print "out csv: {}".format(out_csv)
+        print "prefix: {}".format(prefix)
     else:
         out_csv = '{}_all'.format(analysis_type)
         prefix = r'{}/{}/{}'.format(output_folder, analysis_type, out_csv)
@@ -79,7 +77,8 @@ def check_output_exists(analysis_type, output_folder, ns_tile=None):
     prefix_path = output_folder.replace('s3://gfw2-data/', '')
     full_path_list = [key.name for key in bucket.list(prefix='{}'.format(prefix_path))]
     filename_only_list = [x.split('/')[-1] for x in full_path_list]
-
+    print "filename only list:"
+    print filename_only_list
     return out_csv in filename_only_list
 
 

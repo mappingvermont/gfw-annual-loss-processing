@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--analysis-type', '-a', required=True, choices=['extent', 'loss', 'gain', 'biomass'])
 parser.add_argument('--points-folder', '-t', required=False, help='s3 location of points folder')
 parser.add_argument('--polygons-folder', '-y', required=True, help='s3 location of polygons folder')
-parser.add_argument('--ouptut-folder', '-o', required=True, help='s3 location for hadoop output')
+parser.add_argument('--output-folder', '-o', required=True, help='s3 location for hadoop output')
 
 args = parser.parse_args()
 analysis_type = args.analysis_type
@@ -20,7 +20,7 @@ analysis_type = args.analysis_type
 annual_helpers.download_jar()
 
 # properties dict
-'points_fields_dict' = {'loss': '2,3,4,5', 'extent': '2,3', 'biomass': '2,3'}
+points_fields_dict = {'loss': '2,3,4,5', 'extent': '2,3', 'biomass': '2,3'}
 
 if analysis_type in ['extent', 'biomass']:
 
@@ -29,10 +29,11 @@ if analysis_type in ['extent', 'biomass']:
     for ns_tile in ns_list:
 
         # if there is not a csv output already in the file system
-        if not annual_helpers.check_output_exists(analysis_type, ns_tile, args.output_folder):
-
+        if not annual_helpers.check_output_exists(analysis_type, args.output_folder, ns_tile):
+            print "does not already exist"
+	    
             annual_helpers.write_props(analysis_type, points_fields_dict, args.points_folder, args.polygons_folder, ns_tile)
-
+            sys.exit()
             annual_helpers.call_pip()
 
             annual_helpers.upload_to_s3(analysis_type, args.output_folder, ns_tile)
