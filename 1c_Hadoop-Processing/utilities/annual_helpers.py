@@ -25,7 +25,7 @@ def download_jar():
         subprocess.check_call(cmd)
 
 
-def write_props(analysis_type, fields_dict, ns_tile=None):
+def write_props(analysis_type, fields_dict, ns_tile=None, extent_folder=None):
     
     # for our purposes, extent is the same as gain
     # four input fields (x, y, value and area)
@@ -33,7 +33,7 @@ def write_props(analysis_type, fields_dict, ns_tile=None):
     if analysis_type == 'gain':
         analysis_type = 'extent'
                           
-    path = fields_dict['points_path'][analysis_type].format(ns_tile)
+    path = fields_dict['points_path'][analysis_type].format(extent_folder, ns_tile)
     points_path = 's3a://gfw2-data/alerts-tsv/{}'.format(path)
     
     points_fields = fields_dict['points_fields'][analysis_type]
@@ -83,7 +83,7 @@ def check_output_exists(analysis_type, ns_tile=None):
     return out_csv in filename_only_list
 
 
-def upload_to_s3(analysis_type, ns_tile_name=None):
+def upload_to_s3(analysis_type, s3_output_folder, ns_tile_name=None):
     cmd = ['hdfs', 'dfs', '-ls', 'output/']
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     out, err = p.communicate()
@@ -94,16 +94,16 @@ def upload_to_s3(analysis_type, ns_tile_name=None):
     # Extent outputs should be extent/10N.csv, 20N.csv etc
     if analysis_type == 'extent' or analysis_type == 'biomass':
         csv_name = ns_tile_name + '.csv'
-        out_path = '{}/'.format(analysis_type)
+        out_path = '{}/{}/'.format(s3_output_folder, analysis_type)
     else:
         csv_name = analysis_type + '.csv'
-        out_path = r'{}/'.format(analysis_type)
+        out_path = r'{}/{}/'.format(s3_output_folder, analysis_type)
 
     cmd = ['hdfs', 'dfs', '-getmerge', 'output/', csv_name]
     print cmd
     subprocess.check_call(cmd)
 
-    tsv_outputs = 's3://gfw2-data/alerts-tsv/output2016/{}'.format(out_path)
+    tsv_outputs = 's3://gfw2-data/alerts-tsv/{}'.format(out_path)
     cmd = ['aws', 's3', 'mv', csv_name, tsv_outputs]
     print cmd
     subprocess.check_call(cmd)
