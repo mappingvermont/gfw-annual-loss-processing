@@ -83,7 +83,11 @@ def clip(q):
 		    raise ValueError('Unknown file extension {}, expecting shp, tif or tsv'.format(file_ext))
 
 		logging.info(cmd)
-		subprocess.check_call(cmd)
+
+                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        	for line in iter(p.stdout.readline, b''):
+                    if 'error' in line.lower():
+                        logging.error('Error in loading dataset, {}'.format(cmd))
 
 		# a few other things required to get our raster data to match vector
 		if file_ext == '.tif':

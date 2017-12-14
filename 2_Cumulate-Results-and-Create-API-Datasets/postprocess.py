@@ -11,6 +11,7 @@ def main():
     parser = argparse.ArgumentParser(description='Clean up polynames, join loss and extent data')
     parser.add_argument('--loss-dataset', '-l', required=True, help='path to cum-summed loss csv')
     parser.add_argument('--extent-dataset', '-e', required=True, help='path to cum-summed extent csv')
+    parser.add_argument('--gain-dataset', '-g', required=True, help='path to gain dataset')
 
     parser.add_argument('--adm2-area-dataset', '-a', required=True, help='path to CSV of adm2 areas, grouped by iso/adm1/adm2') 
     parser.add_argument('--polygon-dataset', '-p', required=True, help='path to CSV of polygon AOI areas, grouped by polyname/bound1/bound2/bound3/bound4/iso/adm1/adm2')
@@ -19,11 +20,12 @@ def main():
 
     loss_df = read_df(args.loss_dataset)
     extent_df = read_df(args.extent_dataset)
+    gain_df = read_df(args.gain_dataset)
 
     poly_aoi_df = read_df(args.polygon_dataset)
     adm2_area_df = pd.read_csv(args.adm2_area_dataset)
 
-    extent_with_area = add_area_to_extent_df(extent_df, adm2_area_df, poly_aoi_df)  
+    extent_with_area = add_area_to_extent_df(extent_df, adm2_area_df, poly_aoi_df, gain_df)  
 
     field_list = ['polyname', 'bound1', 'bound2', 'bound3', 'bound4', 'thresh'] 
     
@@ -38,21 +40,21 @@ def write_output(df, adm_level, field_list):
     # build field list for grouping
     adm_list = ['iso', 'adm1', 'adm2'][0: adm_level + 1]
 
-    area_fields = ['area_extent', 'area_gadm28', 'area_poly_aoi', 'area_loss', 'emissions']
+    area_fields = ['area_extent', 'area_gadm28', 'area_poly_aoi', 'area_gain', 'area_loss', 'emissions']
     group_list = field_list + adm_list
 
     print 'grouping data by adm level {} and polygon'.format(adm_level)
     # source: https://stackoverflow.com/questions/40470954/
     # first group and sum to adm0/adm1/adm2 level as appropriate
     # then group again to collapse year/loss/emissions into nested JSON
-    grouped = (df.groupby(group_list + ['year'])
-                 .sum()[area_fields]
+    grouped = (df.groupby(group_list + ['year'])[area_fields]
+                 .sum()
                  .reset_index()
-                 .groupby(group_list, as_index=False)
+                 .groupby(group_list + area_fields[0:4], as_index=False)
                  .apply(lambda x: x[['year', 'area_loss', 'emissions']].to_dict('r'))
                  .reset_index()
                  .rename(columns={0: 'year_data'}))
-    
+
     # sort so that rows with a valid bound2 values are on top
     # necessary so that reads column data type properly
     grouped = grouped.sort_values('bound2', ascending=False)
@@ -64,18 +66,21 @@ def write_output(df, adm_level, field_list):
         thefile.write(json.dumps(as_dict, ensure_ascii=False))
 
 
-def add_area_to_extent_df(extent_df, adm2_area_df, poly_area_df):
-    print extent_df.shape
-
+def add_area_to_extent_df(extent_df, adm2_area_df, poly_area_df, gain_df):
+    
     join_field_list = ['iso', 'adm1', 'adm2']
     first_merge = pd.merge(extent_df, adm2_area_df, how='left', on=join_field_list)
-    print first_merge.shape
 
     join_field_list.extend(['polyname', 'bound1', 'bound2', 'bound3', 'bound4'])
     second_merge = pd.merge(first_merge, poly_area_df, how='left', on=join_field_list)
-    print second_merge.shape
 
-    return second_merge
+    # gadm28 polygons don't have a default area_poly_aoi, so set it = gadm area
+    second_merge.loc[second_merge.area_poly_aoi.isnull(), 'area_poly_aoi'] = second_merge['area_gadm28']
+
+    third_merge = pd.merge(second_merge, gain_df, how='left', on=join_field_list)
+    third_merge.loc[third_merge.area_gain.isnull(), 'area_gain'] = 0
+
+    return third_merge
 
 
 def join_loss_extent(loss_df, extent_df, field_list):
@@ -94,6 +99,23 @@ def join_loss_extent(loss_df, extent_df, field_list):
 
     for field_name in ['bound1', 'bound2', 'bound3', 'bound4']:
         merged[field_name] = merged[field_name].astype(unicode)
+        
+    # there are many adm2 areas with extent data but without loss
+    # these are currently rows in the dataset with a single loss year
+    # of -9999. Need to join to these, and a create a record
+    # for each year with 0 loss and 0 emissions
+    dummy_df = pd.DataFrame(range(2001, 2017), columns=['dummy_year'])
+    dummy_df['year'] = -9999
+
+    # now join this dummy dataframe to merged
+    merged = pd.merge(merged, dummy_df, how='left', on='year')
+
+    # then update anything where year = -9999 to be the dummy_year value
+    # and set loss and emissions for these instances to 0
+    merged.loc[merged.year == -9999, ['area_loss', 'emissions']] = 0
+    merged.loc[merged.year == -9999, ['year']] = merged['dummy_year']
+
+    del merged['dummy_year']
 
     return merged
 
