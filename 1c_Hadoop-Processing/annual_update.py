@@ -9,7 +9,7 @@ bucket = conn.get_bucket('gfw2-data')
 #iterate over tsv files, like tsv folder files, and swaths of 00N - 80N 10S-50S... for extent
 parser = argparse.ArgumentParser()
 parser.add_argument('--analysis-type', '-a', required=True, choices=['extent', 'loss', 'gain', 'biomass'])
-parser.add_argument('--extent-folder', '-e', required=True, help='s3 location of extent tsv, either 2000 or 2010')
+parser.add_argument('--extent-folder', '-e', required=False, help='s3 location of extent tsv, either 2000 or 2010')
 parser.add_argument('--ouptut-folder', '-o', required=True, help='s3 location for hadoop output')
 
 args = parser.parse_args()
