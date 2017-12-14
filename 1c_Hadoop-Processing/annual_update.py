@@ -33,7 +33,7 @@ if analysis_type in ['extent', 'biomass']:
             print "does not already exist"
 	    
             annual_helpers.write_props(analysis_type, points_fields_dict, args.points_folder, args.polygons_folder, ns_tile)
-            sys.exit()
+
             annual_helpers.call_pip()
 
             annual_helpers.upload_to_s3(analysis_type, args.output_folder, ns_tile)

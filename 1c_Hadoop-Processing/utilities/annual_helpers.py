@@ -27,10 +27,11 @@ def write_props(analysis_type, points_fields_dict, points_folder, polygons_folde
     # for our purposes, extent is the same as gain
     # four input fields (x, y, value and area)
     # and this is easier than editing the scala code to include a gain type
-    if analysis_type == 'gain':
+    if analysis_type == 'gain' or analysis_type == 'extent':
         analysis_type = 'extent'
+        points_folder = '{}/{}*'.format(points_folder, ns_tile)
 
-    points_path = points_folder.replace('s3://', 's3a://')
+    points_folder = points_folder.replace('s3://', 's3a://')
     
     points_fields = points_fields_dict[analysis_type]
 
@@ -43,11 +44,11 @@ points.path={0}
 points.fields={1}
 points.x=0
 reduce.size=0.5
-polygons.path=s3a://gfw2-data/alerts-tsv/tsv-boundaries-climate/
+polygons.path={2}
 polygons.wkt=0
 polygons.fields=1,2,3,4,5,6,7,8
-analysis.type={2}
-    """.format(points_path, points_fields, analysis_type)
+analysis.type={3}
+    """.format(points_folder, points_fields, polygons_folder, analysis_type)
 
     with open("application.properties", 'w') as app_props:
         app_props.write(application_props)
@@ -99,9 +100,7 @@ def upload_to_s3(analysis_type, s3_output_folder, ns_tile_name=None):
         out_path = r'{}/{}/'.format(s3_output_folder, analysis_type)
 
     cmd = ['hdfs', 'dfs', '-getmerge', 'output/', csv_name]
-    print cmd
     subprocess.check_call(cmd)
 
     cmd = ['aws', 's3', 'mv', csv_name, out_path]
-    print cmd
     subprocess.check_call(cmd)
