@@ -25,18 +25,17 @@ def download_jar():
         subprocess.check_call(cmd)
 
 
-def write_props(analysis_type, fields_dict, ns_tile=None, extent_folder=None):
-    
+def write_props(analysis_type, points_fields_dict, points_folder, polygons_folder, ns_tile=None):
+
     # for our purposes, extent is the same as gain
     # four input fields (x, y, value and area)
     # and this is easier than editing the scala code to include a gain type
     if analysis_type == 'gain':
         analysis_type = 'extent'
-                          
-    path = fields_dict['points_path'][analysis_type].format(extent_folder, ns_tile)
-    points_path = 's3a://gfw2-data/alerts-tsv/{}'.format(path)
+
+    points_path = points_folder.replace('s3://', 's3a://')
     
-    points_fields = fields_dict['points_fields'][analysis_type]
+    points_fields = points_fields_dict[analysis_type]
 
     application_props = """
 spark.app.name=YARN Points in World
@@ -66,18 +65,19 @@ def call_pip():
     subprocess.check_call(pip_cmd)
 
 
-def check_output_exists(analysis_type, ns_tile=None):
+def check_output_exists(analysis_type, output_folder, ns_tile=None):
 
     if analysis_type == 'extent' or analysis_type == 'biomass':
     
         out_csv = ns_tile
-        prefix = '{}/{}'.format(analysis_type, ns_tile)
+        prefix = '{}/{}/{}'.format(output_folder, analysis_type, ns_tile)
         
     else:
         out_csv = '{}_all'.format(analysis_type)
-        prefix = r'{}/{}'.format(analysis_type, out_csv)
+        prefix = r'{}/{}/{}'.format(output_folder, analysis_type, out_csv)
 
-    full_path_list = [key.name for key in bucket.list(prefix='alerts-tsv/output2016/{}'.format(prefix))]
+    prefix_path = output_folder.replace('s3://gfw2-data/', '')
+    full_path_list = [key.name for key in bucket.list(prefix='{}'.format(prefix_path))]
     filename_only_list = [x.split('/')[-1] for x in full_path_list]
 
     return out_csv in filename_only_list
@@ -103,7 +103,6 @@ def upload_to_s3(analysis_type, s3_output_folder, ns_tile_name=None):
     print cmd
     subprocess.check_call(cmd)
 
-    tsv_outputs = 's3://gfw2-data/alerts-tsv/{}'.format(out_path)
-    cmd = ['aws', 's3', 'mv', csv_name, tsv_outputs]
+    cmd = ['aws', 's3', 'mv', csv_name, out_path]
     print cmd
     subprocess.check_call(cmd)
