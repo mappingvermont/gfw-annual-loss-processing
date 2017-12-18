@@ -1,5 +1,6 @@
 from boto.s3.connection import S3Connection
 from urlparse import urlparse
+import random
 
 
 conn = S3Connection(host="s3.amazonaws.com")
@@ -15,8 +16,16 @@ def find_local_overlap(layer_a, layer_b):
     for l in [layer_a, layer_b]:    
         l.tile_list = [t for t in l.tile_list if t.tile_id in overlap]
 
-           
-def find_tile_overlap(wildcard_a, wildcard_b, s3_dir, is_test):
+
+def pull_random(s3_dir, num_tiles):
+
+    filename_list = get_s3_file_list(s3_dir)
+
+    return random.sample(filename_list, num_tiles)
+
+    
+
+def get_s3_file_list(s3_dir):           
 
     parsed = urlparse(s3_dir)
 
@@ -31,6 +40,13 @@ def find_tile_overlap(wildcard_a, wildcard_b, s3_dir, is_test):
 
     # unpack the filename from the list of files
     filename_only_list = [x.split('/')[-1] for x in full_path_list]
+
+    return filename_only_list
+
+
+def find_tile_overlap(wildcard_a, wildcard_b, s3_dir, is_test):
+
+    filename_only_list = get_s3_file_list(s3_dir)
 
     # make dictionary of {'boundary name': [tile ids]}
     boundary_dict = {}

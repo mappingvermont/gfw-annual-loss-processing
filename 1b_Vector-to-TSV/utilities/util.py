@@ -1,9 +1,12 @@
 import os
+import uuid
 import multiprocessing
 from threading import Thread
 from Queue import Queue
 import psycopg2
 import logging
+import math
+import numpy as np
 
 import fiona
 import rasterio
@@ -30,8 +33,22 @@ def build_ogr_pg_conn():
 
     return 'PG:user={user} password={password} dbname={dbname} host={host}'.format(**creds)
 
+def create_temp_dir():
 
-def find_admin_columns(cursor, tile1, tile2):
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    data_dir = os.path.join(root_dir, 'data')
+    if not os.path.exists(data_dir):
+        os.mkdir(data_dir)
+
+    guid = str(uuid.uuid4())
+    layer_dir = os.path.join(data_dir, guid)
+
+    os.mkdir(layer_dir)
+
+    return layer_dir
+
+
+def fiod_admin_columns(cursor, tile1, tile2):
 
     tile_with_cols = None
     iso_col_list = ['iso', 'id_1', 'id_2']
@@ -175,7 +192,7 @@ def create_area_table():
     cursor = conn.cursor()
 
     if not check_table_exists(cursor, 'aoi_area'):
-        
+
         sql = ("CREATE TABLE aoi_area ( "
                "polyname character varying, "
                "boundary_field1 character varying, "
@@ -193,3 +210,32 @@ def create_area_table():
 
     conn.close()
 
+
+def get_pixel_area(lat):
+    """
+    Calculate geodesic area for Hansen data, assuming a fix pixel size of 0.00025 * 0.00025 degree
+    using WGS 1984 as spatial reference.
+    Pixel size various with latitude, which is it the only input parameter
+    """
+    a = 6378137.0  # Semi major axis of WGS 1984 ellipsoid
+    b = 6356752.314245179  # Semi minor axis of WGS 1984 ellipsoid
+
+    d_lat = 0.00025  # pixel hight
+    d_lon = 0.00025  # pixel width
+
+    pi = math.pi
+
+    q = d_lon / 360
+    e = math.sqrt(1 - (b / a) ** 2)
+
+    area = abs(
+        (pi * b ** 2 * (
+            2 * np.arctanh(e * np.sin(np.radians(lat + d_lat))) /
+            (2 * e) +
+            np.sin(np.radians(lat + d_lat)) /
+            ((1 + e * np.sin(np.radians(lat + d_lat))) * (1 - e * np.sin(np.radians(lat + d_lat)))))) -
+        (pi * b ** 2 * (
+            2 * np.arctanh(e * np.sin(np.radians(lat))) / (2 * e) +
+            np.sin(np.radians(lat)) / ((1 + e * np.sin(np.radians(lat))) * (1 - e * np.sin(np.radians(lat))))))) * q
+
+    return area

@@ -22,22 +22,10 @@ class Layer(object):
         self.build_col_list()
         self.layer_dir = None
 
-        self.create_out_dir()
+        self.layer_dir = util.create_temp_dir()
 
         self.tile_list = []
 
-    def create_out_dir(self):
-
-        root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        data_dir = os.path.join(root_dir, 'data')
-        if not os.path.exists(data_dir):
-            os.mkdir(data_dir)
-
-        guid = str(uuid.uuid4())
-        layer_dir = os.path.join(data_dir, guid)
-        os.mkdir(layer_dir)
-
-        self.layer_dir = layer_dir
 
     def build_col_list(self):
 
