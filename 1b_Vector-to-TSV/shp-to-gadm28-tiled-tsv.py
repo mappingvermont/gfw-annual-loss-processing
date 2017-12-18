@@ -4,11 +4,15 @@ import os
 from utilities.layer import Layer
 from utilities import util, geop, load_gadm28
 
+from utilities import load_gadm28
+
 
 def main():
     parser = argparse.ArgumentParser(description='Generate Hansen-tiled TSVs for Hadoop PIP')
     parser.add_argument('--input-dataset', '-i', help='the input dataset', required=True)
     parser.add_argument('--col-dict', '-c', help='columns to include in the output TSV from the source', nargs='+')
+    parser.add_argument('--zip-source', '-z', help='if not intersecting with gadm28, location of zipped file on s3, matches gadm28 schema', action='store_true', nargs='+')
+    parser.add_argument('--unzipname', '-u', help='if not intersecting with gadm28, name of unzipped file', action='store_true', nargs='+')
 
     parser.add_argument('--output-format', '-o', help='output format', default='tsv', choices=('tsv', 'shp', 'geojson'))
     parser.add_argument('--output-name', '-n', help='output name', required=True)
@@ -24,8 +28,8 @@ def main():
     source_layer = Layer(args.input_dataset, args.col_dict)
 
     # load gadm28 into postGIS if it doesn't exist already
-    gadm28_layer = load_gadm28.load()
-
+    gadm28_layer = load_gadm28.load(zip_source, unzipname)
+    
     # create blueprint for the source dataset in postgis
     util.build_gadm28_tile_list(source_layer, args.test)
 
