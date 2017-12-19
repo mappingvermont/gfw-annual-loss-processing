@@ -48,7 +48,7 @@ def create_temp_dir():
     return layer_dir
 
 
-def fiod_admin_columns(cursor, tile1, tile2):
+def find_admin_columns(cursor, tile1, tile2):
 
     tile_with_cols = None
     iso_col_list = ['iso', 'id_1', 'id_2']

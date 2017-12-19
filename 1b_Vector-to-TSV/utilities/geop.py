@@ -46,7 +46,7 @@ def clip(q):
 
         if not tile.postgis_table:
             dataset_name = os.path.splitext(os.path.basename(tile.dataset))[0]
-            tile.postgis_table = '_'.join([dataset_name, tile.tile_id,  'clip'])
+            tile.postgis_table = '_'.join([dataset_name, tile.tile_id,  'clip']).lower()
 
 
         if util.check_table_exists(cursor, tile.postgis_table):
@@ -98,12 +98,12 @@ def clip(q):
 		    for sql in sql_list:
 			    cursor.execute(sql.format(tile.postgis_table))
 
-		# remove linestings and points from collections
-		sql = "UPDATE {} SET geom = ST_CollectionExtract(geom, 3)".format(tile.postgis_table)
-		cursor.execute(sql)
-
 		# might as well make geometry valid while we're at it
 		sql = "UPDATE {} SET geom = ST_MakeValid(geom) WHERE ST_IsValid(geom) <> '1'".format(tile.postgis_table)
+		cursor.execute(sql)
+
+		# remove linestings and points from collections
+		sql = "UPDATE {} SET geom = ST_CollectionExtract(geom, 3)".format(tile.postgis_table)
 		cursor.execute(sql)
 
 		conn.commit()
