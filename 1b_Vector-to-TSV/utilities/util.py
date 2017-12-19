@@ -10,6 +10,7 @@ import numpy as np
 
 import fiona
 import rasterio
+from sqlalchemy import create_engine
 from shapely.geometry import shape
 
 from tile import Tile
@@ -32,6 +33,13 @@ def build_ogr_pg_conn():
     creds = get_creds()
 
     return 'PG:user={user} password={password} dbname={dbname} host={host}'.format(**creds)
+
+
+def sqlalchemy_engine():
+    creds = get_creds()
+
+    return create_engine('postgresql://{user}:{password}@{host}'.format(**creds))
+
 
 def create_temp_dir():
 
