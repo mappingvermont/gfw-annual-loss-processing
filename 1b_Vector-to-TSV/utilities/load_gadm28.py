@@ -70,18 +70,12 @@ def fix_geometry(cursor, table_name):
     cursor.execute(sql)
 
 
-def download_gadm28(s3_source):
+def download_gadm28(s3_src):
 
-    logging.info('loading {} into postGIS'.format(s3_source))
+    logging.info('loading {} into postGIS'.format(s3_src))
 
-    if s3_source: # s3 _source is true if user is not loading regular gadm28. Name is confusing so I don't have to re-define s3_source
-        zip_name = s3_source.split("/")[-1:][0] # this would be like s3://gfw-files/source.zip -> source.zip
-        unzipped_path = zip_name.replace('zip', 'shp') # this will work as long as shapefile is same name as zip file
-
-    else:
-        zip_name = 'gadm28_adm2_final.zip'
-        s3_src = r's3://gfw2-data/alerts-tsv/gis_source/' + zip_name
-        unzipped_path = 'adm2_final.shp'
+    zip_name = s3_src.split("/")[-1:][0] # this would be like s3://gfw-files/source.zip -> source.zip
+    unzipped_path = zip_name.replace('zip', 'shp') # this will work as long as shapefile is same name as zip file
 
     out_dir = r'/tmp/'
     out_file = os.path.join(out_dir, zip_name)

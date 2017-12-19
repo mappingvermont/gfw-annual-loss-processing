@@ -12,7 +12,8 @@ def main():
     parser.add_argument('--input-dataset', '-i', help='the input dataset', required=True)
     parser.add_argument('--col-dict', '-c', help='columns to include in the output TSV from the source', nargs='+')
 
-    parser.add_argument('--zip-source', '-z', help='if not intersecting with gadm28, location of zipped file on s3, matches gadm28 schema')
+    parser.add_argument('--zip-source', '-z', default='s3://gfw2-data/alerts-tsv/gis_source/adm2_final.zip', 
+                        help='if not intersecting with gadm28, location of zipped file on s3, matches gadm28 schema')
 
     parser.add_argument('--output-format', '-o', help='output format', default='tsv', choices=('tsv', 'shp', 'geojson'))
     parser.add_argument('--output-name', '-n', help='output name', required=True)
