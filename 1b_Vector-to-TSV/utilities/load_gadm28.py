@@ -1,11 +1,11 @@
 import os
-# import psycopg2
-# import subprocess
-# import logging
+import psycopg2
+import subprocess
+import logging
 
-# import util
-# from layer import Layer
-# from tile import Tile
+import util
+from layer import Layer
+from tile import Tile
 
 
 def load(zip_source, unzipname):
@@ -21,7 +21,7 @@ def load(zip_source, unzipname):
         logging.info('GADM 28 data already in PostGIS')
     
     else:
-        gadm28_shp = download_gadm28(zip_source, unzipnam)
+        gadm28_shp = download_gadm28(zip_source, unzipname)
 
         table_name = insert_into_postgis(creds, gadm28_shp, boundary_fields)
 
@@ -75,12 +75,12 @@ def fix_geometry(cursor, table_name):
 def download_gadm28(zip_source, unzipname):
     
     if zip_source:
-        #logging.info('loading custom source table into postGIS')
+        logging.info('loading custom source table into postGIS')
         zip_name = zip_source.split("/")[-1:][0]
         s3_src = zip_source
         unzipped_path = unzipname
     else:
-        #logging.info('loading gadm28 table into postGIS')
+        logging.info('loading gadm28 table into postGIS')
         zip_name = 'gadm28_adm2_final.zip'
         s3_src = r's3://gfw2-data/alerts-tsv/gis_source/' + zip_name
         unzipped_path = 'adm2_final.shp'
@@ -90,14 +90,12 @@ def download_gadm28(zip_source, unzipname):
 
     download_cmd = ['aws', 's3', 'cp', s3_src, out_file]
     print download_cmd
-    #subprocess.check_call(download_cmd)
+    subprocess.check_call(download_cmd)
 
     unzip_cmd = ['unzip', out_file]
     print unzip_cmd
-    #subprocess.check_call(unzip_cmd, cwd=out_dir)
+    subprocess.check_call(unzip_cmd, cwd=out_dir)
     print os.path.join(out_dir + unzipped_path)
     return os.path.join(out_dir + unzipped_path)
 
 
-download_gadm28('s3://gfw-files/sam/test.zip', 'thisisatest.shp')
-# download_gadm28(None, None)
