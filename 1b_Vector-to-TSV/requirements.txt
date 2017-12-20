@@ -1,0 +1,11 @@
+numpy==1.11.0
+geopandas==0.3.0
+Fiona==1.7.1
+psycopg2==2.7.3.2
+boto3==1.5.3
+Shapely==1.5.17
+pandas==0.19.1
+rasterio==0.36.0
+SQLAlchemy==1.1.15
+boto==2.48.0
+rasterstats==0.12.0
