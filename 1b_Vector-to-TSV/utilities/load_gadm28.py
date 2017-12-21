@@ -27,8 +27,6 @@ def load(zip_source):
 
         insert_into_postgis(creds, gadm28_shp, boundary_fields, table_name)
 
-        fix_geometry(cursor, table_name)
-
         conn.commit()
 
     conn.close()
@@ -60,14 +58,6 @@ def insert_into_postgis(creds, src_shp, dummy_fields, table_name):
 
     conn.commit()
     conn.close()
-
-
-def fix_geometry(cursor, table_name):
-
-    sql = "UPDATE {} SET geom = ST_MakeValid(geom) WHERE ST_IsValid(geom) <> '1'".format(table_name)
-    logging.info(sql)
-
-    cursor.execute(sql)
 
 
 def download_gadm28(s3_src):
