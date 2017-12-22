@@ -49,7 +49,7 @@ def clip(q):
             tile.postgis_table = '_'.join([dataset_name, tile.tile_id,  'clip']).lower()
 
 
-        if util.check_table_exists(cursor, tile.postgis_table):
+        if util.check_table_exists(tile.postgis_table, cursor):
             pass
 
         else:

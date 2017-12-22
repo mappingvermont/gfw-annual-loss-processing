@@ -10,26 +10,16 @@ from tile import Tile
 
 def load(zip_source):
 
-    creds = util.get_creds()
-
-    conn = psycopg2.connect(**creds)
-    cursor = conn.cursor()
-
     boundary_fields = [{'boundary_field1': 'boundary_field1'}, {'boundary_field2': 'boundary_field2'}]
 
     table_name = os.path.splitext(os.path.basename(zip_source))[0]
-    if util.check_table_exists(cursor, table_name):
+    if util.check_table_exists(table_name):
         logging.info('{} data already in PostGIS'.format(zip_source))
     
     else:
-
         gadm28_shp = download_gadm28(zip_source)
 
-        insert_into_postgis(creds, gadm28_shp, boundary_fields, table_name)
-
-        conn.commit()
-
-    conn.close()
+        insert_into_postgis(gadm28_shp, table_name, boundary_fields)
 
     l = Layer(table_name, [])
     l.tile_list = [Tile(l.input_dataset, boundary_fields, None, None, l.input_dataset)]
@@ -37,8 +27,10 @@ def load(zip_source):
     return l
 
 
-def insert_into_postgis(creds, src_shp, dummy_fields, table_name):
+def insert_into_postgis(src_shp, table_name, dummy_fields=None):
 
+    util.get_creds()
+    
     conn_str = 'postgresql://{user}:{password}@{host}'.format(**creds)
 
     cmd = ['shp2pgsql', '-I', '-s', '4326', src_shp, '|', 'psql', conn_str]

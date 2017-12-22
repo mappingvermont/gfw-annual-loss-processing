@@ -183,13 +183,28 @@ def start_logging():
     logging.getLogger('').addHandler(console)
 
 
-def check_table_exists(cursor, table_name):
+def check_table_exists(table_name, cursor=None):
 
+    # if we are sending a cursor, assume we want it back. So don't close conn
+    close_conn = False
+    
+    if not cursor:
+        creds = get_creds()
+        conn = psycopg2.connect(**creds)
+        
+        cursor = conn.cursor()
+        close_conn = True
+    
     # source: https://stackoverflow.com/questions/1874113/
     sql = "select exists(select * from information_schema.tables where table_name=%s)"
     cursor.execute(sql, (table_name,))
-
-    return cursor.fetchone()[0]
+    
+    table_exists = cursor.fetchone()[0]
+    
+    if close_conn:
+        conn.close()
+    
+    return table_exists
 
 
 def create_area_table():
@@ -199,7 +214,7 @@ def create_area_table():
 
     cursor = conn.cursor()
 
-    if not check_table_exists(cursor, 'aoi_area'):
+    if not check_table_exists('aoi_area', cursor):
 
         sql = ("CREATE TABLE aoi_area ( "
                "polyname character varying, "
