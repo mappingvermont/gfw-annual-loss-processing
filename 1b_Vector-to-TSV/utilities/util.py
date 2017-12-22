@@ -1,17 +1,20 @@
 import os
 import uuid
 import multiprocessing
+import subprocess
 from threading import Thread
 from Queue import Queue
 import logging
 import math
-import numpy as np
 
 import fiona
+import numpy as np
+import geopandas as gpd
 import rasterio
 from shapely.geometry import shape
 
 from tile import Tile
+import decode_tsv
 
 
 def create_temp_dir():
@@ -131,3 +134,51 @@ def get_pixel_area(lat):
             np.sin(np.radians(lat)) / ((1 + e * np.sin(np.radians(lat))) * (1 - e * np.sin(np.radians(lat))))))) * q
 
     return area
+
+
+def merge_two_dicts(x, y):
+    z = x.copy()   # start with x's keys and values
+    z.update(y)    # modifies z with y's keys and values & returns None
+
+    return z
+
+
+def s3_to_dissolved_geojson(s3_src_dir, tile_name, output_dir):
+
+    # copy down chosen tile to the temp directory
+    s3_path = '{}{}'.format(s3_src_dir, tile_name)
+    cmd = ['aws', 's3', 'cp', s3_path, output_dir]
+    subprocess.check_call(cmd)
+
+    # write the VRT
+    local_tsv = os.path.join(output_dir, tile_name)
+    local_vrt = os.path.join(output_dir, tile_name.replace('.tsv', '.vrt'))
+    decode_tsv.build_vrt(local_tsv, local_vrt)
+
+    # convert VRT to geojson
+    local_geojson = os.path.join(output_dir, tile_name.replace('.tsv', '.geojson'))
+
+    cmd = ['ogr2ogr', '-f', 'GeoJSON', local_geojson, local_vrt]
+    subprocess.check_call(cmd)
+
+    # open in geopandas
+    df = gpd.read_file(local_geojson)
+
+    # remove garbage field_1
+    # already read in as geometry field by geopandas
+    del df['field_1']
+
+    # dissolve by attributes to reduce number of queries to the API
+    dissolve_fields = list(df.columns)[0:-1]
+    dissolved = df.dissolve(by=dissolve_fields).reset_index()
+
+    # give columns their proper names
+    dissolved.columns = ['polyname', 'bound1', 'bound2', 'bound3', 'bound4',
+                         'iso', 'id_1', 'id_2', 'geometry']
+
+    # gpd can't overwrite, need to delete file first
+    os.remove(local_geojson)
+    dissolved.to_file(local_geojson, driver='GeoJSON')
+
+    return local_geojson
+
