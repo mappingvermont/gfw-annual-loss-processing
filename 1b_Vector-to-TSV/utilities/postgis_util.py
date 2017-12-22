@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 from sqlalchemy import create_engine
 import psycopg2
@@ -130,9 +131,9 @@ def create_area_table():
     conn.close()
 
     
- def insert_into_postgis(src_shp, table_name, dummy_fields=None):
+def insert_into_postgis(src_shp, table_name, dummy_fields=None):
 
-    creds = pg_util.get_creds()
+    creds = get_creds()
     
     conn_str = 'postgresql://{user}:{password}@{host}'.format(**creds)
 
@@ -146,13 +147,14 @@ def create_area_table():
     cursor = conn.cursor()
 
     # add these to match schema of other intersects
-    for field_dict in dummy_fields:
-        field_name = field_dict.keys()[0]
-        cursor.execute('ALTER TABLE {} ADD COLUMN {} varchar(30)'.format(table_name, field_name))
-        cursor.execute("UPDATE {} SET {} = '1'".format(table_name, field_name))
+    if dummy_fields:
+        for field_dict in dummy_fields:
+            field_name = field_dict.keys()[0]
+            cursor.execute('ALTER TABLE {} ADD COLUMN {} varchar(30)'.format(table_name, field_name))
+            cursor.execute("UPDATE {} SET {} = '1'".format(table_name, field_name))
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+        conn.close()
     
     
 def fix_geom(table_name, cursor):
@@ -168,8 +170,7 @@ def fix_geom(table_name, cursor):
 def export_to_shp(table_name, output_folder):
 
     output_shp = os.path.join(output_folder, table_name + '.shp')
-    cmd = ['ogr2ogr', output_shp, build_ogr_pg_conn(), '-sql', '"SELECT * FROM {}"'.format(table_name)]
-    
+    cmd = ['ogr2ogr', output_shp, build_ogr_pg_conn(), 'dialect', 'sqlite', '-sql', "SELECT * FROM {}".format(table_name)]
     subprocess.check_call(cmd)
     
     return output_shp

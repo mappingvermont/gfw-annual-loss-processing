@@ -114,7 +114,7 @@ def intersect(q):
 
         table_name = '{}_{}_{}'.format(tile1.postgis_table, tile2.postgis_table, tile1.tile_id)
 
-        if pg_util.table_has_rows(tile1.postgis_table, cursor):
+        if pg_util.table_has_rows(cursor, tile1.postgis_table):
 
             # find which table has ISO/ID_1/ID_2 columns
             # will return ['a.ISO', 'a.ID_1', 'a._ID_2'] or b., depending on if first or second tile has admin columns
@@ -136,7 +136,7 @@ def intersect(q):
 
             sql = ("CREATE TABLE {table_name} AS "
                    "SELECT {s}, (ST_Dump(ST_Union(ST_Buffer(ST_MakeValid(ST_Intersection(ST_MakeValid("
-                   "a.geom), b.geom)), 0.0000001)))).geom as geom "
+                   "a.geom), ST_MakeValid(b.geom))), 0.0000001)))).geom as geom "
                    "FROM {table1} a, {table2} b "
                    "WHERE ST_Intersects(a.geom, b.geom) "
                    "GROUP BY {g};".format(s=select_cols, table_name=table_name, table1=tile1.postgis_table,
