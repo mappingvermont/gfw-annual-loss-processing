@@ -128,3 +128,48 @@ def create_area_table():
         conn.commit()
 
     conn.close()
+
+    
+ def insert_into_postgis(src_shp, table_name, dummy_fields=None):
+
+    creds = pg_util.get_creds()
+    
+    conn_str = 'postgresql://{user}:{password}@{host}'.format(**creds)
+
+    cmd = ['shp2pgsql', '-I', '-s', '4326', src_shp, '|', 'psql', conn_str]
+
+    # has to be string for some reason-- likely to do with the | required
+    subprocess.check_call(' '.join(cmd), shell=True)
+
+    # add dummy column names
+    conn = psycopg2.connect(**creds)
+    cursor = conn.cursor()
+
+    # add these to match schema of other intersects
+    for field_dict in dummy_fields:
+        field_name = field_dict.keys()[0]
+        cursor.execute('ALTER TABLE {} ADD COLUMN {} varchar(30)'.format(table_name, field_name))
+        cursor.execute("UPDATE {} SET {} = '1'".format(table_name, field_name))
+
+    conn.commit()
+    conn.close()
+    
+    
+def fix_geom(table_name, cursor):
+
+    sql = "UPDATE {} SET geom = ST_MakeValid(geom) WHERE ST_IsValid(geom) <> '1'".format(table_name)
+    cursor.execute(sql)
+
+    # remove linestings and points from collections
+    sql = "UPDATE {} SET geom = ST_CollectionExtract(geom, 3)".format(table_name)
+    cursor.execute(sql)
+
+    
+def export_to_shp(table_name, output_folder):
+
+    output_shp = os.path.join(output_folder, table_name + '.shp')
+    cmd = ['ogr2ogr', output_shp, build_ogr_pg_conn(), '-sql', '"SELECT * FROM {}"'.format(table_name)]
+    
+    subprocess.check_call(cmd)
+    
+    return output_shp

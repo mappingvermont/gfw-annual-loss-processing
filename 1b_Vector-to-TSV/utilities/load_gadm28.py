@@ -19,39 +19,14 @@ def load(zip_source):
     else:
         gadm28_shp = download_gadm28(zip_source)
 
-        insert_into_postgis(gadm28_shp, table_name, boundary_fields)
+        pg_util.insert_into_postgis(gadm28_shp, table_name, boundary_fields)
 
     l = Layer(table_name, [])
     l.tile_list = [Tile(l.input_dataset, boundary_fields, None, None, l.input_dataset)]
 
     return l
 
-
-def insert_into_postgis(src_shp, table_name, dummy_fields=None):
-
-    creds = pg_util.get_creds()
     
-    conn_str = 'postgresql://{user}:{password}@{host}'.format(**creds)
-
-    cmd = ['shp2pgsql', '-I', '-s', '4326', src_shp, '|', 'psql', conn_str]
-
-    # has to be string for some reason-- likely to do with the | required
-    subprocess.check_call(' '.join(cmd), shell=True)
-
-    # add dummy column names
-    conn = psycopg2.connect(**creds)
-    cursor = conn.cursor()
-
-    # add these to match schema of other intersects
-    for field_dict in dummy_fields:
-        field_name = field_dict.keys()[0]
-        cursor.execute('ALTER TABLE {} ADD COLUMN {} varchar(30)'.format(table_name, field_name))
-        cursor.execute("UPDATE {} SET {} = '1'".format(table_name, field_name))
-
-    conn.commit()
-    conn.close()
-
-
 def download_gadm28(s3_src):
 
     logging.info('loading {} into postGIS'.format(s3_src))

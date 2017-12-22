@@ -94,14 +94,8 @@ def clip(q):
                 for sql in sql_list:
                     cursor.execute(sql.format(tile.postgis_table))
 
-            # might as well make geometry valid while we're at it
-            sql = "UPDATE {} SET geom = ST_MakeValid(geom) WHERE ST_IsValid(geom) <> '1'".format(tile.postgis_table)
-            cursor.execute(sql)
-
-            # remove linestings and points from collections
-            sql = "UPDATE {} SET geom = ST_CollectionExtract(geom, 3)".format(tile.postgis_table)
-            cursor.execute(sql)
-
+            pg_util.fix_geom(tile.postgis_table, cursor)
+            
             conn.commit()
         conn.close()
 
@@ -160,12 +154,13 @@ def intersect(q):
                 logging.error('Error {} in sql statement {}'.format(sql, e))
 
             if valid_intersect:
-                conn.commit()
+            
+                pg_util.fix_geom(table_name, cursor)
 
                 if pg_util.table_has_rows(cursor, table_name):
                     output_tile = tile.Tile(None, None, tile1.tile_id, tile1.bbox, table_name)
                     output_layer.tile_list.append(output_tile)
-
+            
         conn.commit()
         conn.close()
 
