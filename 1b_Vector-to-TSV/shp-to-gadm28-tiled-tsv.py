@@ -2,7 +2,7 @@ import argparse
 import os
 
 from utilities.layer import Layer
-from utilities import util, geop, load_gadm28
+from utilities import util, geop
 
 from utilities import load_gadm28
 

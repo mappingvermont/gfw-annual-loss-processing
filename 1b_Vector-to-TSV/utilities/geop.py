@@ -2,17 +2,15 @@ import os
 import subprocess
 import psycopg2
 import logging
-import pandas as pd
 
-import util, tile, layer
+import util, tile, layer, postgis_util as pg_util
 
 
 def tabulate_area(q):
-
     while True:
         tile = q.get()
 
-        creds = util.get_creds()
+        creds = pg_util.get_creds()
         conn = psycopg2.connect(**creds)
         cursor = conn.cursor()
 
@@ -33,102 +31,100 @@ def tabulate_area(q):
 
 
 def clip(q):
-
     while True:
         tile = q.get()
 
-        conn_str = util.build_ogr_pg_conn()
-        col_str = util.boundary_field_dict_to_sql_str(tile.col_list)
+        conn_str = pg_util.build_ogr_pg_conn()
+        col_str = pg_util.boundary_field_dict_to_sql_str(tile.col_list)
 
-        creds = util.get_creds()
+        creds = pg_util.get_creds()
         conn = psycopg2.connect(**creds)
         cursor = conn.cursor()
 
         if not tile.postgis_table:
             dataset_name = os.path.splitext(os.path.basename(tile.dataset))[0]
-            tile.postgis_table = '_'.join([dataset_name, tile.tile_id,  'clip']).lower()
+            tile.postgis_table = '_'.join([dataset_name, tile.tile_id, 'clip']).lower()
 
-
-        if util.check_table_exists(tile.postgis_table, cursor):
+        if pg_util.check_table_exists(tile.postgis_table, cursor):
             pass
 
         else:
 
-		# any TSV name will have the data as it's layer, otherwise use the actual shape
-		file_ext = os.path.splitext(tile.dataset)[1]
+            # any TSV name will have the data as it's layer, otherwise use the actual shape
+            file_ext = os.path.splitext(tile.dataset)[1]
 
-		# why VRT here? so we can read the TSVs that are already created
-		# which requires a crazy vector VRT file
-		if file_ext in ['.shp', '.tsv', '.vrt']:
-		    if file_ext == '.shp':
-			    ogr_layer_name = os.path.splitext(os.path.basename(tile.dataset))[0]
-		    else:
-			    ogr_layer_name = 'data'
+            # why VRT here? so we can read the TSVs that are already created
+            # which requires a crazy vector VRT file
+            if file_ext in ['.shp', '.tsv', '.vrt']:
+                if file_ext == '.shp':
+                    ogr_layer_name = os.path.splitext(os.path.basename(tile.dataset))[0]
+                else:
+                    ogr_layer_name = 'data'
 
-		    sql = "SELECT {}, GEOMETRY FROM {}".format(col_str, ogr_layer_name)
+                sql = "SELECT {}, GEOMETRY FROM {}".format(col_str, ogr_layer_name)
 
-		    cmd = ['ogr2ogr', '-f', 'PostgreSQL', conn_str, tile.dataset, '-nln', tile.postgis_table,
-			    '-nlt', 'GEOMETRY', '-dialect', 'sqlite', '-sql', sql, '-lco', 'geometry_name=geom',
-			   '-overwrite', '-s_srs', 'EPSG:4326', '-t_srs', 'EPSG:4326', '-dim', '2']
+                cmd = ['ogr2ogr', '-f', 'PostgreSQL', conn_str, tile.dataset, '-nln', tile.postgis_table,
+                       '-nlt', 'GEOMETRY', '-dialect', 'sqlite', '-sql', sql, '-lco', 'geometry_name=geom',
+                       '-overwrite', '-s_srs', 'EPSG:4326', '-t_srs', 'EPSG:4326', '-dim', '2']
 
-		    if tile.bbox:
-			    bbox_list = [str(x) for x in tile.bbox]
-			    cmd += ['-clipsrc'] + bbox_list
+                if tile.bbox:
+                    bbox_list = [str(x) for x in tile.bbox]
+                    cmd += ['-clipsrc'] + bbox_list
 
-		elif file_ext == '.tif':
-		    cmd = ['gdal_polygonize.py', tile.dataset, '-f', 'PostgreSQL',
-			   conn_str, tile.postgis_table, 'boundary_field1']
+            elif file_ext == '.tif':
+                cmd = ['gdal_polygonize.py', tile.dataset, '-f', 'PostgreSQL',
+                       conn_str, tile.postgis_table, 'boundary_field1']
 
-		else:
-		    raise ValueError('Unknown file extension {}, expecting shp, tif or tsv'.format(file_ext))
+            else:
+                raise ValueError('Unknown file extension {}, expecting shp, tif or tsv'.format(file_ext))
 
-		logging.info(cmd)
+            logging.info(cmd)
 
-                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        	for line in iter(p.stdout.readline, b''):
-                    if 'error' in line.lower():
-                        logging.error('Error in loading dataset, {}'.format(cmd))
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            for line in iter(p.stdout.readline, b''):
+                if 'error' in line.lower():
+                    logging.error('Error in loading dataset, {}'.format(cmd))
 
-		# a few other things required to get our raster data to match vector
-		if file_ext == '.tif':
-		    sql_list = ["ALTER TABLE {} RENAME wkb_geometry to geom",
-				        "ALTER TABLE {} ADD COLUMN boundary_field2 integer",
-				        "UPDATE {} SET boundary_field2 = 1"]
+            # a few other things required to get our raster data to match vector
+            if file_ext == '.tif':
+                sql_list = ["ALTER TABLE {} RENAME wkb_geometry to geom",
+                            "ALTER TABLE {} ADD COLUMN boundary_field2 integer",
+                            "UPDATE {} SET boundary_field2 = 1"]
 
-		    for sql in sql_list:
-			    cursor.execute(sql.format(tile.postgis_table))
+                for sql in sql_list:
+                    cursor.execute(sql.format(tile.postgis_table))
 
-		# might as well make geometry valid while we're at it
-		sql = "UPDATE {} SET geom = ST_MakeValid(geom) WHERE ST_IsValid(geom) <> '1'".format(tile.postgis_table)
-		cursor.execute(sql)
+            # might as well make geometry valid while we're at it
+            sql = "UPDATE {} SET geom = ST_MakeValid(geom) WHERE ST_IsValid(geom) <> '1'".format(tile.postgis_table)
+            cursor.execute(sql)
 
-		# remove linestings and points from collections
-		sql = "UPDATE {} SET geom = ST_CollectionExtract(geom, 3)".format(tile.postgis_table)
-		cursor.execute(sql)
+            # remove linestings and points from collections
+            sql = "UPDATE {} SET geom = ST_CollectionExtract(geom, 3)".format(tile.postgis_table)
+            cursor.execute(sql)
 
-		conn.commit()
+            conn.commit()
         conn.close()
-        
+
         q.task_done()
 
-def intersect(q):
 
+def intersect(q):
     # source: https://pymotw.com/2/Queue/
     while True:
         output_layer, tile1, tile2 = q.get()
 
-        creds = util.get_creds()
+        creds = pg_util.get_creds()
 
         conn = psycopg2.connect(**creds)
         cursor = conn.cursor()
 
         table_name = '{}_{}_{}'.format(tile1.postgis_table, tile2.postgis_table, tile1.tile_id)
 
-        if util.table_has_rows(cursor, tile1.postgis_table):
+        if pg_util.table_has_rows(tile1.postgis_table, cursor):
 
             # find which table has ISO/ID_1/ID_2 columns
             # will return ['a.ISO', 'a.ID_1', 'a._ID_2'] or b., depending on if first or second tile has admin columns
-            admin2_columns = util.find_admin_columns(cursor, tile1, tile2)
+            admin2_columns = pg_util.find_admin_columns(cursor, tile1, tile2)
 
             # tile1 and tile2 could have same column names (boundary_field1, boundary_field2)
             # need to alias them to ensure that they're referenced properly
@@ -150,7 +146,7 @@ def intersect(q):
                    "FROM {table1} a, {table2} b "
                    "WHERE ST_Intersects(a.geom, b.geom) "
                    "GROUP BY {g};".format(s=select_cols, table_name=table_name, table1=tile1.postgis_table,
-                                               table2=tile2.postgis_table, g=groupby_columns))
+                                          table2=tile2.postgis_table, g=groupby_columns))
 
             logging.info(sql)
 
@@ -166,7 +162,7 @@ def intersect(q):
             if valid_intersect:
                 conn.commit()
 
-                if util.table_has_rows(cursor, table_name):
+                if pg_util.table_has_rows(cursor, table_name):
                     output_tile = tile.Tile(None, None, tile1.tile_id, tile1.bbox, table_name)
                     output_layer.tile_list.append(output_tile)
 
@@ -177,7 +173,6 @@ def intersect(q):
 
 
 def intersect_gadm(source_layer, gadm_layer):
-
     input_list = []
 
     output_layer = layer.Layer(None, [])
@@ -189,13 +184,13 @@ def intersect_gadm(source_layer, gadm_layer):
 
     return output_layer
 
-def vectorize(q):
 
+def vectorize(q):
     while True:
         output_dir, tile = q.get()
 
         dataset_name = os.path.splitext(os.path.basename(tile.dataset))[0]
-        tiled_fname = '_'.join([dataset_name, tile.tile_id,  'clip']) + '.tif'
+        tiled_fname = '_'.join([dataset_name, tile.tile_id, 'clip']) + '.tif'
         clipped_ras = os.path.join(output_dir, tiled_fname)
 
         # stringify bbox and then reorder for gdal_translate
@@ -219,7 +214,6 @@ def vectorize(q):
 
 
 def raster_to_vector(layer_dir, tile_list):
-
     input_list = []
 
     for t in tile_list:
@@ -231,7 +225,6 @@ def raster_to_vector(layer_dir, tile_list):
 
 
 def intersect_layers(layer_a, layer_b):
-
     input_list = []
 
     output_layer = layer.Layer(None, [])

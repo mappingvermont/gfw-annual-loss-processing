@@ -3,7 +3,7 @@ import psycopg2
 import subprocess
 import logging
 
-import util
+import postgis_util as pg_util
 from layer import Layer
 from tile import Tile
 
@@ -13,7 +13,7 @@ def load(zip_source):
     boundary_fields = [{'boundary_field1': 'boundary_field1'}, {'boundary_field2': 'boundary_field2'}]
 
     table_name = os.path.splitext(os.path.basename(zip_source))[0]
-    if util.check_table_exists(table_name):
+    if pg_util.check_table_exists(table_name):
         logging.info('{} data already in PostGIS'.format(zip_source))
     
     else:
@@ -29,7 +29,7 @@ def load(zip_source):
 
 def insert_into_postgis(src_shp, table_name, dummy_fields=None):
 
-    util.get_creds()
+    creds = pg_util.get_creds()
     
     conn_str = 'postgresql://{user}:{password}@{host}'.format(**creds)
 

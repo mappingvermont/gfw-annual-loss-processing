@@ -1,5 +1,4 @@
 import os
-import uuid
 import subprocess
 import boto3
 from urlparse import urlparse
@@ -25,7 +24,6 @@ class Layer(object):
         self.layer_dir = util.create_temp_dir()
 
         self.tile_list = []
-
 
     def build_col_list(self):
 
@@ -148,7 +146,6 @@ class Layer(object):
                 t = Tile(tile_vrt, self.col_list, tile_id, None, postgis_table)
 
                 self.tile_list.append(t)
-
 
     def export(self, output_name, output_format):
 

@@ -1,9 +1,7 @@
 import argparse
-import logging
-
 
 from utilities.layer import Layer
-from utilities import util, s3_list_tiles, geop
+from utilities import util, geop, postgis_util as pg_util
 
 
 def main():
@@ -16,7 +14,7 @@ def main():
 
     util.start_logging()
     
-    util.create_area_table()
+    pg_util.create_area_table()
 
     # could be empty, but important for plantations/etc
     # need to register the iso columns as well

@@ -1,6 +1,4 @@
 import argparse
-import logging
-
 
 from utilities.layer import Layer
 from utilities import util, s3_list_tiles, geop

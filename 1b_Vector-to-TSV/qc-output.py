@@ -9,7 +9,7 @@ import pandas as pd
 import geopandas as gpd
 from fuzzywuzzy import process
 
-from utilities import util, decode_tsv, layer, s3_list_tiles
+from utilities import util, decode_tsv, s3_list_tiles, postgis_util as pg_util
 
 
 def main():
@@ -63,7 +63,6 @@ def compare_outputs(joined_df):
 
     print joined_df.head()
     print joined_df.shape
-    
 
 
 def filter_valid_adm2_boundaries(tile_name):
@@ -74,7 +73,7 @@ def filter_valid_adm2_boundaries(tile_name):
     grid_df = grid_df[grid_df.ID == tile_id].reset_index()
     bounds = grid_df.ix[0].geometry.bounds
 
-    engine = util.sqlalchemy_engine()
+    engine = pg_util.sqlalchemy_engine()
 
     sql = ('SELECT iso, id_1, id_2 '
            'FROM adm2_final '
