@@ -152,3 +152,4 @@ def folder_to_df(folder_path):
     df = pd.concat(df_list)
 
     return df
+

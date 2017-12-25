@@ -47,7 +47,7 @@ def download_data(input_dataset):
         raise ValueError("Dataset {} does not exist locally and doesn't have an s3:// URL ".format(input_dataset))
 
 
-def push_to_s3(cumsum_df, input_file, local_save):
+def push_to_s3(cumsum_df, input_file):
 
     record_list = cumsum_df.to_dict(orient='records')
 
@@ -64,32 +64,11 @@ def push_to_s3(cumsum_df, input_file, local_save):
     with open(output_file, 'wb') as the_file:
         json.dump(record_dict, the_file)
 
-    if local_save:
-        output_dir = os.path.dirname(output_file)
-        csv_name = os.path.splitext(fname)[0] + '_processed.csv'
-        csv_file = os.path.join(output_dir, csv_name)
+    output_dir = os.path.dirname(output_file)
+    csv_name = os.path.splitext(fname)[0] + '_processed.csv'
+    csv_file = os.path.join(output_dir, csv_name)
 
-        cumsum_df.to_csv(csv_file, index=False)
-        output = csv_file
+    cumsum_df.to_csv(csv_file, index=False)
 
-    else:
+    return csv_file
 
-        print 'Copying output JSON to s3'
-        s3_outfile = r's3://gfw2-data/alerts-tsv/output/to-api/{}'.format(fname)
-        cmd = ['aws', 's3', 'cp', output_file, s3_outfile]
-
-        subprocess.check_call(cmd)
-        output = r'http://gfw2-data.s3.amazonaws.com/alerts-tsv/output/to-api/{}'.format(fname)
-
-    return output
-
-
-def load_json_from_token(file_name):
-
-    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    token_file = os.path.join(root_dir, 'tokens', file_name)
-
-    with open(token_file) as data_file:
-        data = json.load(data_file)
-
-    return data
