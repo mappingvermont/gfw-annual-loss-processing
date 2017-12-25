@@ -29,3 +29,11 @@ Much of our boundary data is already TSV'd from previous hadoop analyses. This c
 After running all the intersections, we need to tabulate the area of each individual AOI. This code downloads all TSVs in an input S3 path, inserts them into PostGIS, and tabulates area for each in ha-- required for our final output stats.
 
 `python tabulate-bucket-area.py -b s3://path/to/data/`
+
+### Quality Control of Output
+
+How do we QC this stuff? Definitely lots of moving parts here. First, visual comparison of source data to TSV in QGIS.
+
+Second, calculate percent difference of the loss/extent/gain values from this process as compared to other analysis methods. Output from this process is currently stored in the [country pages table](https://production-api.globalforestwatch.org/v1/dataset/499682b1-3174-493f-ba1a-368b4636708e). To QC, we'll pass geometries to the GFW API umd-loss-gain endpoint, and then compare the results to what's stored in the table. If necessary, an option using the python rasterstats package is included as well.
+
+`python qc-output.py -n 100 -g 10 -s s3://gfw2-data/alerts-tsv/tsv-boundaries-tiled/ -o 499682b1-3174-493f-ba1a-368b4636708e`
