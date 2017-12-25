@@ -24,7 +24,8 @@ If we're processing loss data, the above table will have the following columns a
 |10|30|9881.107236421|1.35012201795243E-4
 
 And for extent, biomass, or gain data these columns will be tacked on to our polygon data.
-| thresh | area | 
+
+| thresh | area |
 | --- | --- | 
 |75|2342.111|
 |20|898.90888|
@@ -34,7 +35,7 @@ The threshold values above need to be cum-summed for display on GFW-- our thresh
 
 ### Processing
 Example command to process this data and save the output locally:
-`python tabulate-and-push.py --input s3://gfw2-data/alerts-tsv/output/loss.csv --local`
+`python tabulate-and-push.py --input s3://gfw2-data/alerts-tsv/output/loss.csv`
 
 ### Historical precedent
 
