@@ -56,3 +56,7 @@ optional arguments:
   -v VERSION, --version VERSION
                         version
  ```
+
+### Final update step
+
+After tiles are created, make sure to update the umd-loss-gain API to use the new Hansen composite asset. The path to the composite asset in EE should be updated here: https://github.com/gfw-api/gfw-analysis-gee/blob/master/gfwanalysis/config/base.py
