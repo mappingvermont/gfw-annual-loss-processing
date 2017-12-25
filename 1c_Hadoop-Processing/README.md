@@ -1,23 +1,24 @@
 ## Hadoop loss tile processing
 
-
 1. create a cluster
-	- can clone an old one, or create a new one. currently using 13 d2.8xlarge machines, with all slaves running as spot instances with max price $1.50
+	- can clone an old one, or create a new one. currently using 16 d2.8xlarge machines, with all slaves running as spot instances with max price $1.50
 	
 2. once it's ready SSH in. If you want to see the spark console in your brower, use port forwarding (get to it via the links generated in the EMR part of the AWS console)
 
-3. Install gdal using `gdal_install.sh`.  This may be buggy, so be sure to run `ogrinfo` when completed to test.
-
-4. Make sure all the data you want to analyze is in s3://gfw2-data/alerts-tsv/tsv-boundaries-gadm28/
-
-5. Edit annual_update.py and the various utilities to change the input directory from loss_2016 to `loss_{current_year}` and output directory from `output2016` to `output{current_year}`
-
-6. Run `/usr/bin/python annual_update.py -a loss` to process loss data for all data in the above s3 directory
-
+3. Run `annual_update.py`.
+```
+usage: annual_update.py [-h] --analysis-type {extent,loss,gain,biomass}
+                        [--points-folder POINTS_FOLDER] --polygons-folder
+                        POLYGONS_FOLDER --output-folder OUTPUT_FOLDER
+```
 
 ##### What's this code doing?
 
-This code will iterate over every polygon in the TSV directory, grabbing it's extent using `ogrinfo` and writing an `application.properties` file. It will then call spark-pip, process the file, and upload the output to the proper folder on s3.
+This code will run the hadoop process, tabulating loss/extent from the points folder within polygons in the polygons folder.
+
+If the analysis type is extent, it will iterate over the points in 10 degree latitude chunks to prevent out of memory errors.
+
+The code will write different `application.properties` depending on the analysis type. For more information (and the scala source code) please see our fork of the (Spark PIP code)[https://github.com/wri/spark-pip/].
 
 ###### Application.properties example file -- LOSS
 ```
