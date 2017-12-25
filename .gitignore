@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -78,3 +79,35 @@ tree_cover_stats_2016.xlsx
 3_Create-Summary-Spreadsheets/output/
 
 1b_Vector-to-TSV/data/
+=======
+# Mac / Local
+.DS_Store
+tmp/
+
+# Python / Tests
+*.pyc
+pip-selfcheck.json
+man
+
+# drive
+.gd
+
+# Virtualenv
+.Python
+bin
+lib
+include
+
+# Codebase
+playground.py
+
+# PYPI
+dist/
+MANIFEST
+
+# SECRETS
+privatekey.pem
+
+# codebase
+api_tests.py
+>>>>>>> hansen_ee_processing/master
