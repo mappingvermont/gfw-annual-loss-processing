@@ -37,15 +37,11 @@ def clip(q):
         conn_str = pg_util.build_ogr_pg_conn()
         col_str = pg_util.boundary_field_dict_to_sql_str(tile.col_list)
 
-        creds = pg_util.get_creds()
-        conn = psycopg2.connect(**creds)
-        cursor = conn.cursor()
-
         if not tile.postgis_table:
             dataset_name = os.path.splitext(os.path.basename(tile.dataset))[0]
             tile.postgis_table = '_'.join([dataset_name, tile.tile_id, 'clip']).lower()
 
-        if pg_util.check_table_exists(tile.postgis_table, cursor):
+        if pg_util.check_table_exists(tile.postgis_table):
             pass
 
         else:
@@ -85,6 +81,10 @@ def clip(q):
                 if 'error' in line.lower():
                     logging.error('Error in loading dataset, {}'.format(cmd))
 
+            creds = pg_util.get_creds()
+            conn = psycopg2.connect(**creds)
+            cursor = conn.cursor()
+            
             # a few other things required to get our raster data to match vector
             if file_ext == '.tif':
                 sql_list = ["ALTER TABLE {} RENAME wkb_geometry to geom",
@@ -97,7 +97,7 @@ def clip(q):
             pg_util.fix_geom(tile.postgis_table, cursor)
             
             conn.commit()
-        conn.close()
+            conn.close()
 
         q.task_done()
 
