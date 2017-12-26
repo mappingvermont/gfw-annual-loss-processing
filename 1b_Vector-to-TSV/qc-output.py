@@ -1,6 +1,8 @@
 import argparse
 
-from utilities import util, s3_list_tiles, zstats, qc_util as qc
+import psycopg2
+
+from utilities import util, s3_list_tiles, zstats, qc_util as qc, postgis_util as pg_util
 
 
 def main():
@@ -9,35 +11,73 @@ def main():
     parser.add_argument('--grid-resolution', '-g', help='grid resolution of source', type=int, default=10, choices=(10, 0.25), required=True)
 
     parser.add_argument('--s3-poly-dir', '-s', help='input poly directory for intersected TSVs', required=True)
-    parser.add_argument('--output-dataset-id', '-o', help='the output dataset in the API to compare results', required=True)
-
     parser.add_argument('--test', dest='test', action='store_true')
 
     args = parser.parse_args()
     util.start_logging()
 
     tile_list = s3_list_tiles.pull_random(args.s3_poly_dir, args.number_of_tiles)
-    tile_list = ['ifl_2013__gfw_manged_forests__50N_090W.tsv']
+    tile_list = [u'ifl_2013__00N_020E.tsv', u'ifl_2013__20N_090E.tsv', u'gfw_mining__30N_100W.tsv']
+    tile_list = [u'gfw_mining__30N_100W.tsv']
     print tile_list
 
     temp_dir = util.create_temp_dir()
 
-    # need to make a layer dir for this . . . abstract to util module
-    qc_output_tile(tile_list[0], args.s3_poly_dir, temp_dir)
+    process_list = []
+
+    for tile in tile_list:
+        process_list.append((tile, args.s3_poly_dir, temp_dir))
+
+    util.exec_multiprocess(qc_output_tile, process_list, args.test)
+
+    check_results()
 
 
-def qc_output_tile(tile_name, s3_src_dir, temp_dir):
+def check_results():
 
-    local_geojson = util.s3_to_dissolved_geojson(s3_src_dir, tile_name, temp_dir)
+    creds = pg_util.get_creds()
+    conn = psycopg2.connect(**creds)
+    
+    cursor = conn.cursor()
+    cursor.execute('SELECT max(area_extent_2000_pct_diff), max(area_gain_pct_diff), max(area_loss_pct_diff), max(area_poly_aoi_pct_diff) FROM qc_results')
 
-    valid_admin_list = qc.filter_valid_adm2_boundaries(tile_name)
+    pct_diff_list = cursor.fetchall()[0]
+    print 'Max pct diff values from qc_results table:'
+    print pct_diff_list
+    
+    conn.close()
 
-    df = zstats.calc_api(local_geojson, valid_admin_list)
+    if max(pct_diff_list) > 1:
+        raise ValueError('Max percent error >= 1%')
+    
 
-    joined = qc.join_to_api_df(df)
+def qc_output_tile(q):
+    while True:
+        tile_name, s3_src_dir, temp_dir = q.get()
 
-    qc.compare_outputs(joined)
+        gdf, local_geojson = util.s3_to_gdf(s3_src_dir, tile_name, temp_dir)
+
+        local_geojson = util.simplify_and_dissolve_tsv(gdf, local_geojson)
+
+        valid_admin_list = qc.filter_valid_adm2_boundaries(tile_name)
+        print valid_admin_list
+
+        df = zstats.calc_api(local_geojson, valid_admin_list)
+        
+        if df.empty: 
+            print 'No overlap between API values and valid admin list'
+            print 'Valid admin list is: '
+            print valid_admin_list
+        
+        else:
+
+            joined = qc.join_to_api_df(df)
+
+            qc.compare_outputs(joined)
+
+        q.task_done()
 
 
 if __name__ == '__main__':
     main()
+

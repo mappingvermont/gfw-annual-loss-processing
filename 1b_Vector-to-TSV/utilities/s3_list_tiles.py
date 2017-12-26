@@ -21,6 +21,9 @@ def pull_random(s3_dir, num_tiles):
 
     filename_list = get_s3_file_list(s3_dir)
 
+    # filter out primary forest-- nearly impossible to dissolve
+    filename_list = [x for x in filename_list if 'primary_forest' not in x.lower()]
+
     return random.sample(filename_list, num_tiles)
 
     

@@ -143,7 +143,9 @@ def merge_two_dicts(x, y):
     return z
 
 
-def s3_to_dissolved_geojson(s3_src_dir, tile_name, output_dir):
+def s3_to_gdf(s3_src_dir, tile_name, output_dir):
+
+    logging.info('running s3 --> geojson')
 
     # copy down chosen tile to the temp directory
     s3_path = '{}{}'.format(s3_src_dir, tile_name)
@@ -162,15 +164,38 @@ def s3_to_dissolved_geojson(s3_src_dir, tile_name, output_dir):
     subprocess.check_call(cmd)
 
     # open in geopandas
+    print 'reading file with gpd'
     df = gpd.read_file(local_geojson)
+
+    return df, local_geojson
+
+
+def simplify_and_dissolve_tsv(df, local_geojson):
 
     # remove garbage field_1
     # already read in as geometry field by geopandas
     del df['field_1']
 
+    # simplify with 0.01 degree tolerance
+    # helpful to reduce the size of the POST requests to the API
+    orig_geom = df.geometry.copy()
+    df.geometry = df.geometry.simplify(0.01)
+
+    print 'starting dissolve'
     # dissolve by attributes to reduce number of queries to the API
     dissolve_fields = list(df.columns)[0:-1]
-    dissolved = df.dissolve(by=dissolve_fields).reset_index()
+    print dissolve_fields
+    try:
+        dissolved = df.dissolve(by=dissolve_fields).reset_index()
+
+    # if simplified geom doesn't work, reset to original 
+    # failure due to topology errors with the simplify above
+    # logged to the console, but unable to raise in python for some reason
+    except ValueError:
+        df.geometry = orig_geom
+        dissolved = df.dissolve(by=dissolve_fields).reset_index()
+        
+    print 'done with dissolve'
 
     # give columns their proper names
     dissolved.columns = ['polyname', 'bound1', 'bound2', 'bound3', 'bound4',

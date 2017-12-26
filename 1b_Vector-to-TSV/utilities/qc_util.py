@@ -1,4 +1,5 @@
 import os
+import logging
 
 import requests
 import pandas as pd
@@ -10,14 +11,19 @@ import util, postgis_util as pg_util
 
 def join_to_api_df(df):
 
-    polyname = df.polyname.unique()[0]
+    # replace common polyname suffix
+    df.polyname = df['polyname'].apply(lambda x: x.replace('_int_diss_gadm28_large.tsv', '')) 
+
+    tsv_polyname = df.polyname.unique()[0]
     valid_polynames = get_api_polynames()
 
     # use fuzzy matching to guess proper match
-    matched_polyname, score = process.extractOne(polyname, valid_polynames)
-    print '{} corrected to {}'.format(polyname, matched_polyname)
+    matched_polyname, score = process.extractOne(tsv_polyname, valid_polynames)
+    logging.info('{} corrected to {}'.format(tsv_polyname, matched_polyname))
 
+    # update polyname field for joining, save original polyname
     df.polyname = matched_polyname
+    df['tsv_polyname'] = tsv_polyname
 
     iso_str = "', '".join(df.iso.unique())
     id_1_str = ', '.join(df.id_1.unique().astype(str))
@@ -34,7 +40,7 @@ def join_to_api_df(df):
            "AND adm2 in ({}) ").format(
         matched_polyname, iso_str, id_1_str, id_2_str)
 
-    print sql
+    logging.info(sql)
 
     dataset_url = 'https://production-api.globalforestwatch.org/v1/query/499682b1-3174-493f-ba1a-368b4636708e'
     r = requests.get(dataset_url, params={'sql': sql})
@@ -55,12 +61,13 @@ def join_to_api_df(df):
     df = df.rename(columns={'id_1': 'adm1', 'id_2': 'adm2'})
     df['thresh'] = 30
 
-    for field_name in ['bound1', 'bound2', 'bound3', 'bound4', 'year']:
+    for field_name in ['bound1', 'bound2', 'bound3', 'bound4', 'year', 'adm1', 'adm2']:
         df[field_name] = df[field_name].replace('', -9999)
         df[field_name] = df[field_name].astype(int)
 
     field_list = ['polyname', 'bound1', 'bound2', 'bound3', 'bound4', 'iso', 'adm1', 'adm2', 'thresh', 'year']
     merged = pd.merge(df, api_df, how='left', on=field_list, suffixes=['_zstats', '_hadoop'])
+    merged.to_csv('merged.csv', index=False)
 
     return merged
 
@@ -78,8 +85,11 @@ def compare_outputs(joined_df):
 
         joined_df[output_col] = abs(((joined_df[hadoop_col] - joined_df[zstats_col]) / joined_df[zstats_col]) * 100)
 
-    print joined_df.head()
-    print joined_df.shape
+    joined_df.to_csv('joined.csv')
+    engine = pg_util.sqlalchemy_engine()
+
+    # save results to postgres
+    joined_df.to_sql('qc_results', engine, if_exists='append')
 
 
 def get_api_polynames():
@@ -101,12 +111,16 @@ def filter_valid_adm2_boundaries(tile_name):
 
     engine = pg_util.sqlalchemy_engine()
 
+    # standard ST_Contains query
+    # but provinces with -9999 because the API throws an error
     sql = ('SELECT iso, id_1, id_2 '
            'FROM adm2_final '
-           'WHERE ST_Contains(ST_MakeEnvelope( '
+           'WHERE id_1 != -9999 AND id_2 != -9999 AND ' 
+           'ST_Contains(ST_MakeEnvelope( '
            '{}, {}, {}, {}, 4326), geom) '
            'GROUP BY iso, id_1, id_2 ').format(*bounds)
 
     adm2_df = pd.read_sql_query(sql, con=engine)
 
     return [tuple(x) for x in adm2_df.values]
+
