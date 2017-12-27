@@ -164,7 +164,7 @@ def s3_to_gdf(s3_src_dir, tile_name, output_dir):
     subprocess.check_call(cmd)
 
     # open in geopandas
-    print 'reading file with gpd'
+    logging.info('reading file with gpd')
     df = gpd.read_file(local_geojson)
 
     return df, local_geojson
@@ -178,16 +178,30 @@ def dissolve_tsv(df, local_geojson):
 
     # dissolve by attributes to reduce number of queries to the API
     dissolve_fields = list(df.columns)[0:-1]
-    dissolved = df.dissolve(by=dissolve_fields).reset_index()
-    print 'done with dissolve'
+    valid_dissolve = False
 
-    # give columns their proper names
-    dissolved.columns = ['polyname', 'bound1', 'bound2', 'bound3', 'bound4',
-                         'iso', 'id_1', 'id_2', 'geometry']
+    logging.info('starting dissolve')
 
-    # gpd can't overwrite, need to delete file first
-    os.remove(local_geojson)
-    dissolved.to_file(local_geojson, driver='GeoJSON')
+    try:
+        dissolved = df.dissolve(by=dissolve_fields).reset_index()
+        valid_dissolve = True
 
-    return local_geojson
+    # occasionally fails with bad geometry
+    except ValueError:
+        logging.info('dissolve failed for input {}'.format(local_geojson))
+
+    if valid_dissolve:
+
+        # give columns their proper names
+        dissolved.columns = ['polyname', 'bound1', 'bound2', 'bound3', 'bound4',
+                             'iso', 'id_1', 'id_2', 'geometry']
+
+        # gpd can't overwrite, need to delete file first
+        os.remove(local_geojson)
+        dissolved.to_file(local_geojson, driver='GeoJSON')
+
+        return local_geojson
+
+    else:
+        return valid_dissolve
 

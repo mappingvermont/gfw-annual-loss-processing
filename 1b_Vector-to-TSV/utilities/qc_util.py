@@ -14,6 +14,10 @@ def join_to_api_df(df):
 
     # replace common polyname suffix
     df.polyname = df['polyname'].apply(lambda x: x.replace('_int_diss_gadm28_large.tsv', '')) 
+    
+    # clean up other formatting irregularities
+    df.loc[~df['polyname'].str.contains(r'plantation|biome'), ['bound1', 'bound2']] = None
+    df[['bound3', 'bound4']] = '-9999'
 
     tsv_polyname = df.polyname.unique()[0]
     valid_polynames = get_api_polynames()
@@ -67,6 +71,9 @@ def join_to_api_df(df):
 
     api_df = pd.DataFrame(row_list)
 
+    # bound3 and bound4 not used currently
+    api_df[['bound3', 'bound4']] = '-9999'
+
     # match API column names, add thresh
     df = df.rename(columns={'id_1': 'adm1', 'id_2': 'adm2'})
     df['thresh'] = 30
@@ -75,15 +82,13 @@ def join_to_api_df(df):
         df[field_name] = df[field_name].replace('', -9999)
         df[field_name] = df[field_name].astype(int)
 
-    for field_name in ['bound1', 'bound2', 'bound3', 'bound4']:
+    for field_name in ['bound1', 'bound2']: 
         df[field_name] = df[field_name].replace('', '-9999')
         df[field_name] = df[field_name].astype(str)
+        api_df[field_name] = api_df[field_name].astype(str)
 
     api_df.to_csv('api_df.csv', index=None)
     df.to_csv('df.csv', index=None)
-
-    print api_df.bound1.dtype
-    print df.bound1.dtype
 
     field_list = ['polyname', 'bound1', 'bound2', 'bound3', 'bound4', 'iso', 'adm1', 'adm2', 'thresh', 'year']
     merged = pd.merge(df, api_df, how='left', on=field_list, suffixes=['_zstats', '_hadoop'])
