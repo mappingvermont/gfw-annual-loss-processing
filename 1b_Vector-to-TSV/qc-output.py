@@ -17,8 +17,8 @@ def main():
     util.start_logging()
 
     tile_list = s3_list_tiles.pull_random(args.s3_poly_dir, args.number_of_tiles)
-    tile_list = [u'ifl_2013__00N_020E.tsv', u'ifl_2013__20N_090E.tsv', u'gfw_mining__30N_100W.tsv']
-    tile_list = [u'gfw_mining__30N_100W.tsv']
+    tile_list = [u'gfw_mining__20N_100W.tsv', 'plantations__landmark__20S_060W.tsv']
+    tile_list = ['plantations__landmark__20S_060W.tsv']
     print tile_list
 
     temp_dir = util.create_temp_dir()
@@ -30,26 +30,8 @@ def main():
 
     util.exec_multiprocess(qc_output_tile, process_list, args.test)
 
-    check_results()
+    qc.check_results()
 
-
-def check_results():
-
-    creds = pg_util.get_creds()
-    conn = psycopg2.connect(**creds)
-    
-    cursor = conn.cursor()
-    cursor.execute('SELECT max(area_extent_2000_pct_diff), max(area_gain_pct_diff), max(area_loss_pct_diff), max(area_poly_aoi_pct_diff) FROM qc_results')
-
-    pct_diff_list = cursor.fetchall()[0]
-    print 'Max pct diff values from qc_results table:'
-    print pct_diff_list
-    
-    conn.close()
-
-    if max(pct_diff_list) > 1:
-        raise ValueError('Max percent error >= 1%')
-    
 
 def qc_output_tile(q):
     while True:
@@ -57,7 +39,7 @@ def qc_output_tile(q):
 
         gdf, local_geojson = util.s3_to_gdf(s3_src_dir, tile_name, temp_dir)
 
-        local_geojson = util.simplify_and_dissolve_tsv(gdf, local_geojson)
+        local_geojson = util.dissolve_tsv(gdf, local_geojson)
 
         valid_admin_list = qc.filter_valid_adm2_boundaries(tile_name)
         print valid_admin_list
@@ -66,11 +48,8 @@ def qc_output_tile(q):
         
         if df.empty: 
             print 'No overlap between API values and valid admin list'
-            print 'Valid admin list is: '
-            print valid_admin_list
         
         else:
-
             joined = qc.join_to_api_df(df)
 
             qc.compare_outputs(joined)
