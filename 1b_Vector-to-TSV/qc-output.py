@@ -17,7 +17,6 @@ def main():
     util.start_logging()
 
     tile_list = s3_list_tiles.pull_random(args.s3_poly_dir, args.number_of_tiles)
-    tile_list = [u'bra_biomes__10S_050W.tsv', u'gfw_manged_forests__10N_010E.tsv', u'wdpa_diss_all__10N_030E.tsv']
     print tile_list
 
     temp_dir = util.create_temp_dir()
@@ -39,6 +38,10 @@ def qc_output_tile(q):
         gdf, local_geojson = util.s3_to_gdf(s3_src_dir, tile_name, temp_dir)
 
         local_geojson = util.dissolve_tsv(gdf, local_geojson)
+
+        # sample geojson to take only 100 features
+        # some combinations have 1000+ - would take forever
+        local_geojson = util.subset_geojson(local_geojson, 100)
 
         valid_admin_list = qc.filter_valid_adm2_boundaries(tile_name)
         print valid_admin_list

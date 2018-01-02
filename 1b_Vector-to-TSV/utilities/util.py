@@ -205,3 +205,16 @@ def dissolve_tsv(df, local_geojson):
     else:
         return valid_dissolve
 
+
+def subset_geojson(local_geojson, record_count):
+
+    gdf = gpd.read_file(local_geojson)
+    
+    if len(gdf) > record_count:
+        gdf = gdf.sample(record_count)
+
+    os.remove(local_geojson)
+    gdf.to_file(local_geojson, driver='GeoJSON')
+
+    return local_geojson
+

@@ -16,7 +16,7 @@ def join_to_api_df(df):
     df.polyname = df['polyname'].apply(lambda x: x.replace('_int_diss_gadm28_large.tsv', '')) 
     
     # clean up other formatting irregularities
-    df.loc[~df['polyname'].str.contains(r'plantation|biome'), ['bound1', 'bound2']] = None
+    df.loc[~df['polyname'].str.contains(r'plantation|biome'), ['bound1', 'bound2']] = '-9999'
     df[['bound3', 'bound4']] = '-9999'
 
     tsv_polyname = df.polyname.unique()[0]
@@ -84,11 +84,8 @@ def join_to_api_df(df):
 
     for field_name in ['bound1', 'bound2']: 
         df[field_name] = df[field_name].replace('', '-9999')
-        df[field_name] = df[field_name].astype(str)
-        api_df[field_name] = api_df[field_name].astype(str)
-
-    api_df.to_csv('api_df.csv', index=None)
-    df.to_csv('df.csv', index=None)
+        df[field_name] = df[field_name].astype(unicode)
+        api_df[field_name] = api_df[field_name].astype(unicode)
 
     field_list = ['polyname', 'bound1', 'bound2', 'bound3', 'bound4', 'iso', 'adm1', 'adm2', 'thresh', 'year']
     merged = pd.merge(df, api_df, how='left', on=field_list, suffixes=['_zstats', '_hadoop'])
@@ -158,6 +155,7 @@ def check_results():
 
     pct_diff_list = cursor.fetchall()[0]
     print 'Max pct diff values from qc_results table:'
+    print ['extent2000', 'gain', 'loss', 'poly_aoi_area']
     print pct_diff_list
     
     conn.close()
