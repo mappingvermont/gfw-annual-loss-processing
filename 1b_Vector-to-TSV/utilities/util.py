@@ -32,7 +32,7 @@ def create_temp_dir():
     return layer_dir
 
 
-def exec_multiprocess(input_func, input_list, is_test=False):
+def exec_multiprocess(input_func, input_list, is_test=False, thread_count=False):
 
     # create queue
     q = Queue()
@@ -43,6 +43,8 @@ def exec_multiprocess(input_func, input_list, is_test=False):
     # start our threads
     if is_test:
         mp_count = 1
+    elif thread_count:
+        mp_count = thread_count
     else:
         mp_count = multiprocessing.cpu_count() - 1
 
@@ -164,9 +166,10 @@ def s3_to_gdf(s3_src_dir, tile_name, output_dir):
     subprocess.check_call(cmd)
 
     # open in geopandas
-    logging.info('reading file with gpd')
+    logging.info('reading {} with gpd'.format(local_geojson))
     try:
         df = gpd.read_file(local_geojson)
+        logging.info('read {} into gpd complete'.format(local_geojson))
 
     # likely a geometrycollection in the geojson
     # requires further manual investigation
@@ -187,10 +190,11 @@ def dissolve_tsv(df, local_geojson):
     dissolve_fields = list(df.columns)[0:-1]
     valid_dissolve = False
 
-    logging.info('starting dissolve')
+    logging.info('starting dissolve for {}'.format(local_geojson))
 
     try:
         dissolved = df.dissolve(by=dissolve_fields).reset_index()
+        logging.info('dissolve for {} complete'.format(local_geojson))
         valid_dissolve = True
 
     # occasionally fails with bad geometry
@@ -204,10 +208,10 @@ def dissolve_tsv(df, local_geojson):
                              'iso', 'id_1', 'id_2', 'geometry']
 
         # gpd can't overwrite, need to delete file first
-        os.remove(local_geojson)
-        dissolved.to_file(local_geojson, driver='GeoJSON')
+        dissolved_path = os.path.splitext(local_geojson)[0] + '_dissolved.geojson'
+        dissolved.to_file(dissolved_path, driver='GeoJSON')
 
-        return local_geojson
+        return dissolved_path
 
     else:
         return valid_dissolve
@@ -215,13 +219,17 @@ def dissolve_tsv(df, local_geojson):
 
 def subset_geojson(local_geojson, record_count):
 
-    gdf = gpd.read_file(local_geojson)
-    
-    if len(gdf) > record_count:
-        gdf = gdf.sample(record_count)
+    # potential instances where the input is False
+    # where a previous dissolve has failed, and we don't want to continue
+    if local_geojson:
 
-    os.remove(local_geojson)
-    gdf.to_file(local_geojson, driver='GeoJSON')
+	    gdf = gpd.read_file(local_geojson)
+	    
+	    if len(gdf) > record_count:
+		gdf = gdf.sample(record_count)
+
+	    os.remove(local_geojson)
+	    gdf.to_file(local_geojson, driver='GeoJSON')
 
     return local_geojson
 

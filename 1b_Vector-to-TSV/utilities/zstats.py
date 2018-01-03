@@ -1,4 +1,6 @@
 import json
+import simplejson
+import logging
 
 import pandas as pd
 import geopandas as gpd
@@ -27,15 +29,19 @@ def calc_api(local_geojson, valid_adm2_tuples):
             params = {'aggregate_values': False}
 
             r = requests.post(url, json=payload, params=params)
-            resp = r.json()
 
             valid_zstats = False
 
             try:
+                resp = r.json()
                 data = resp['data']['attributes']
                 valid_zstats = True
-            except KeyError:
-                print resp
+
+            # catch JSON server error response, also non-JSON response
+            except (simplejson.JSONDecodeError, KeyError) as e:
+                logging.error('invalid JSON response from Lambda API:')
+                logging.error(resp)
+                logging.error(feat['properties'])
 
             if valid_zstats:
                 print data

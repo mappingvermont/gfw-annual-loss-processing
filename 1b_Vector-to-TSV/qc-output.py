@@ -1,6 +1,8 @@
 import argparse
 
 import psycopg2
+import pandas as pd
+import multiprocessing as mp
 
 from utilities import util, s3_list_tiles, zstats, load_gadm28, qc_util as qc, postgis_util as pg_util
 
@@ -8,9 +10,10 @@ from utilities import util, s3_list_tiles, zstats, load_gadm28, qc_util as qc, p
 def main():
     parser = argparse.ArgumentParser(description='QC loss and extent stats')
     parser.add_argument('--number-of-tiles', '-n', help='number of tiles to run QC', default=10, type=int, required=True)
-    parser.add_argument('--grid-resolution', '-g', help='grid resolution of source', type=int, default=10, choices=(10, 0.25), required=True)
+    parser.add_argument('--grid-resolution', '-g', help='grid resolution of source', type=int, default=10, choices=(10, 0.25))
 
     parser.add_argument('--s3-poly-dir', '-s', help='input poly directory for intersected TSVs', required=True)
+    parser.add_argument('--thread-count', '-c', type=int, default=mp.cpu_count())
     parser.add_argument('--test', dest='test', action='store_true')
 
     args = parser.parse_args()
@@ -23,6 +26,7 @@ def main():
         args.number_of_tiles = 1
 
     tile_list = s3_list_tiles.pull_random(args.s3_poly_dir, args.number_of_tiles)
+    tile_list = ['idn_forest_moratorium__00N_110E.tsv']
     print tile_list
 
     temp_dir = util.create_temp_dir()
@@ -32,7 +36,7 @@ def main():
     for tile in tile_list:
         process_list.append((tile, args.s3_poly_dir, temp_dir))
 
-    util.exec_multiprocess(qc_output_tile, process_list, args.test)
+    util.exec_multiprocess(qc_output_tile, process_list, args.test, args.thread_count)
 
     qc.check_results()
 
@@ -67,7 +71,7 @@ def qc_output_tile(q):
 		else:
 		    joined = qc.join_to_api_df(df)
 
-		    qc.compare_outputs(joined)
+		    qc.compare_outputs(joined, tile_name)
 
         q.task_done()
 

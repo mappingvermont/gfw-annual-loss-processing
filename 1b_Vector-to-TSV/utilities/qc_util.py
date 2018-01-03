@@ -65,7 +65,6 @@ def join_to_api_df(df):
         del base_data['year_data']
 
         for year_dict in grouped_row['year_data']:
-            print year_dict
             row = util.merge_two_dicts(base_data, year_dict)
             row_list.append(row)
 
@@ -93,7 +92,7 @@ def join_to_api_df(df):
     return merged
 
 
-def compare_outputs(joined_df):
+def compare_outputs(joined_df, tile_name):
 
     for skip_col_name in ['_id', 'emissions', 'area_extent', 'area_gadm28']:
         del joined_df[skip_col_name]
@@ -106,7 +105,15 @@ def compare_outputs(joined_df):
 
         joined_df[output_col] = abs(((joined_df[hadoop_col] - joined_df[zstats_col]) / joined_df[zstats_col]) * 100)
 
+        # make sure default datatype is float for these
+        # pandas tends to guess int, and then this is set in postgis
+        joined_df[hadoop_col] = joined_df[hadoop_col].astype(float)
+        joined_df[zstats_col] = joined_df[zstats_col].astype(float)
+
     engine = pg_util.sqlalchemy_engine()
+
+    # add tile_name for easier QC and tracking
+    joined_df['tile_name'] = tile_name
 
     # save results to postgres
     joined_df.to_sql('qc_results', engine, if_exists='append')
@@ -160,7 +167,7 @@ def check_results():
     pct_cols = [x + '_pct_diff' for x in area_cols]
     wc = ' > 1 OR '.join(pct_cols) + ' > 1'
 
-    sql = 'SELECT {} FROM qc_results WHERE {}'.format(select_col_str, wc)
+    sql = 'SELECT {}, tile_name FROM qc_results WHERE {}'.format(select_col_str, wc)
     df = pd.read_sql_query(sql, con=engine)
 
     # add a pix_diff column to convert the difference in ha to pixels
@@ -170,5 +177,6 @@ def check_results():
         df[pix_count] = abs(df[col + '_hadoop'] - df[col + '_zstats']) / 0.077 
 
     print df.head()
+    print len(df)
     df.to_csv('qc_diff.csv', index=None)
         
