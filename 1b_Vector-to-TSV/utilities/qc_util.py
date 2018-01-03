@@ -147,19 +147,28 @@ def filter_valid_adm2_boundaries(tile_name):
 
 def check_results():
 
-    creds = pg_util.get_creds()
-    conn = psycopg2.connect(**creds)
-    
-    cursor = conn.cursor()
-    cursor.execute('SELECT max(area_extent_2000_pct_diff), max(area_gain_pct_diff), max(area_loss_pct_diff), max(area_poly_aoi_pct_diff) FROM qc_results')
+    engine = pg_util.sqlalchemy_engine()
 
-    pct_diff_list = cursor.fetchall()[0]
-    print 'Max pct diff values from qc_results table:'
-    print ['extent2000', 'gain', 'loss', 'poly_aoi_area']
-    print pct_diff_list
-    
-    conn.close()
+    area_cols = ['area_extent_2000', 'area_gain', 'area_loss', 'area_poly_aoi']
+    select_cols = []
+   
+    for col in area_cols:
+        select_cols.extend([col + '_hadoop', col + '_zstats', col + '_pct_diff'])
 
-    if max(pct_diff_list) > 1:
-        raise ValueError('Max percent error >= 1%')
+    select_col_str = ', '.join(select_cols)
 
+    pct_cols = [x + '_pct_diff' for x in area_cols]
+    wc = ' > 1 OR '.join(pct_cols) + ' > 1'
+
+    sql = 'SELECT {} FROM qc_results WHERE {}'.format(select_col_str, wc)
+    df = pd.read_sql_query(sql, con=engine)
+
+    # add a pix_diff column to convert the difference in ha to pixels
+    # based on approximate area of 0.0777 ha per pixel
+    for col in area_cols:
+        pix_count = col + '_pix_diff'
+        df[pix_count] = abs(df[col + '_hadoop'] - df[col + '_zstats']) / 0.077 
+
+    print df.head()
+    df.to_csv('qc_diff.csv', index=None)
+        

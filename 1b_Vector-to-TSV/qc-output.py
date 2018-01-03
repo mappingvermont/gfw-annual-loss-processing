@@ -2,7 +2,7 @@ import argparse
 
 import psycopg2
 
-from utilities import util, s3_list_tiles, zstats, qc_util as qc, postgis_util as pg_util
+from utilities import util, s3_list_tiles, zstats, load_gadm28, qc_util as qc, postgis_util as pg_util
 
 
 def main():
@@ -15,6 +15,12 @@ def main():
 
     args = parser.parse_args()
     util.start_logging()
+
+    # load gadm28 - required to determine which gadm28 boundaries are completely within a 10x10 tile
+    load_gadm28.load('s3://gfw2-data/alerts-tsv/gis_source/adm2_final.zip')
+
+    if args.test:
+        args.number_of_tiles = 1
 
     tile_list = s3_list_tiles.pull_random(args.s3_poly_dir, args.number_of_tiles)
     print tile_list
@@ -44,7 +50,6 @@ def qc_output_tile(q):
         local_geojson = util.subset_geojson(local_geojson, 100)
 
         valid_admin_list = qc.filter_valid_adm2_boundaries(tile_name)
-        print valid_admin_list
 
         # make sure that dissolve was successful hitting the API
         if local_geojson:
