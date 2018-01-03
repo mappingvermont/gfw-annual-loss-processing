@@ -26,7 +26,6 @@ def main():
         args.number_of_tiles = 1
 
     tile_list = s3_list_tiles.pull_random(args.s3_poly_dir, args.number_of_tiles)
-    tile_list = ['idn_forest_moratorium__00N_110E.tsv']
     print tile_list
 
     temp_dir = util.create_temp_dir()

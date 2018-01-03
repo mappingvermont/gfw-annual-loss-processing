@@ -34,12 +34,6 @@ def create_temp_dir():
 
 def exec_multiprocess(input_func, input_list, is_test=False, thread_count=False):
 
-    # create queue
-    q = Queue()
-
-    for i in input_list:
-        q.put(i)
-
     # start our threads
     if is_test:
         mp_count = 1
@@ -47,6 +41,12 @@ def exec_multiprocess(input_func, input_list, is_test=False, thread_count=False)
         mp_count = thread_count
     else:
         mp_count = multiprocessing.cpu_count() - 1
+
+    # create queue
+    q = Queue(mp_count * 10)
+
+    for i in input_list:
+        q.put(i)
 
     for i in range(mp_count):
         worker = Thread(target=input_func, args=(q,))
@@ -209,12 +209,16 @@ def dissolve_tsv(df, local_geojson):
 
         # gpd can't overwrite, need to delete file first
         dissolved_path = os.path.splitext(local_geojson)[0] + '_dissolved.geojson'
-        dissolved.to_file(dissolved_path, driver='GeoJSON')
 
+        try:
+            dissolved.to_file(dissolved_path, driver='GeoJSON')
+        except ValueError:
+            valid_dissolve = False
+
+    if valid_dissolve:
         return dissolved_path
-
     else:
-        return valid_dissolve
+        return False
 
 
 def subset_geojson(local_geojson, record_count):
