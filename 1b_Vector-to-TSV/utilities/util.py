@@ -165,7 +165,14 @@ def s3_to_gdf(s3_src_dir, tile_name, output_dir):
 
     # open in geopandas
     logging.info('reading file with gpd')
-    df = gpd.read_file(local_geojson)
+    try:
+        df = gpd.read_file(local_geojson)
+
+    # likely a geometrycollection in the geojson
+    # requires further manual investigation
+    except ValueError:
+        logging.error('could not read {} in {} using geopandas'.format(tile_name, output_dir))
+        df = gpd.GeoDataFrame()
 
     return df, local_geojson
 

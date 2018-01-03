@@ -43,27 +43,31 @@ def qc_output_tile(q):
 
         gdf, local_geojson = util.s3_to_gdf(s3_src_dir, tile_name, temp_dir)
 
-        local_geojson = util.dissolve_tsv(gdf, local_geojson)
+        # make sure GPD was able to read the geojson successfully
+        # if not will log an error and finish the task, so the whole
+        # process can continue
+        if not gdf.empty:
+		local_geojson = util.dissolve_tsv(gdf, local_geojson)
 
-        # sample geojson to take only 100 features
-        # some combinations have 1000+ - would take forever
-        local_geojson = util.subset_geojson(local_geojson, 100)
+		# sample geojson to take only 100 features
+		# some combinations have 1000+ - would take forever
+		local_geojson = util.subset_geojson(local_geojson, 100)
 
-        valid_admin_list = qc.filter_valid_adm2_boundaries(tile_name)
+		valid_admin_list = qc.filter_valid_adm2_boundaries(tile_name)
 
-        # make sure that dissolve was successful hitting the API
-        if local_geojson:
-            df = zstats.calc_api(local_geojson, valid_admin_list)
-        else:
-            df = pd.DataFrame()
-        
-        if df.empty: 
-            print 'No overlap between API values and valid admin list'
-        
-        else:
-            joined = qc.join_to_api_df(df)
+		# make sure that dissolve was successful hitting the API
+		if local_geojson:
+		    df = zstats.calc_api(local_geojson, valid_admin_list)
+		else:
+		    df = pd.DataFrame()
+		
+		if df.empty: 
+		    print 'No overlap between API values and valid admin list'
+		
+		else:
+		    joined = qc.join_to_api_df(df)
 
-            qc.compare_outputs(joined)
+		    qc.compare_outputs(joined)
 
         q.task_done()
 
