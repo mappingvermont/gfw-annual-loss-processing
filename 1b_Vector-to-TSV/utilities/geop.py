@@ -87,7 +87,13 @@ def clip(q):
 		    creds = pg_util.get_creds()
 		    conn = psycopg2.connect(**creds)
 		    cursor = conn.cursor()
-                    clip_sql = 'CREATE TABLE {} AS SELECT {}, geom FROM {}'.format(tile.postgis_table, col_str, tile.dataset)
+                    
+                    envelope = 'ST_MakeEnvelope({}, {}, {}, {}, 4326)'.format(*tile.bbox)
+
+                    clip_sql = ('CREATE TABLE {n} AS '
+                                'SELECT {c}, ST_Intersection(geom, {e}) as geom '
+                                'FROM {t} ' 
+                                'WHERE ST_Intersects(geom, {e})'.format(n=tile.postgis_table, c=col_str, t=tile.dataset, e=envelope))
                     logging.info(clip_sql)
                     cursor.execute(clip_sql)
                     conn.commit()
