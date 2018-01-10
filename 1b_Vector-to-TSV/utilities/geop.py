@@ -45,6 +45,7 @@ def clip(q):
             pass
 
         else:
+            run_ogr2ogr = False
 
             # any TSV name will have the data as it's layer, otherwise use the actual shape
             file_ext = os.path.splitext(tile.dataset)[1]
@@ -52,6 +53,7 @@ def clip(q):
             # why VRT here? so we can read the TSVs that are already created
             # which requires a crazy vector VRT file
             if file_ext in ['.shp', '.tsv', '.vrt']:
+                run_ogr2ogr = True
                 if file_ext == '.shp':
                     ogr_layer_name = os.path.splitext(os.path.basename(tile.dataset))[0]
                 else:
@@ -68,18 +70,28 @@ def clip(q):
                     cmd += ['-clipsrc'] + bbox_list
 
             elif file_ext == '.tif':
+                run_ogr2ogr = True
                 cmd = ['gdal_polygonize.py', tile.dataset, '-f', 'PostgreSQL',
                        conn_str, tile.postgis_table, 'boundary_field1']
 
+
+            if run_ogr2ogr:
+                    logging.info(cmd)
+		    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+		    for line in iter(p.stdout.readline, b''):
+			if 'error' in line.lower():
+			    logging.error('Error in loading dataset, {}'.format(cmd))
+
             else:
-                raise ValueError('Unknown file extension {}, expecting shp, tif or tsv'.format(file_ext))
 
-            logging.info(cmd)
-
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            for line in iter(p.stdout.readline, b''):
-                if 'error' in line.lower():
-                    logging.error('Error in loading dataset, {}'.format(cmd))
+		    creds = pg_util.get_creds()
+		    conn = psycopg2.connect(**creds)
+		    cursor = conn.cursor()
+                    clip_sql = 'CREATE TABLE {} AS SELECT {}, geom FROM {}'.format(tile.postgis_table, col_str, tile.dataset)
+                    logging.info(clip_sql)
+                    cursor.execute(clip_sql)
+                    conn.commit()
+                    conn.close()
 
             creds = pg_util.get_creds()
             conn = psycopg2.connect(**creds)

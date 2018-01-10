@@ -8,6 +8,7 @@ import logging
 import math
 
 import fiona
+import psycopg2
 import numpy as np
 import geopandas as gpd
 import rasterio
@@ -15,6 +16,7 @@ from shapely.geometry import shape
 
 from tile import Tile
 import decode_tsv
+import postgis_util as pg_util
 
 
 def create_temp_dir():
@@ -67,9 +69,20 @@ def build_gadm28_tile_list(source_layer, is_test):
     tiles = fiona.open(os.path.join(root_dir, 'grid', 'lossdata_footprint_filter.geojson'), 'r')
 
     # aoi we want to tsv
-    if os.path.splitext(source_layer.input_dataset)[1] == '.tif':
+    source_file_ext = os.path.splitext(source_layer.input_dataset)[1]
+    if source_file_ext == '.tif':
         with rasterio.open(source_layer.input_dataset) as src:
             aoi_bounds = src.bounds
+    elif source_file_ext == '':
+        creds = pg_util.get_creds()
+        conn = psycopg2.connect(**creds)
+        cursor = conn.cursor()
+
+        extent_sql = 'SELECT ST_Extent(geom) FROM {}'.format(source_layer.input_dataset)
+        cursor.execute(extent_sql)
+        extent_text = cursor.fetchall()[0][0].replace('BOX(', '').replace(')','').replace(',', ' ')
+        aoi_bounds = [float(x) for x in extent_text.split()] 
+
     else:
         aoi_bounds = fiona.open(source_layer.input_dataset).bounds
 
