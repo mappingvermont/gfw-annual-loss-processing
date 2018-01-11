@@ -18,6 +18,23 @@ def get_creds():
     return creds
 
 
+def add_cluster(table_name):
+
+    creds = get_creds()
+    conn = psycopg2.connect(**creds)
+    cursor = conn.cursor()
+
+    # supposed to be good per https://gis.stackexchange.com/questions/19832/
+    cursor.execute('analyze {}'.format(table_name))
+
+    # and http://postgis.net/docs/performance_tips.html
+    idx_name = table_name + '_geom_idx'
+    cursor.execute('CLUSTER {} ON {}'.format(idx_name, table_name))
+
+    conn.commit()
+    conn.close()
+
+
 def build_ogr_pg_conn():
     creds = get_creds()
 

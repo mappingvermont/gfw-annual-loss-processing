@@ -21,6 +21,8 @@ def load(zip_source):
 
         pg_util.insert_into_postgis(gadm28_shp, table_name, boundary_fields)
 
+        pg_util.add_cluster(table_name)
+
     l = Layer(table_name, [])
     l.tile_list = [Tile(l.input_dataset, boundary_fields, None, None, l.input_dataset)]
 
