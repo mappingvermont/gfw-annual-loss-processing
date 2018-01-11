@@ -152,13 +152,17 @@ def intersect(q):
             select_cols = ", ".join(tile_cols_aliased + admin2_columns)
             groupby_columns = ", ".join(tile1_cols + tile2_cols + admin2_columns)
 
+            # source: http://postgis.net/2014/03/14/tip_intersection_faster/
             sql = ("CREATE TABLE {table_name} AS "
-                   "SELECT {s}, (ST_Dump(ST_Union(ST_Buffer(ST_MakeValid(ST_Intersection(ST_MakeValid("
-                   "a.geom), ST_MakeValid(b.geom))), 0.0000001)))).geom as geom "
-                   "FROM {table1} a, {table2} b "
-                   "WHERE ST_Intersects(a.geom, b.geom) "
-                   "GROUP BY {g};".format(s=select_cols, table_name=table_name, table1=tile1.postgis_table,
-                                          table2=tile2.postgis_table, g=groupby_columns))
+                   "SELECT {s}, CASE "
+                   " WHEN ST_CoveredBy(a.geom, b.geom) "
+                   " THEN a.geom "
+                   " ELSE ST_Intersection(a.geom, b.geom) "
+                   " END as geom "
+                   "FROM {table1} a "
+                   "INNER JOIN {table2} b "
+                   "ON ST_Intersects(a.geom, b.geom) ".format(s=select_cols, table_name=table_name,
+                       table1=tile1.postgis_table, table2=tile2.postgis_table, g=groupby_columns))
 
             logging.info(sql)
 

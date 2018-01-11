@@ -45,7 +45,7 @@ def exec_multiprocess(input_func, input_list, is_test=False, thread_count=False)
         mp_count = multiprocessing.cpu_count() - 1
 
     # create queue
-    q = Queue(mp_count * 10)
+    q = Queue()
 
     for i in input_list:
         q.put(i)
