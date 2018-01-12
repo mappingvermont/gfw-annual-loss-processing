@@ -1,4 +1,5 @@
 import os
+import logging
 import subprocess
 
 from sqlalchemy import create_engine
@@ -18,21 +19,15 @@ def get_creds():
     return creds
 
 
-def add_cluster(table_name):
-
-    creds = get_creds()
-    conn = psycopg2.connect(**creds)
-    cursor = conn.cursor()
+def add_cluster(table_name, cursor):
 
     # supposed to be good per https://gis.stackexchange.com/questions/19832/
-    cursor.execute('analyze {}'.format(table_name))
-
     # and http://postgis.net/docs/performance_tips.html
-    idx_name = table_name + '_geom_idx'
-    cursor.execute('CLUSTER {} ON {}'.format(idx_name, table_name))
+    sql_list = ['analyze {}', 'CLUSTER {0}_geom_idx ON {0}']
 
-    conn.commit()
-    conn.close()
+    for sql in sql_list:
+        logging.info(sql.format(table_name))
+        cursor.execute(sql.format(table_name))
 
 
 def build_ogr_pg_conn():
@@ -176,12 +171,16 @@ def insert_into_postgis(src_shp, table_name, dummy_fields=None):
     
 def fix_geom(table_name, cursor):
 
-    sql = "UPDATE {} SET geom = ST_MakeValid(geom) WHERE ST_IsValid(geom) <> '1'".format(table_name)
-    cursor.execute(sql)
+    sql_list = ["UPDATE {} SET geom = ST_MakeValid(geom) WHERE ST_IsValid(geom) <> '1'",
+                "UPDATE {} SET geom = ST_CollectionExtract(geom, 3)",
+                "ALTER TABLE {} ADD Column gid serial PRIMARY KEY",
+                "CREATE INDEX {0}_geom_idx ON {0} using gist(geom)"]
 
-    # remove linestings and points from collections
-    sql = "UPDATE {} SET geom = ST_CollectionExtract(geom, 3)".format(table_name)
-    cursor.execute(sql)
+    for sql in sql_list:
+        logging.info(sql.format(table_name))
+        cursor.execute(sql.format(table_name))
+
+    add_cluster(table_name, cursor)
 
     
 def export_to_shp(table_name, output_folder):
