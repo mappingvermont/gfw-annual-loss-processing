@@ -70,7 +70,7 @@ def build_gadm28_tile_list(source_layer, is_test):
 
     # aoi we want to tsv
     source_file_ext = os.path.splitext(source_layer.input_dataset)[1]
-    if source_file_ext == '.tif':
+    if source_file_ext in ['.rvrt', '.tif']:
         with rasterio.open(source_layer.input_dataset) as src:
             aoi_bounds = src.bounds
     elif source_file_ext == '':

@@ -179,7 +179,7 @@ def fix_geom(table_name, cursor):
     for sql in sql_list:
         # logging.info(sql.format(table_name))
         cursor.execute(sql.format(table_name))
-
+           
     add_cluster(table_name, cursor)
 
     

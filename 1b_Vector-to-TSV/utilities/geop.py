@@ -67,7 +67,7 @@ def clip(q):
                     bbox_list = [str(x) for x in tile.bbox]
                     cmd += ['-clipsrc'] + bbox_list
 
-            elif file_ext == '.tif':
+            elif file_ext in ['.rvrt', '.tif']:
                 run_ogr2ogr = True
                 cmd = ['gdal_polygonize.py', tile.dataset, '-f', 'PostgreSQL',
                        conn_str, tile.postgis_table, 'boundary_field1']
@@ -100,17 +100,24 @@ def clip(q):
             creds = pg_util.get_creds()
             conn = psycopg2.connect(**creds)
             cursor = conn.cursor()
-            
+ 
             # a few other things required to get our raster data to match vector
-            if file_ext == '.tif':
+            if file_ext in ['.rvrt', '.tif']:
+                print 'executing custom sql'
                 sql_list = ["ALTER TABLE {} RENAME wkb_geometry to geom",
+                            "ALTER INDEX {0}_wkb_geometry_geom_idx RENAME TO {0}_geom_idx", 
                             "ALTER TABLE {} ADD COLUMN boundary_field2 integer",
-                            "UPDATE {} SET boundary_field2 = 1"]
+                            "UPDATE {} SET boundary_field2 = 1", 
+                            "UPDATE {} SET geom = ST_CollectionExtract(ST_MakeValid(geom), 3) WHERE ST_IsValid(geom) <> '1'"]
 
                 for sql in sql_list:
+                    print sql.format(tile.postgis_table)
                     cursor.execute(sql.format(tile.postgis_table))
 
-            pg_util.fix_geom(tile.postgis_table, cursor)
+            else:
+                pg_util.fix_geom(tile.postgis_table, cursor)
+
+            print 'committing'
             
             conn.commit()
             conn.close()

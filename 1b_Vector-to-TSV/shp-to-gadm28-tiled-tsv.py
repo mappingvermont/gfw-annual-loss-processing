@@ -34,7 +34,7 @@ def main():
     # create blueprint for the source dataset in postgis
     util.build_gadm28_tile_list(source_layer, args.test)
 
-    if os.path.splitext(args.input_dataset)[1] == '.tif':
+    if os.path.splitext(args.input_dataset)[1] in ['.rvrt', '.tif']:
         source_layer.raster_to_vector()
 
     # process clip jobs above-- this loads tiles into PostGIS
