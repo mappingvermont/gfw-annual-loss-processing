@@ -20,9 +20,13 @@ def load(zip_source):
         gadm28_shp = download_gadm28(zip_source)
 
         pg_util.insert_into_postgis(gadm28_shp, table_name, boundary_fields)
-
-        pg_util.add_cluster(table_name)
-
+        
+        conn, cursor = conn_to_postgis()
+        
+        pg_util.fix_geom(table_name, cursor)
+        
+        conn.close()
+        
     l = Layer(table_name, [])
     l.tile_list = [Tile(l.input_dataset, boundary_fields, None, None, l.input_dataset)]
 

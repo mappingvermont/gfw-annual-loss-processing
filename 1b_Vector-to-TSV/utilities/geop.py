@@ -10,10 +10,8 @@ def tabulate_area(q):
     while True:
         tile = q.get()
 
-        creds = pg_util.get_creds()
-        conn = psycopg2.connect(**creds)
-        cursor = conn.cursor()
-
+        conn, cursor = pg_util.conn_to_postgis()
+        
         col_list = ['polyname', 'boundary_field1', 'boundary_field2',
                     'boundary_field3', 'boundary_field4', 'iso', 'id_1', 'id_2']
         col_str = ', '.join(col_list)

@@ -74,9 +74,7 @@ def build_gadm28_tile_list(source_layer, is_test):
         with rasterio.open(source_layer.input_dataset) as src:
             aoi_bounds = src.bounds
     elif source_file_ext == '':
-        creds = pg_util.get_creds()
-        conn = psycopg2.connect(**creds)
-        cursor = conn.cursor()
+        conn, cursor = pg_util.conn_to_postgis()
 
         extent_sql = 'SELECT ST_Extent(geom) FROM {}'.format(source_layer.input_dataset)
         cursor.execute(extent_sql)

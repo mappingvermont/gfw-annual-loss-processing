@@ -46,9 +46,7 @@ for f_dict in files_to_intersect:
             subprocess.check_call(['unzip', zip_data, '-d', unzipped_dir])
 
             # connect to postgres
-            creds = pg_util.get_creds()
-            conn = psycopg2.connect(**creds)
-            cursor = conn.cursor()
+            conn, cursor = pg_util.conn_to_postgis()
         
             # fix geom - insert into postgis
             unzip_path = os.path.join(unzipped_dir, table_name + '.shp')

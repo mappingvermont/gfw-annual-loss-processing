@@ -149,7 +149,7 @@ def insert_into_postgis(src_shp, table_name, dummy_fields=None):
     
     conn_str = 'postgresql://{user}:{password}@{host}'.format(**creds)
 
-    cmd = ['shp2pgsql', '-I', '-s', '4326', src_shp, '|', 'psql', conn_str]
+    cmd = ['shp2pgsql', '-s', '4326', src_shp, '|', 'psql', conn_str]
 
     # has to be string for some reason-- likely to do with the | required
     subprocess.check_call(' '.join(cmd), shell=True)
@@ -177,7 +177,7 @@ def fix_geom(table_name, cursor):
                 "CREATE INDEX {0}_geom_idx ON {0} using gist(geom)"]
 
     for sql in sql_list:
-        logging.info(sql.format(table_name))
+        # logging.info(sql.format(table_name))
         cursor.execute(sql.format(table_name))
 
     add_cluster(table_name, cursor)
@@ -190,3 +190,12 @@ def export_to_shp(table_name, output_folder):
     subprocess.check_call(cmd)
     
     return output_shp
+    
+    
+def conn_to_postgis():
+    creds = get_creds()
+    conn = psycopg2.connect(**creds)
+    cursor = conn.cursor()
+    
+    return conn, cursor
+    
