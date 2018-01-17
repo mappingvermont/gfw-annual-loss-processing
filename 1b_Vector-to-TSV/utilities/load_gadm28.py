@@ -21,9 +21,9 @@ def load(zip_source):
 
         pg_util.insert_into_postgis(gadm28_shp, boundary_fields)
         
-        conn, cursor = conn_to_postgis()
+        conn, cursor = pg_util.conn_to_postgis()
         
-        pg_util.fix_geom(table_name, cursor)
+        pg_util.fix_geom(table_name, cursor, False)
         
         conn.close()
         

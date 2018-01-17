@@ -263,7 +263,7 @@ def vectorize(q):
         # we can use this with the clip function above, using gdal_polygonize
         # instead of the standard ogr2ogr approach
         tile.dataset = pg_ras
-        tile.postgis_table = pg_ras
+        tile.postgis_table = pg_ras.lower()
 
         q.task_done()
 
