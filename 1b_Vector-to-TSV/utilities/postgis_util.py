@@ -64,10 +64,7 @@ def find_admin_columns(cursor, tile1, tile2):
 
 def drop_table(tablename):
 
-    creds = get_creds()
-    conn = psycopg2.connect(**creds)
-
-    cursor = conn.cursor()
+    conn, cursor = pg_util.conn_to_postgis()
     cursor.execute('DROP TABLE {}'.format(tablename))
 
     conn.commit()
@@ -100,10 +97,7 @@ def check_table_exists(table_name, cursor=None):
     close_conn = False
 
     if not cursor:
-        creds = get_creds()
-        conn = psycopg2.connect(**creds)
-
-        cursor = conn.cursor()
+        conn, cursor = pg_util.conn_to_postgis()
         close_conn = True
 
     # source: https://stackoverflow.com/questions/1874113/
@@ -119,10 +113,7 @@ def check_table_exists(table_name, cursor=None):
 
 
 def create_area_table():
-    creds = get_creds()
-    conn = psycopg2.connect(**creds)
-
-    cursor = conn.cursor()
+    conn, cursor = pg_util.conn_to_postgis()
 
     if not check_table_exists('aoi_area', cursor):
         sql = ("CREATE TABLE aoi_area ( "
@@ -155,8 +146,7 @@ def insert_into_postgis(src_shp, table_name, dummy_fields=None):
     subprocess.check_call(' '.join(cmd), shell=True)
 
     # add dummy column names
-    conn = psycopg2.connect(**creds)
-    cursor = conn.cursor()
+    conn, cursor = pg_util.conn_to_postgis()
 
     # add these to match schema of other intersects
     if dummy_fields:
@@ -169,12 +159,14 @@ def insert_into_postgis(src_shp, table_name, dummy_fields=None):
         conn.close()
     
     
-def fix_geom(table_name, cursor):
+def fix_geom(table_name, cursor, add_pkey=True):
 
     sql_list = ["UPDATE {} SET geom = ST_MakeValid(geom) WHERE ST_IsValid(geom) <> '1'",
                 "UPDATE {} SET geom = ST_CollectionExtract(geom, 3)",
-                "ALTER TABLE {} ADD Column gid serial PRIMARY KEY",
                 "CREATE INDEX {0}_geom_idx ON {0} using gist(geom)"]
+
+    if add_pkey:
+        sql_list.extend(["ALTER TABLE {} ADD Column gid serial PRIMARY KEY"])
 
     for sql in sql_list:
         # logging.info(sql.format(table_name))

@@ -61,7 +61,8 @@ def clip(q):
 
                 cmd = ['ogr2ogr', '-f', 'PostgreSQL', conn_str, tile.dataset, '-nln', tile.postgis_table,
                        '-nlt', 'GEOMETRY', '-dialect', 'sqlite', '-sql', sql, '-lco', 'geometry_name=geom',
-                       '-overwrite', '-s_srs', 'EPSG:4326', '-t_srs', 'EPSG:4326', '-dim', '2']
+                       '-overwrite', '-s_srs', 'EPSG:4326', '-t_srs', 'EPSG:4326', '-dim', '2',
+                       '-lco', 'SPATIAL_INDEX=NO']
 
                 if tile.bbox:
                     bbox_list = [str(x) for x in tile.bbox]
@@ -82,9 +83,7 @@ def clip(q):
 
             else:
 
-		    creds = pg_util.get_creds()
-		    conn = psycopg2.connect(**creds)
-		    cursor = conn.cursor()
+                    conn, cursor = pg_util.conn_to_postgis()
                     
                     envelope = 'ST_MakeEnvelope({}, {}, {}, {}, 4326)'.format(*tile.bbox)
 
@@ -97,9 +96,7 @@ def clip(q):
                     conn.commit()
                     conn.close()
 
-            creds = pg_util.get_creds()
-            conn = psycopg2.connect(**creds)
-            cursor = conn.cursor()
+            conn, cursor = pg_util.conn_to_postgis()
  
             # a few other things required to get our raster data to match vector
             if file_ext in ['.rvrt', '.tif']:
@@ -115,7 +112,7 @@ def clip(q):
                     cursor.execute(sql.format(tile.postgis_table))
 
             else:
-                pg_util.fix_geom(tile.postgis_table, cursor)
+                pg_util.fix_geom(tile.postgis_table, cursor, add_pkey=False)
 
             print 'committing'
             
@@ -130,10 +127,7 @@ def intersect(q):
     while True:
         output_layer, tile1, tile2 = q.get()
 
-        creds = pg_util.get_creds()
-
-        conn = psycopg2.connect(**creds)
-        cursor = conn.cursor()
+        conn, cursor = pg_util.conn_to_postgis()
 
         table_name = '{}_{}_{}'.format(tile1.postgis_table, tile2.postgis_table, tile1.tile_id)
 
