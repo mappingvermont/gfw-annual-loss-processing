@@ -4,7 +4,7 @@ import os
 from utilities.layer import Layer
 from utilities import util, geop
 
-from utilities import load_gadm28
+from utilities import load_gadm28, postgis_util as pg_util
 
 
 def main():
@@ -25,8 +25,9 @@ def main():
 
     util.start_logging()
 
-    # create layer object
-    source_layer = Layer(args.input_dataset, args.col_dict)
+    # load source dataset, then create layer object
+    postgis_table = pg_util.insert_into_postgis(args.input_dataset)    
+    source_layer = Layer(postgis_table, args.col_dict)
 
     # load gadm28/custom into postGIS if it doesn't exist already
     gadm28_layer = load_gadm28.load(args.zip_source)

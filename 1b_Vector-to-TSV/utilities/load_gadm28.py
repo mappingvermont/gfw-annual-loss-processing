@@ -19,7 +19,7 @@ def load(zip_source):
     else:
         gadm28_shp = download_gadm28(zip_source)
 
-        pg_util.insert_into_postgis(gadm28_shp, table_name, boundary_fields)
+        pg_util.insert_into_postgis(gadm28_shp, boundary_fields)
         
         conn, cursor = conn_to_postgis()
         

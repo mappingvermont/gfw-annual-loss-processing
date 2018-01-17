@@ -64,7 +64,7 @@ def find_admin_columns(cursor, tile1, tile2):
 
 def drop_table(tablename):
 
-    conn, cursor = pg_util.conn_to_postgis()
+    conn, cursor = conn_to_postgis()
     cursor.execute('DROP TABLE {}'.format(tablename))
 
     conn.commit()
@@ -97,7 +97,7 @@ def check_table_exists(table_name, cursor=None):
     close_conn = False
 
     if not cursor:
-        conn, cursor = pg_util.conn_to_postgis()
+        conn, cursor = conn_to_postgis()
         close_conn = True
 
     # source: https://stackoverflow.com/questions/1874113/
@@ -113,7 +113,7 @@ def check_table_exists(table_name, cursor=None):
 
 
 def create_area_table():
-    conn, cursor = pg_util.conn_to_postgis()
+    conn, cursor = conn_to_postgis()
 
     if not check_table_exists('aoi_area', cursor):
         sql = ("CREATE TABLE aoi_area ( "
@@ -134,10 +134,9 @@ def create_area_table():
     conn.close()
 
     
-def insert_into_postgis(src_shp, table_name, dummy_fields=None):
+def insert_into_postgis(src_shp, dummy_fields=None):
 
     creds = get_creds()
-    
     conn_str = 'postgresql://{user}:{password}@{host}'.format(**creds)
 
     cmd = ['shp2pgsql', '-s', '4326', src_shp, '|', 'psql', conn_str]
@@ -146,7 +145,9 @@ def insert_into_postgis(src_shp, table_name, dummy_fields=None):
     subprocess.check_call(' '.join(cmd), shell=True)
 
     # add dummy column names
-    conn, cursor = pg_util.conn_to_postgis()
+    conn, cursor = conn_to_postgis()
+
+    table_name = os.path.splitext(os.path.basename(src_shp))[0]
 
     # add these to match schema of other intersects
     if dummy_fields:
@@ -157,6 +158,8 @@ def insert_into_postgis(src_shp, table_name, dummy_fields=None):
 
         conn.commit()
         conn.close()
+
+    return table_name
     
     
 def fix_geom(table_name, cursor, add_pkey=True):
@@ -191,3 +194,15 @@ def conn_to_postgis():
     
     return conn, cursor
     
+
+def fix_raster_geom(table_name, cursor):
+
+      sql_list = ["ALTER TABLE {} RENAME wkb_geometry to geom",
+		    "ALTER INDEX {0}_wkb_geometry_geom_idx RENAME TO {0}_geom_idx",
+		    "ALTER TABLE {} ADD COLUMN boundary_field2 integer",
+		    "UPDATE {} SET boundary_field2 = 1",
+		    "UPDATE {} SET geom = ST_CollectionExtract(ST_MakeValid(geom), 3) WHERE ST_IsValid(geom) <> '1'"]
+
+	for sql in sql_list:
+	    cursor.execute(sql.format(table_name))
+

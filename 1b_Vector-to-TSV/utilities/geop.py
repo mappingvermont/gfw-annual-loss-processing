@@ -50,14 +50,10 @@ def clip(q):
 
             # why VRT here? so we can read the TSVs that are already created
             # which requires a crazy vector VRT file
-            if file_ext in ['.shp', '.tsv', '.vrt']:
+            if file_ext in ['.tsv', '.vrt']:
                 run_ogr2ogr = True
-                if file_ext == '.shp':
-                    ogr_layer_name = os.path.splitext(os.path.basename(tile.dataset))[0]
-                else:
-                    ogr_layer_name = 'data'
 
-                sql = "SELECT {}, GEOMETRY FROM {}".format(col_str, ogr_layer_name)
+                sql = "SELECT data, GEOMETRY FROM {}".format(ogr_layer_name)
 
                 cmd = ['ogr2ogr', '-f', 'PostgreSQL', conn_str, tile.dataset, '-nln', tile.postgis_table,
                        '-nlt', 'GEOMETRY', '-dialect', 'sqlite', '-sql', sql, '-lco', 'geometry_name=geom',
@@ -68,11 +64,12 @@ def clip(q):
                     bbox_list = [str(x) for x in tile.bbox]
                     cmd += ['-clipsrc'] + bbox_list
 
+            # .rvrt is a madeup extension - used to differentiate between vector and raster vrt
+            # we need .vrt to translate TSVs to GIS data, potentially need rvrt for mosaicked rasters
             elif file_ext in ['.rvrt', '.tif']:
                 run_ogr2ogr = True
                 cmd = ['gdal_polygonize.py', tile.dataset, '-f', 'PostgreSQL',
                        conn_str, tile.postgis_table, 'boundary_field1']
-
 
             if run_ogr2ogr:
                     logging.info(cmd)
@@ -81,10 +78,10 @@ def clip(q):
 			if 'error' in line.lower():
 			    logging.error('Error in loading dataset, {}'.format(cmd))
 
+            # source dataset is already in postgis
             else:
 
                     conn, cursor = pg_util.conn_to_postgis()
-                    
                     envelope = 'ST_MakeEnvelope({}, {}, {}, {}, 4326)'.format(*tile.bbox)
 
                     clip_sql = ('CREATE TABLE {n} AS '
@@ -100,22 +97,10 @@ def clip(q):
  
             # a few other things required to get our raster data to match vector
             if file_ext in ['.rvrt', '.tif']:
-                print 'executing custom sql'
-                sql_list = ["ALTER TABLE {} RENAME wkb_geometry to geom",
-                            "ALTER INDEX {0}_wkb_geometry_geom_idx RENAME TO {0}_geom_idx", 
-                            "ALTER TABLE {} ADD COLUMN boundary_field2 integer",
-                            "UPDATE {} SET boundary_field2 = 1", 
-                            "UPDATE {} SET geom = ST_CollectionExtract(ST_MakeValid(geom), 3) WHERE ST_IsValid(geom) <> '1'"]
-
-                for sql in sql_list:
-                    print sql.format(tile.postgis_table)
-                    cursor.execute(sql.format(tile.postgis_table))
-
+                pg_util.fix_raster_geom(tile.postgis_table, cursor)
             else:
                 pg_util.fix_geom(tile.postgis_table, cursor, add_pkey=False)
 
-            print 'committing'
-            
             conn.commit()
             conn.close()
 
@@ -255,3 +240,4 @@ def intersect_layers(layer_a, layer_b):
     util.exec_multiprocess(intersect, input_list)
 
     return output_layer
+
