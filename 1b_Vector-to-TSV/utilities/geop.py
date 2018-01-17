@@ -64,24 +64,21 @@ def clip(q):
                     bbox_list = [str(x) for x in tile.bbox]
                     cmd += ['-clipsrc'] + bbox_list
 
-            # .rvrt is a madeup extension - used to differentiate between vector and raster vrt
-            # we need .vrt to translate TSVs to GIS data, potentially need rvrt for mosaicked rasters
-            elif file_ext in ['.rvrt', '.tif']:
-                run_ogr2ogr = True
-                cmd = ['gdal_polygonize.py', tile.dataset, '-f', 'PostgreSQL',
-                       conn_str, tile.postgis_table, 'boundary_field1']
-
-            if run_ogr2ogr:
-                    logging.info(cmd)
-		    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-		    for line in iter(p.stdout.readline, b''):
-			if 'error' in line.lower():
-			    logging.error('Error in loading dataset, {}'.format(cmd))
+                logging.info(cmd)
+		p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+		for line in iter(p.stdout.readline, b''):
+                    if 'error' in line.lower():
+			logging.error('Error in loading dataset, {}'.format(cmd))
 
             # source dataset is already in postgis
             else:
+                conn, cursor = pg_util.conn_to_postgis()
 
-                    conn, cursor = pg_util.conn_to_postgis()
+                # if it's a raster, already clipped to a tile and imported
+                if pg_util.is_raster(tile.postgis_table, cursor):
+                    pass
+
+                else:
                     envelope = 'ST_MakeEnvelope({}, {}, {}, {}, 4326)'.format(*tile.bbox)
 
                     clip_sql = ('CREATE TABLE {n} AS '
@@ -91,7 +88,7 @@ def clip(q):
                     logging.info(clip_sql)
                     cursor.execute(clip_sql)
                     conn.commit()
-                    conn.close()
+                conn.close()
 
             conn, cursor = pg_util.conn_to_postgis()
  
@@ -106,6 +103,58 @@ def clip(q):
 
         q.task_done()
 
+
+def raster_intersect(q):
+    # used only for source dataset + admin boundaries
+    # all tile-to-tiles intersection is vector
+    while True:
+        output_layer, tile1, tile2 = q.get()
+
+        conn, cursor = pg_util.conn_to_postgis()
+
+        table_name = '{}_{}_{}'.format(tile1.postgis_table, tile2.postgis_table, tile1.tile_id)
+
+        if pg_util.table_has_rows(cursor, tile1.postgis_table):
+     
+            # source: https://gis.stackexchange.com/a/19858/30899
+            sql = ("CREATE TABLE {table_name} AS "
+                   "SELECT (gv).val AS boundary_field1, iso, id_1, id_2, (gv).geom AS the_geom "
+                   "FROM (SELECT iso, id_1, id_2, ST_Intersection(rast, geom) AS gv "
+                   "      FROM {table1}, {table2} "
+                   "      WHERE ST_Intersects(rast, geom) "
+                   "     ) foo "
+                   "WHERE (gv).val > 0".format(table_name=table_name, 
+                         table1=tile1.postgis_table, table2=tile2.postgis_table))
+
+            logging.info(sql)
+
+            valid_intersect = True
+
+            try:
+                cursor.execute(sql)
+                logging.info('Intersect for {} successful'.format(table_name))
+            except Exception, e:
+                valid_intersect = False
+                logging.error('Error {} in sql statement {}'.format(sql, e))
+
+            if valid_intersect:
+                # add dummy fields to match the rest of the schema
+                for i in range(2, 5):
+                    cursor.execute('ALTER TABLE {} ADD COLUMN boundary_field{} varchar(30)'.format(table_name, i))
+                    cursor.execute("UPDATE {} SET boundary_field{} = '1'".format(table_name, i))
+
+                cursor.execute('ALTER TABLE {} RENAME COLUMN the_geom TO geom'.format(table_name))
+            
+                pg_util.fix_geom(table_name, cursor)
+
+                if pg_util.table_has_rows(cursor, table_name):
+                    output_tile = tile.Tile(None, None, tile1.tile_id, tile1.bbox, table_name)
+                    output_layer.tile_list.append(output_tile)
+            
+        conn.commit()
+        conn.close()
+
+        q.task_done()
 
 def intersect(q):
     # source: https://pymotw.com/2/Queue/
@@ -181,7 +230,10 @@ def intersect_gadm(source_layer, gadm_layer):
     for t in source_layer.tile_list:
         input_list.append((output_layer, t, gadm_layer.tile_list[0]))
 
-    util.exec_multiprocess(intersect, input_list)
+    if os.path.splitext(source_layer.input_dataset)[1] in ['.rvrt', '.tif']:
+        util.exec_multiprocess(raster_intersect, input_list)
+    else:
+        util.exec_multiprocess(intersect, input_list)
 
     return output_layer
 
@@ -204,12 +256,14 @@ def vectorize(q):
 
         logging.info(clip_cmd)
         subprocess.check_call(clip_cmd)
+  
+        pg_ras = pg_util.insert_into_postgis(clipped_ras)
 
         # set this clipped tile as our input dataset
         # we can use this with the clip function above, using gdal_polygonize
         # instead of the standard ogr2ogr approach
-        tile.dataset = clipped_ras
-        tile.bbox = None
+        tile.dataset = pg_ras
+        tile.postgis_table = pg_ras
 
         q.task_done()
 

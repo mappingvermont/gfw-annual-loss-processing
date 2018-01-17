@@ -134,23 +134,29 @@ def create_area_table():
     conn.close()
 
     
-def insert_into_postgis(src_shp, dummy_fields=None):
+def insert_into_postgis(src_dataset, dummy_fields=None):
 
     creds = get_creds()
     conn_str = 'postgresql://{user}:{password}@{host}'.format(**creds)
 
-    cmd = ['shp2pgsql', '-s', '4326', src_shp, '|', 'psql', conn_str]
+    if os.path.splitext(src_dataset)[1] == '.shp':
+        cmd = ['shp2pgsql']
+    else:
+        cmd = ['raster2pgsql', '-t', '512x512', '-I']
+
+    cmd.extend(['-s', '4326', src_dataset, '|', 'psql', conn_str])
 
     # has to be string for some reason-- likely to do with the | required
     subprocess.check_call(' '.join(cmd), shell=True)
 
-    # add dummy column names
-    conn, cursor = conn_to_postgis()
-
-    table_name = os.path.splitext(os.path.basename(src_shp))[0]
+    table_name = os.path.splitext(os.path.basename(src_dataset))[0]
 
     # add these to match schema of other intersects
     if dummy_fields:
+
+        # add dummy column names
+        conn, cursor = conn_to_postgis()
+
         for field_dict in dummy_fields:
             field_name = field_dict.keys()[0]
             cursor.execute('ALTER TABLE {} ADD COLUMN {} varchar(30)'.format(table_name, field_name))
@@ -160,7 +166,23 @@ def insert_into_postgis(src_shp, dummy_fields=None):
         conn.close()
 
     return table_name
-    
+
+
+def check_col_exists(table_name, col_name, cursor):
+    # source https://stackoverflow.com/a/31755654/4355916
+    sql = ("SELECT EXISTS "
+           " (SELECT 1 from information_schema.columns "
+           "  WHERE table_name = '{}' AND column_name = '{}')".format(table_name, col_name))
+
+    print sql
+    cursor.execute(sql)
+
+    return cursor.fetchall()[0][0]
+
+
+def is_raster(table_name, cursor):
+    return check_col_exists(table_name, 'rast', cursor)
+
     
 def fix_geom(table_name, cursor, add_pkey=True):
 
@@ -197,12 +219,12 @@ def conn_to_postgis():
 
 def fix_raster_geom(table_name, cursor):
 
-      sql_list = ["ALTER TABLE {} RENAME wkb_geometry to geom",
-		    "ALTER INDEX {0}_wkb_geometry_geom_idx RENAME TO {0}_geom_idx",
-		    "ALTER TABLE {} ADD COLUMN boundary_field2 integer",
-		    "UPDATE {} SET boundary_field2 = 1",
-		    "UPDATE {} SET geom = ST_CollectionExtract(ST_MakeValid(geom), 3) WHERE ST_IsValid(geom) <> '1'"]
+    sql_list = ["ALTER TABLE {} RENAME wkb_geometry to geom",
+		"ALTER INDEX {0}_wkb_geometry_geom_idx RENAME TO {0}_geom_idx",
+		"ALTER TABLE {} ADD COLUMN boundary_field2 integer",
+		"UPDATE {} SET boundary_field2 = 1",
+		"UPDATE {} SET geom = ST_CollectionExtract(ST_MakeValid(geom), 3) WHERE ST_IsValid(geom) <> '1'"]
 
-	for sql in sql_list:
-	    cursor.execute(sql.format(table_name))
+    for sql in sq_ist:
+	cursor.execute(sql.format(table_name))
 

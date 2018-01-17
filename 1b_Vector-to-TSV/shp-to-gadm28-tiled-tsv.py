@@ -20,14 +20,19 @@ def main():
     parser.add_argument('--s3-out-dir', '-s', help='s3 out dir', default='s3://gfw2-data/alerts-tsv/tsv-boundaries-tiled/')
 
     parser.add_argument('--test', dest='test', action='store_true')
-
     args = parser.parse_args()
 
     util.start_logging()
 
     # load source dataset, then create layer object
-    postgis_table = pg_util.insert_into_postgis(args.input_dataset)    
-    source_layer = Layer(postgis_table, args.col_dict)
+    source_ext = os.path.splitext(args.input_dataset)[1]
+
+    if source_ext in ['.rvrt', '.tif']:
+        input_data = args.input_dataset
+    else:
+        input_data = pg_util.insert_into_postgis(args.input_dataset)    
+
+    source_layer = Layer(input_data, args.col_dict)
 
     # load gadm28/custom into postGIS if it doesn't exist already
     gadm28_layer = load_gadm28.load(args.zip_source)
