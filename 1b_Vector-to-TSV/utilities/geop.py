@@ -43,7 +43,6 @@ def clip(q):
             pass
 
         else:
-            run_ogr2ogr = False
 
             # any TSV name will have the data as it's layer, otherwise use the actual shape
             file_ext = os.path.splitext(tile.dataset)[1]
@@ -51,9 +50,7 @@ def clip(q):
             # why VRT here? so we can read the TSVs that are already created
             # which requires a crazy vector VRT file
             if file_ext in ['.tsv', '.vrt']:
-                run_ogr2ogr = True
-
-                sql = "SELECT data, GEOMETRY FROM {}".format(ogr_layer_name)
+                sql = "SELECT {}, GEOMETRY FROM data".format(col_str)
 
                 cmd = ['ogr2ogr', '-f', 'PostgreSQL', conn_str, tile.dataset, '-nln', tile.postgis_table,
                        '-nlt', 'GEOMETRY', '-dialect', 'sqlite', '-sql', sql, '-lco', 'geometry_name=geom',
@@ -118,7 +115,7 @@ def raster_intersect(q):
      
             # source: https://gis.stackexchange.com/a/19858/30899
             sql = ("CREATE TABLE {table_name} AS "
-                   "SELECT (gv).val AS boundary_field1, iso, id_1, id_2, (gv).geom AS the_geom "
+                   "SELECT (gv).val AS boundary_field1, iso, id_1, id_2, (gv).geom AS geom "
                    "FROM (SELECT iso, id_1, id_2, ST_Intersection(rast, geom) AS gv "
                    "      FROM {table1}, {table2} "
                    "      WHERE ST_Intersects(rast, geom) "
@@ -143,8 +140,6 @@ def raster_intersect(q):
                     cursor.execute('ALTER TABLE {} ADD COLUMN boundary_field{} varchar(30)'.format(table_name, i))
                     cursor.execute("UPDATE {} SET boundary_field{} = '1'".format(table_name, i))
 
-                cursor.execute('ALTER TABLE {} RENAME COLUMN the_geom TO geom'.format(table_name))
-            
                 pg_util.fix_geom(table_name, cursor)
 
                 if pg_util.table_has_rows(cursor, table_name):
