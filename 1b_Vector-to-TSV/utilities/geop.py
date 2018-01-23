@@ -115,7 +115,7 @@ def raster_intersect(q):
      
             # source: https://gis.stackexchange.com/a/19858/30899
             sql = ("CREATE TABLE {table_name} AS "
-                   "SELECT (gv).val AS boundary_field1, iso, id_1, id_2, (gv).geom AS geom "
+                   "SELECT (gv).val AS boundary_field1, 1 AS boundary_field2, 1 AS boundary_field3, 1 as boundary_field4, iso, id_1, id_2, (gv).geom AS geom "
                    "FROM (SELECT iso, id_1, id_2, ST_Intersection(rast, geom) AS gv "
                    "      FROM {table1}, {table2} "
                    "      WHERE ST_Intersects(rast, geom) "
