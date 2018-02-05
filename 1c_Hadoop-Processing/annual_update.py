@@ -9,7 +9,7 @@ bucket = conn.get_bucket('gfw2-data')
 #iterate over tsv files, like tsv folder files, and swaths of 00N - 80N 10S-50S... for extent
 parser = argparse.ArgumentParser()
 parser.add_argument('--analysis-type', '-a', required=True, choices=['extent', 'loss', 'gain', 'biomass'])
-parser.add_argument('--points-folder', '-t', required=False, help='s3 location of points folder')
+parser.add_argument('--points-folder', '-t', required=True, help='s3 location of points folder')
 parser.add_argument('--polygons-folder', '-y', required=True, help='s3 location of polygons folder')
 parser.add_argument('--output-folder', '-o', required=True, help='s3 location for hadoop output')
 
@@ -41,10 +41,10 @@ if analysis_type in ['extent', 'biomass']:
 else:
 
     # if there is not a csv output already in the file system
-    if not annual_helpers.check_output_exists(analysis_type):
+    if not annual_helpers.check_output_exists(analysis_type, args.output_folder):
     
-        annual_helpers.write_props(analysis_type, points_fields_dict, args.points_folder, args.polygons_folder, ns_tile)
+        annual_helpers.write_props(analysis_type, points_fields_dict, args.points_folder, args.polygons_folder)
 
         annual_helpers.call_pip()
 
-        annual_helpers.upload_to_s3(analysis_type, args.output_folder, ns_tile)
+        annual_helpers.upload_to_s3(analysis_type, args.output_folder)

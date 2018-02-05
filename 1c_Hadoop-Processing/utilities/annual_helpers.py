@@ -46,7 +46,7 @@ points.x=0
 reduce.size=0.5
 polygons.path={2}
 polygons.wkt=0
-polygons.fields=1,2,3,4,5,6,7,8
+polygons.fields=1,2,3,4,5,6,7,8,9
 analysis.type={3}
     """.format(points_folder, points_fields, polygons_folder, analysis_type)
 
@@ -87,6 +87,9 @@ def upload_to_s3(analysis_type, s3_output_folder, ns_tile_name=None):
     cmd = ['hdfs', 'dfs', '-ls', 'output/']
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     out, err = p.communicate()
+
+    # remove trailing slash if it exists
+    s3_output_folder = s3_output_folder.rstrip('/')
 
     if "_SUCCESS" not in out:
         raise ValueError("process failed, success file not found")
