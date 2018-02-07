@@ -1,6 +1,5 @@
 import os
 import subprocess
-import psycopg2
 import logging
 
 import util, tile, layer, postgis_util as pg_util
@@ -150,6 +149,7 @@ def raster_intersect(q):
         conn.close()
 
         q.task_done()
+
 
 def intersect(q):
     # source: https://pymotw.com/2/Queue/

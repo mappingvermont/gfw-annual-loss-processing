@@ -225,6 +225,6 @@ def fix_raster_geom(table_name, cursor):
 		"UPDATE {} SET boundary_field2 = 1",
 		"UPDATE {} SET geom = ST_CollectionExtract(ST_MakeValid(geom), 3) WHERE ST_IsValid(geom) <> '1'"]
 
-    for sql in sq_ist:
+    for sql in sql_list:
 	cursor.execute(sql.format(table_name))
 

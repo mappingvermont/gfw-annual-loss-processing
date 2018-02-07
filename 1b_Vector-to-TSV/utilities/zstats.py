@@ -38,7 +38,7 @@ def calc_api(local_geojson, valid_adm2_tuples):
                 valid_zstats = True
 
             # catch JSON server error response, also non-JSON response
-            except (simplejson.JSONDecodeError, KeyError) as e:
+            except (simplejson.JSONDecodeError, KeyError):
                 logging.error('invalid JSON response from Lambda API:')
                 logging.error(resp)
                 logging.error(feat['properties'])

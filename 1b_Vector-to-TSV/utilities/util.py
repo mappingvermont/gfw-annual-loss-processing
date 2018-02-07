@@ -8,7 +8,6 @@ import logging
 import math
 
 import fiona
-import psycopg2
 import numpy as np
 import geopandas as gpd
 import rasterio

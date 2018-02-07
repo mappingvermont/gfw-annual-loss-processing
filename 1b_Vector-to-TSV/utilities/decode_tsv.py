@@ -2,18 +2,6 @@ import os
 import subprocess
 
 
-def decode(input_layer):
-
-    download_tsv(input_layer)
-
-    input_tsv = os.path.join(input_layer.layer_dir, 'data.tsv')
-    output_vrt = os.path.join(input_layer.layer_dir, 'data.vrt')
-
-    vrt = build_vrt(input_tsv, output_vrt)
-
-    input_layer.input_dataset = vrt
-
-
 def download_tsv(input_layer):
 
     # download TSV locally

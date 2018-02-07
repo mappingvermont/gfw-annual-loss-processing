@@ -1,10 +1,9 @@
 import argparse
 
-import psycopg2
 import pandas as pd
 import multiprocessing as mp
 
-from utilities import util, s3_list_tiles, zstats, load_gadm28, qc_util as qc, postgis_util as pg_util
+from utilities import util, s3_list_tiles, zstats, load_gadm28, qc_util as qc 
 
 
 def main():

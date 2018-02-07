@@ -2,7 +2,6 @@ import os
 import logging
 
 import requests
-import psycopg2
 import pandas as pd
 import geopandas as gpd
 from fuzzywuzzy import process
