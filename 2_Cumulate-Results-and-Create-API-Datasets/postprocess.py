@@ -14,7 +14,6 @@ def main():
     parser.add_argument('--extent-2010-dataset', '-e2010', required=True, help='path to cum-summed extent 2010 csv')
     parser.add_argument('--gain-dataset', '-g', required=True, help='path to gain dataset')
 
-    parser.add_argument('--adm2-area-dataset', '-a', required=True, help='path to CSV of adm2 areas, grouped by iso/adm1/adm2') 
     parser.add_argument('--polygon-dataset', '-p', required=True, help='path to CSV of polygon AOI areas, grouped by polyname/bound1/bound2/bound3/bound4/iso/adm1/adm2')
 
     args = parser.parse_args()
@@ -25,7 +24,7 @@ def main():
     gain_df = read_df(args.gain_dataset)
 
     poly_aoi_df = read_df(args.polygon_dataset)
-    adm2_area_df = pd.read_csv(args.adm2_area_dataset)
+    adm2_area_df = poly_aoi_df_to_adm2_area(poly_aoi_df) 
 
     extent_with_area = add_area_to_extent_df(extent_2000_df, extent_2010_df, adm2_area_df, poly_aoi_df, gain_df)
 
@@ -37,6 +36,21 @@ def main():
 
     for adm_level in range(0, 3):
         write_output(merged, adm_level, field_list)
+
+
+def poly_aoi_df_to_adm2_area(poly_aoi_df):
+    
+    # take the poly_aoi_df and filter it to get only gadm28 data
+    adm2_area_df = poly_aoi_df.copy()
+    adm2_area_df = adm2_area_df[adm2_area_df.polyname == 'gadm28'] 
+ 
+    # remove polyname and boundary fields from poly_aoi df
+    adm2_area_df = adm2_area_df.drop(adm2_area_df.columns[[0, 1, 2, 3, 4]], axis=1)
+
+    adm2_area_df = adm2_area_df.rename(columns={'area_poly_aoi': 'area_gadm28'})
+
+
+    return adm2_area_df 
 
 
 def qc_loss_extent(df):
@@ -141,8 +155,6 @@ def join_loss_extent(loss_df, extent_df, field_list):
 
     # then update anything where year = -9999 to be the dummy_year value
     # and set loss and emissions for these instances to 0
-    print merged.head()
-    print merged.columns
     merged.loc[merged.year == -9999, ['area_loss', 'emissions']] = 0
     merged.loc[merged.year == -9999, ['year']] = merged['dummy_year']
 
@@ -155,22 +167,8 @@ def read_df(csv_path):
     
     df = pd.read_csv(csv_path, na_values=-9999, encoding='utf-8')
     
-    # replace old suffix name with ''
-    df['polyname'] = df['polyname'].apply(lambda x: x.replace('_int_diss_gadm28_large.tsv', ''))
-
-    # can ignore ifl_2000 data-- not using it at present 
-    # mistakenly include wdpa and plantations twice. 
-    # drop this because it's in the wrong order (wdpa, then plantations)
-    df = df[~df.polyname.isin(['ifl_2000', 'wdpa__plantations', 'ifl_2013__gfw_manged_forests'])]
-
-    # clean up other names as well
-    df['polyname'] = df['polyname'].apply(lambda x: x.replace('gfw_', ''))
-    df['polyname'] = df['polyname'].apply(lambda x: x.replace('manged_forests', 'managed_forests'))
-    df.loc[df['polyname'] == 'idn_mys_peat_lands', 'polyname'] = 'idn_mys_peatlands'
-    
-    # fix order of some filenames-- should be ifl_2013, plantations, or primary_forest
-    df.loc[df['polyname'] == 'wdpa__ifl_2013', 'polyname'] = 'ifl_2013__wdpa'
-
+    # change gadm28_large to just gadm28
+    df.loc[df['polyname'] == 'gadm28_large', 'polyname'] = 'gadm28'
 
     # set all values of bound1, 2, 3 and 4 to null unless plantatations are involved
     df.loc[~df['polyname'].str.contains(r'plantation|biome'), ['bound1', 'bound2']] = None
@@ -182,8 +180,33 @@ def read_df(csv_path):
     # to allow for better joining
     df = df.fillna(-9999)
 
+    # filter out primary forest from any country except IDN and COD
+    primary_forest_iso_codes = df[df.polyname.str.contains('primary')].iso.unique().tolist()
+    invalid_iso_codes = [x for x in primary_forest_iso_codes if x not in ['COD', 'IDN']]
+
+    # remove any row that has one of these iso codes and polyname like primary
+    df = df[~(df.polyname.str.contains('primary') & df.iso.isin(invalid_iso_codes))]
+
+    # remove garbage water body polygons
+    df = remove_waterbody_data(df)
+
     return df
 
+
+def remove_waterbody_data(df):
+
+    cwd = os.path.dirname(os.path.abspath(__file__))
+    water_body_csv = os.path.join(cwd, 'data', 'gadm28_water_bodies.csv')
+    water_body_df = pd.read_csv(water_body_csv)
+
+    # left join dataset to bogus water body polygons that we ultimately want to filter out
+    merged = pd.merge(df, water_body_df, how='left', on=['iso', 'adm1', 'adm2'], indicator=True)
+
+    # remove everything except left_only rows
+    merged = merged[merged._merge == 'left_only']
+    del merged['_merge']
+
+    return merged
 
 
 if __name__ == '__main__':

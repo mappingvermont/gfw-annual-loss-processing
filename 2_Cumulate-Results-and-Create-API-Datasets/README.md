@@ -45,9 +45,29 @@ As such, there's a lot of legacy code to manage creation/overwriting of these da
 
 ### Postprocessing
 
-Once we've processed loss, extent2000, extent2010 and gain, we can join them using the `postprocess.py`.
+Once we've processed loss, extent2000, and extent2010, we can join them using the `postprocess.py`.
 
-We'll also need to include CSVs of the area of adm2 boundaries, and of our polygons within these boundaries (wdpa area within all adm2 boundaries, ifl__wdpa area within adm2 boundaries, etc).
+The gain data has no threshold, and thus the raw data can be used without postprocessing it.
+
+In addition to the above, we'll also need to include a CSV of the area of our polygons of interest (including the gadm28 base data as well).
+
+We can generate this CSV using some code in the 1b section of this repo:
+
+`python tabulate-bucket-area.py -b s3://gfw2-data/alerts-tsv/country-pages/ten-by-ten/`
+
+This will download all the input data in the bucket, insert it into postgis, tabulate area_ha, and then write it to a CSV.
+
+#### Specific file configuration
+
+Given the complicated nature of joining these datasets, the input files must meet the following critiera:
+
+- No duplicated records based on polyname/bound1/bound2/iso/adm1/adm2/thresh/year
+- Extent2000 area field should be called area_extent_2000
+- Extent2010 area field should be area
+- Loss area field should be area, biomass should be called emissions
+- Gain area field should be area_gain, and the thresh column should be removed (gain has no thresh anyway)
+- The area field in the polygon area CSV should be area_poly_aoi
+
 
 Once we have all these datasets lined up, we can run our postprocess script to generate our main summary table.
 
