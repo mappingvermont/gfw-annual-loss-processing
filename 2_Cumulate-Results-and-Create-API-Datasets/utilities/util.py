@@ -1,6 +1,5 @@
 import os
 import subprocess
-import json
 import uuid
 
 
@@ -49,26 +48,12 @@ def download_data(input_dataset):
 
 def push_to_s3(cumsum_df, input_file):
 
-    record_list = cumsum_df.to_dict(orient='records')
-
-    print 'dumping records to local JSON'
+    print 'dumping records to local CSV'
     if os.path.isdir(input_file):
-        output_file = os.path.join(input_file, 'output.json')
+        output_file = os.path.join(input_file, 'output.csv')
     else:
-        output_file = os.path.splitext(input_file)[0] + '.json'
+        output_file = os.path.splitext(input_file)[0] + '_processed.csv'
 
-    fname = os.path.basename(output_file)
+    cumsum_df.to_csv(output_file, index=False)
 
-    record_dict = {'data': record_list}
-
-    with open(output_file, 'wb') as the_file:
-        json.dump(record_dict, the_file)
-
-    output_dir = os.path.dirname(output_file)
-    csv_name = os.path.splitext(fname)[0] + '_processed.csv'
-    csv_file = os.path.join(output_dir, csv_name)
-
-    cumsum_df.to_csv(csv_file, index=False)
-
-    return csv_file
-
+    return output_file

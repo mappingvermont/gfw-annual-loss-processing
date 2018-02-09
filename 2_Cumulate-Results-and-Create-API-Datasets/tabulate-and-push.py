@@ -24,10 +24,9 @@ def main():
     cumsum_df = cumsum.tabulate(local_data, args)
 
     s3_file = util.push_to_s3(cumsum_df, local_data)
-
+    
     print 'Cumsummed CSV is saved here {}'.format(s3_file)
 
 
 if __name__ == "__main__":
     main()
-    

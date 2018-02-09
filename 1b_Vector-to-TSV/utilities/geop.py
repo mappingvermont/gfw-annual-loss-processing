@@ -10,13 +10,12 @@ def tabulate_area(q):
         tile = q.get()
 
         conn, cursor = pg_util.conn_to_postgis()
-        
         col_list = ['polyname', 'boundary_field1', 'boundary_field2',
                     'boundary_field3', 'boundary_field4', 'iso', 'id_1', 'id_2']
         col_str = ', '.join(col_list)
 
         sql = ("INSERT INTO aoi_area "
-               "SELECT {c}, sum(ST_Area(geography(geom))) / 10000 AS area_ha "
+               "SELECT {c}, sum(ST_Area(geography(geom))) / 10000 AS area_poly_aoi "
                "FROM {t} "
                "GROUP BY {c} ".format(t=tile.postgis_table, c=col_str))
 
@@ -79,7 +78,7 @@ def clip(q):
 
                     clip_sql = ('CREATE TABLE {n} AS '
                                 'SELECT {c}, ST_Intersection(geom, {e}) as geom '
-                                'FROM {t} ' 
+                                'FROM {t} '
                                 'WHERE ST_Intersects(geom, {e})'.format(n=tile.postgis_table, c=col_str, t=tile.dataset, e=envelope))
                     logging.info(clip_sql)
                     cursor.execute(clip_sql)
@@ -87,7 +86,7 @@ def clip(q):
                 conn.close()
 
             conn, cursor = pg_util.conn_to_postgis()
- 
+
             # a few other things required to get our raster data to match vector
             if file_ext in ['.rvrt', '.tif']:
                 pg_util.fix_raster_geom(tile.postgis_table, cursor)
@@ -111,7 +110,7 @@ def raster_intersect(q):
         table_name = '{}_{}_{}'.format(tile1.postgis_table, tile2.postgis_table, tile1.tile_id)
 
         if pg_util.table_has_rows(cursor, tile1.postgis_table):
-     
+
             # source: https://gis.stackexchange.com/a/19858/30899
             sql = ("CREATE TABLE {table_name} AS "
                    "SELECT (gv).val AS boundary_field1, 1 AS boundary_field2, 1 AS boundary_field3, 1 as boundary_field4, iso, id_1, id_2, (gv).geom AS geom "
@@ -119,7 +118,7 @@ def raster_intersect(q):
                    "      FROM {table1}, {table2} "
                    "      WHERE ST_Intersects(rast, geom) "
                    "     ) foo "
-                   "WHERE (gv).val > 0".format(table_name=table_name, 
+                   "WHERE (gv).val > 0".format(table_name=table_name,
                          table1=tile1.postgis_table, table2=tile2.postgis_table))
 
             logging.info(sql)
@@ -144,7 +143,7 @@ def raster_intersect(q):
                 if pg_util.table_has_rows(cursor, table_name):
                     output_tile = tile.Tile(None, None, tile1.tile_id, tile1.bbox, table_name)
                     output_layer.tile_list.append(output_tile)
-            
+
         conn.commit()
         conn.close()
 
@@ -204,13 +203,13 @@ def intersect(q):
                 logging.error('Error {} in sql statement {}'.format(sql, e))
 
             if valid_intersect:
-            
+
                 pg_util.fix_geom(table_name, cursor)
 
                 if pg_util.table_has_rows(cursor, table_name):
                     output_tile = tile.Tile(None, None, tile1.tile_id, tile1.bbox, table_name)
                     output_layer.tile_list.append(output_tile)
-            
+
         conn.commit()
         conn.close()
 
@@ -251,7 +250,7 @@ def vectorize(q):
 
         logging.info(clip_cmd)
         subprocess.check_call(clip_cmd)
-  
+
         pg_ras = pg_util.insert_into_postgis(clipped_ras)
 
         # set this clipped tile as our input dataset
@@ -289,4 +288,3 @@ def intersect_layers(layer_a, layer_b):
     util.exec_multiprocess(intersect, input_list)
 
     return output_layer
-

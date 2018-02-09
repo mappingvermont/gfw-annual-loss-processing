@@ -125,7 +125,7 @@ def create_area_table():
                "iso character varying, "
                "id_1 character varying, "
                "id_2 character varying, "
-               "area_ha double precision "
+               "area_poly_aoi double precision "
                ");")
 
         cursor.execute(sql)
@@ -133,7 +133,7 @@ def create_area_table():
 
     conn.close()
 
-    
+
 def insert_into_postgis(src_dataset, dummy_fields=None):
 
     creds = get_creds()
@@ -183,7 +183,7 @@ def check_col_exists(table_name, col_name, cursor):
 def is_raster(table_name, cursor):
     return check_col_exists(table_name, 'rast', cursor)
 
-    
+
 def fix_geom(table_name, cursor, add_pkey=True):
 
     sql_list = ["UPDATE {} SET geom = ST_MakeValid(geom) WHERE ST_IsValid(geom) <> '1'",
@@ -196,26 +196,26 @@ def fix_geom(table_name, cursor, add_pkey=True):
     for sql in sql_list:
         # logging.info(sql.format(table_name))
         cursor.execute(sql.format(table_name))
-           
+
     add_cluster(table_name, cursor)
 
-    
+
 def export_to_shp(table_name, output_folder):
 
     output_shp = os.path.join(output_folder, table_name + '.shp')
     cmd = ['ogr2ogr', output_shp, build_ogr_pg_conn(), 'dialect', 'sqlite', '-sql', "SELECT * FROM {}".format(table_name)]
     subprocess.check_call(cmd)
-    
+
     return output_shp
-    
-    
+
+
 def conn_to_postgis():
     creds = get_creds()
     conn = psycopg2.connect(**creds)
     cursor = conn.cursor()
-    
+
     return conn, cursor
-    
+
 
 def fix_raster_geom(table_name, cursor):
 
@@ -227,4 +227,3 @@ def fix_raster_geom(table_name, cursor):
 
     for sql in sql_list:
 	cursor.execute(sql.format(table_name))
-

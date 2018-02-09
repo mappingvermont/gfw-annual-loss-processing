@@ -9,7 +9,7 @@ After several false starts, we've finally settled on a common input/output forma
 The input polygons look like this:
 
 | polyname | bound1 | bound2 | bound3 | bound4 | iso | adm1 | adm2 |
-| --- | --- | --- | --- | --- | --- | --- | --- | 
+| --- | --- | --- | --- | --- | --- | --- | --- |
 | wdpa | --- | --- | --- | --- | NGA | 26 | 539 |
 | bra_biomes | Cerrado | --- | --- | --- | BRA | 23 | 4351 |
 | plantations | Pine | Industrial | --- | --- | USA | 17 | 212 |
@@ -26,7 +26,7 @@ If we're processing loss data, the above table will have the following columns a
 And for extent, biomass, or gain data these columns will be tacked on to our polygon data.
 
 | thresh | area |
-| --- | --- | 
+| --- | --- |
 |75|2342.111|
 |20|898.90888|
 |50|53802.10222|
@@ -65,6 +65,7 @@ Given the complicated nature of joining these datasets, the input files must mee
 - Extent2000 area field should be called area_extent_2000
 - Extent2010 area field should be area
 - Loss area field should be area, biomass should be called emissions
+- *Gain is not postprocessed (no thresh to cumsum) and thus all gain_area should be divided by 10,000 to go from m2 to ha*
 - Gain area field should be area_gain, and the thresh column should be removed (gain has no thresh anyway)
 - The area field in the polygon area CSV should be area_poly_aoi
 
@@ -73,4 +74,3 @@ Once we have all these datasets lined up, we can run our postprocess script to g
 
 Here's an example of our final output:
 [https://production-api.globalforestwatch.org/v1/query/499682b1-3174-493f-ba1a-368b4636708e?sql=SELECT * FROM data LIMIT 10](https://production-api.globalforestwatch.org/v1/query/499682b1-3174-493f-ba1a-368b4636708e?sql=SELECT%20*%20FROM%20data%20LIMIT%2010)
-
