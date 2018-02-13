@@ -32,7 +32,7 @@ def write_props(analysis_type, points_fields_dict, points_folder, polygons_folde
         points_folder = '{}/{}*'.format(points_folder, ns_tile)
 
     points_folder = points_folder.replace('s3://', 's3a://')
-    
+
     points_fields = points_fields_dict[analysis_type]
 
     application_props = """
@@ -46,7 +46,7 @@ points.x=0
 reduce.size=0.5
 polygons.path={2}
 polygons.wkt=0
-polygons.fields=1,2,3,4,5,6,7,8,9
+polygons.fields=1,2,3,4,5,6,7,8
 analysis.type={3}
     """.format(points_folder, points_fields, polygons_folder, analysis_type)
 
@@ -66,7 +66,7 @@ def call_pip():
 def check_output_exists(analysis_type, output_folder, ns_tile=None):
 
     if analysis_type == 'extent' or analysis_type == 'biomass':
-    
+
         out_csv = ns_tile
         prefix = '{}/{}/{}'.format(output_folder, analysis_type, ns_tile)
         print "out csv: {}".format(out_csv)
@@ -88,9 +88,6 @@ def upload_to_s3(analysis_type, s3_output_folder, ns_tile_name=None):
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     out, err = p.communicate()
 
-    # remove trailing slash if it exists
-    s3_output_folder = s3_output_folder.rstrip('/')
-
     if "_SUCCESS" not in out:
         raise ValueError("process failed, success file not found")
 
@@ -107,3 +104,6 @@ def upload_to_s3(analysis_type, s3_output_folder, ns_tile_name=None):
 
     cmd = ['aws', 's3', 'mv', csv_name, out_path]
     subprocess.check_call(cmd)
+
+    #copy application.properties file into the out_path
+    cmd = ['aws', 's3', 'cp', '../application.properties', out_path]
