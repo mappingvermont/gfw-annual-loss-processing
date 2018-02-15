@@ -30,6 +30,7 @@ def write_props(analysis_type, points_fields_dict, points_folder, polygons_folde
     if analysis_type == 'gain' or analysis_type == 'extent':
         analysis_type = 'extent'
         points_folder = '{}/{}*'.format(points_folder, ns_tile)
+        polygons_folder = '{}/*{}*'.format(polygons_folder, ns_tile)
 
     points_folder = points_folder.replace('s3://', 's3a://')
 
@@ -60,7 +61,8 @@ def call_pip():
     pip_cmd += ['--executor-memory', '20g']
     pip_cmd += ['--jars', r'target/libs/jts-core-1.14.0.jar', 'target/spark-pip-0.3.jar']
 
-    subprocess.check_call(pip_cmd)
+    print pip_cmd
+    # subprocess.check_call(pip_cmd)
 
 
 def check_output_exists(analysis_type, output_folder, ns_tile=None):

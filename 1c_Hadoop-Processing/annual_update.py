@@ -31,9 +31,9 @@ if analysis_type in ['extent', 'biomass']:
         # if there is not a csv output already in the file system
         if not annual_helpers.check_output_exists(analysis_type, args.output_folder, ns_tile):
             print "does not already exist"
-	    
-            annual_helpers.write_props(analysis_type, points_fields_dict, args.points_folder, args.polygons_folder, ns_tile)
 
+            annual_helpers.write_props(analysis_type, points_fields_dict, args.points_folder, args.polygons_folder, ns_tile)
+        
             annual_helpers.call_pip()
 
             annual_helpers.upload_to_s3(analysis_type, args.output_folder, ns_tile)
@@ -42,7 +42,7 @@ else:
 
     # if there is not a csv output already in the file system
     if not annual_helpers.check_output_exists(analysis_type, args.output_folder):
-    
+
         annual_helpers.write_props(analysis_type, points_fields_dict, args.points_folder, args.polygons_folder)
 
         annual_helpers.call_pip()
