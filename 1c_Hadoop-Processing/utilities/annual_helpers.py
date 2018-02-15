@@ -23,7 +23,8 @@ def download_jar():
 
 
 def write_props(analysis_type, points_fields_dict, points_folder, polygons_folder, ns_tile=None):
-
+    points_folder = points_folder.rstrip('/')
+    polygons_folder = polygons_folder.rstrip('/')
     # for our purposes, extent is the same as gain
     # four input fields (x, y, value and area)
     # and this is easier than editing the scala code to include a gain type
@@ -61,8 +62,7 @@ def call_pip():
     pip_cmd += ['--executor-memory', '20g']
     pip_cmd += ['--jars', r'target/libs/jts-core-1.14.0.jar', 'target/spark-pip-0.3.jar']
 
-    print pip_cmd
-    # subprocess.check_call(pip_cmd)
+    subprocess.check_call(pip_cmd)
 
 
 def check_output_exists(analysis_type, output_folder, ns_tile=None):
