@@ -3,7 +3,7 @@ import argparse
 import pandas as pd
 from openpyxl import load_workbook
 
-from utilities import gain, extent2000, loss, util
+from utilities import gain, extent, loss, util
 
 
 def main():
@@ -46,11 +46,21 @@ def write_output(iso, level):
     with pd.ExcelWriter(output_excel, engine='openpyxl') as writer:
         writer.book = wb
 
-        for output_type in [extent2000, loss, gain]:
-            for adm_level in range(0, level + 1):
-                sheet_name, df = output_type.build_df(adm_level, iso)
+        # write 2000 and 2010 extent data
+        for extent_year in [2000, 2010]:
+            adm_level_to_excel(writer, extent, level, iso, extent_year) 
 
-                df.to_excel(writer, sheet_name)
+        # write loss and gain
+        for output_type in [loss, gain]:
+            adm_level_to_excel(writer, output_type, level, iso)
+
+
+def adm_level_to_excel(writer, sheet_function, level, iso, extent_year=None):
+
+    for adm_level in range(0, level + 1):
+        sheet_name, df = sheet_function.build_df(adm_level, iso, extent_year)
+
+        df.to_excel(writer, sheet_name)
 
 
 if __name__ == '__main__':

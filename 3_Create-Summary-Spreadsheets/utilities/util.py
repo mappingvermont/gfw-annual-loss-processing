@@ -66,9 +66,9 @@ def validate_input_data(root_dir):
 
     table_list = [x[0] for x in cursor.fetchall()]
 
-    for tbl in ['loss', 'extent', 'gain', 'adm_lkp']:
+    for tbl in ['loss', 'extent2000', 'extent2010', 'gain', 'adm_lkp']:
         if tbl not in table_list:
-            raise IndexError('Table {} must be in data.db for this process to work; run load_data.py to create it')
+            raise IndexError('Table {} must be in data.db for this process to work; run load_data.py to create it'.format(tbl))
       
       
 def prep_output_file(excel_template, output_excel, iso):

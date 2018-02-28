@@ -3,7 +3,7 @@ import pandas as pd
 import util
 
 
-def build_df(adm_level, iso=None):
+def build_df(adm_level, iso, extent_year):
 
     print 'starting loss for adm level {}'.format(adm_level)
 
