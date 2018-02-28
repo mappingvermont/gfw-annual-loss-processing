@@ -35,7 +35,7 @@ def build_df(adm_level, iso, extent_year):
     is_first = True
 
     for thresh in [10, 15, 20, 25, 30, 50, 75]:
-        df_subset = df[df.thresh == thresh]       
+        df_subset = df[df.thresh == thresh].copy()       
         df_subset['All areas are in hectares'] = 'TREE COVER LOSS (>{}% CANOPY COVER)'.format(thresh)
  
         df_pivot = df_subset.pivot_table(index=['Country_Index', 'All areas are in hectares'], columns=summary_col_name, values='area')

@@ -15,7 +15,10 @@ def main():
 
     # load dataframes
     extent2000_iso = excel_to_df.extent(xl_src, 'Extent (2000) by Country')
+    extent2010_iso = excel_to_df.extent(xl_src, 'Extent (2010) by Country')
+
     extent2000_subnat = excel_to_df.extent(xl_src, 'Extent (2000) by Subnat1')
+    extent2010_subnat = excel_to_df.extent(xl_src, 'Extent (2010) by Subnat1')
 
     loss_iso = excel_to_df.loss(xl_src, 'Loss (2001-2016) by Country')
     loss_subnat = excel_to_df.loss(xl_src, 'Loss (2001-2016) by Subnat1')
@@ -26,7 +29,10 @@ def main():
     # check that the area value declines as the threshold increases
     # for each country or country_admin row
     check_extent_thresh(extent2000_iso, 'extent iso')
+    check_extent_thresh(extent2010_iso, 'extent iso')
+
     check_extent_thresh(extent2000_subnat, 'extent subnat')
+    check_extent_thresh(extent2010_subnat, 'extent subnat')
 
     # check that the area values decline as the threshold increases
     # for each year of loss in each country or country_admin row
@@ -41,8 +47,10 @@ def main():
 
     # ensure that subnat totals always add up to nat values for gain, loss and extent
     compare_nat_to_subnat(extent2000_iso, extent2000_subnat, 'extent')
+    compare_nat_to_subnat(extent2010_iso, extent2010_subnat, 'extent')
     compare_nat_to_subnat(loss_iso, loss_subnat, 'loss')
     compare_nat_to_subnat(gain_iso, gain_subnat, 'gain')
+
 
 def compare_nat_to_subnat(nat_src, subnat_src, df_type):
 
