@@ -12,6 +12,7 @@ parser.add_argument('--analysis-type', '-a', required=True, choices=['extent', '
 parser.add_argument('--points-folder', '-t', required=True, help='s3 location of points folder')
 parser.add_argument('--polygons-folder', '-y', required=True, help='s3 location of polygons folder')
 parser.add_argument('--output-folder', '-o', required=True, help='s3 location for hadoop output')
+parser.add_argument('--dryrun', '-d', action='store_true', help="only write application.properties, don't call pip")
 
 args = parser.parse_args()
 analysis_type = args.analysis_type
@@ -33,10 +34,10 @@ if analysis_type in ['extent', 'biomass']:
             print "does not already exist"
 
             annual_helpers.write_props(analysis_type, points_fields_dict, args.points_folder, args.polygons_folder, ns_tile)
-        
-            annual_helpers.call_pip()
 
-            annual_helpers.upload_to_s3(analysis_type, args.output_folder, ns_tile)
+            annual_helpers.call_pip(args.dryrun)
+
+            annual_helpers.upload_to_s3(analysis_type, args.output_folder, args.dryrun, ns_tile)
 
 else:
 
@@ -45,6 +46,6 @@ else:
 
         annual_helpers.write_props(analysis_type, points_fields_dict, args.points_folder, args.polygons_folder)
 
-        annual_helpers.call_pip()
+        annual_helpers.call_pip(args.dryrun)
 
-        annual_helpers.upload_to_s3(analysis_type, args.output_folder)
+        annual_helpers.upload_to_s3(analysis_type, args.output_folder, args.dryrun)
