@@ -61,10 +61,11 @@ def call_pip():
     pip_cmd = ['spark-submit', '--master', 'yarn']
     pip_cmd += ['--executor-memory', '20g']
     pip_cmd += ['--jars', r'target/libs/jts-core-1.14.0.jar', 'target/spark-pip-0.3.jar']
+    print pip_cmd
 
-    subprocess.check_call(pip_cmd)
+    #subprocess.check_call(pip_cmd)
 
-
+call_pip()
 def check_output_exists(analysis_type, output_folder, ns_tile=None):
 
     if analysis_type == 'extent' or analysis_type == 'biomass':
@@ -96,16 +97,15 @@ def upload_to_s3(analysis_type, s3_output_folder, ns_tile_name=None):
     # Extent outputs should be extent/10N.csv, 20N.csv etc
     if analysis_type == 'extent' or analysis_type == 'biomass':
         csv_name = ns_tile_name + '.csv'
-        out_path = '{}/{}/'.format(s3_output_folder, analysis_type)
     else:
         csv_name = analysis_type + '.csv'
-        out_path = r'{}/{}/'.format(s3_output_folder, analysis_type)
 
     cmd = ['hdfs', 'dfs', '-getmerge', 'output/', csv_name]
     subprocess.check_call(cmd)
 
-    cmd = ['aws', 's3', 'mv', csv_name, out_path]
+    cmd = ['aws', 's3', 'mv', csv_name, s3_output_folder]
     subprocess.check_call(cmd)
 
     #copy application.properties file into the out_path
-    cmd = ['aws', 's3', 'cp', '../application.properties', out_path]
+    cmd = ['aws', 's3', 'cp', 'application.properties', out_path]
+    subprocess.check_call(cmd)
