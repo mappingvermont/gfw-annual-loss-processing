@@ -21,7 +21,7 @@ analysis_type = args.analysis_type
 annual_helpers.download_jar()
 
 # properties dict
-points_fields_dict = {'loss': '2,3,4,5', 'extent': '2,3', 'biomass': '2,3'}
+points_fields_dict = {'loss': '2,3,4,5', 'extent': '2,3', 'biomass': '2,3', 'gain': '2,3'}
 
 if analysis_type in ['extent', 'biomass']:
 

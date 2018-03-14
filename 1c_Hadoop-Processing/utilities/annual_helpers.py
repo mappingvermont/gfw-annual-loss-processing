@@ -23,18 +23,21 @@ def download_jar():
 
 
 def write_props(analysis_type, points_fields_dict, points_folder, polygons_folder, ns_tile=None):
-    points_folder = points_folder.rstrip('/')
-    polygons_folder = polygons_folder.rstrip('/')
     # for our purposes, extent is the same as gain
     # four input fields (x, y, value and area)
     # and this is easier than editing the scala code to include a gain type
-    if analysis_type in ['gain', 'biomass', 'extent']:
-        analysis_type = 'extent'
+    if analysis_type in ['biomass', 'extent']:
+
+        # biomass and extent are run in bands of 10 degree latitudes
+        # remove trailing / from folder name and substitute a /10N*
+        # or whatever tile we're working on
+        points_folder = points_folder.rstrip('/')
+        polygons_folder = polygons_folder.rstrip('/')
+
         points_folder = '{}/{}*'.format(points_folder, ns_tile)
         polygons_folder = '{}/*{}*'.format(polygons_folder, ns_tile)
 
     points_folder = points_folder.replace('s3://', 's3a://')
-
     points_fields = points_fields_dict[analysis_type]
 
     application_props = """
@@ -107,3 +110,4 @@ def upload_to_s3(analysis_type, s3_output_folder, dryrun, ns_tile_name=None):
         #copy application.properties file into the out_path
         cmd = ['aws', 's3', 'cp', 'application.properties', s3_output_folder]
         subprocess.check_call(cmd)
+
