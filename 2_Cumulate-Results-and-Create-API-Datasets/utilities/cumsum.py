@@ -147,7 +147,8 @@ def source_to_df(input_data, args):
 def folder_to_df(folder_path):
     print folder_path
     dtype_dict = {1: 'str', 2: 'str', 3: 'str', 4: 'str'}
-    csv_list = [os.path.join(folder_path, x) for x in os.listdir(folder_path) if os.stat(os.path.join(folder_path, x)).st_size > 0]
+    csv_list = [os.path.join(folder_path, x) for x in os.listdir(folder_path) if 
+                  os.stat(os.path.join(folder_path, x)).st_size > 0 and os.path.splitext(x)[1] == '.csv']
     df_list = [pd.read_csv(csv, dtype=dtype_dict, header=None) for csv in csv_list]
 
     df = pd.concat(df_list)
