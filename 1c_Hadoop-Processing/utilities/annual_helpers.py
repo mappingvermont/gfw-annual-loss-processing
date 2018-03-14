@@ -28,7 +28,7 @@ def write_props(analysis_type, points_fields_dict, points_folder, polygons_folde
     # for our purposes, extent is the same as gain
     # four input fields (x, y, value and area)
     # and this is easier than editing the scala code to include a gain type
-    if analysis_type == 'gain' or analysis_type == 'extent':
+    if analysis_type in ['gain', 'biomass', 'extent']:
         analysis_type = 'extent'
         points_folder = '{}/{}*'.format(points_folder, ns_tile)
         polygons_folder = '{}/*{}*'.format(polygons_folder, ns_tile)
