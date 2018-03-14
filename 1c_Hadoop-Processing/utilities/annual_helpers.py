@@ -105,5 +105,5 @@ def upload_to_s3(analysis_type, s3_output_folder, dryrun, ns_tile_name=None):
         subprocess.check_call(cmd)
 
         #copy application.properties file into the out_path
-        cmd = ['aws', 's3', 'cp', 'application.properties', out_path]
+        cmd = ['aws', 's3', 'cp', 'application.properties', s3_output_folder]
         subprocess.check_call(cmd)
