@@ -1,16 +1,17 @@
 import shutil
 import os
 import subprocess
+import sys
+from urlparse import urlparse
 from boto.s3.connection import S3Connection
 
-conn = S3Connection(host="s3.amazonaws.com")
-bucket = conn.get_bucket('gfw2-data')
 
 
-def download_jar():
+
+def download_jar(dryrun):
 
     # check first to see if the target folder is already there:
-    if not os.path.exists('target'):
+    if not os.path.exists('target') and not dryrun:
 
         jar_file = 's3://gfw2-data/alerts-tsv/batch-processing/target_0.3.3.4.zip'
 
@@ -22,20 +23,26 @@ def download_jar():
         subprocess.check_call(cmd)
 
 
-def write_props(analysis_type, points_fields_dict, points_folder, polygons_folder, ns_tile=None):
+def write_props(args, points_fields_dict, ns_tile=None):
+
+    analysis_type = args.analysis_type
+    points_folder = args.points_folder
+    polygons_folder = args.polygons_folder
+    iterate_by = args.iterate_by
+
     # for our purposes, extent is the same as gain
     # four input fields (x, y, value and area)
     # and this is easier than editing the scala code to include a gain type
-    if analysis_type in ['biomass', 'extent']:
+    if iterate_by:
 
         # biomass and extent are run in bands of 10 degree latitudes
         # remove trailing / from folder name and substitute a /10N*
         # or whatever tile we're working on
-        points_folder = points_folder.rstrip('/')
-        polygons_folder = polygons_folder.rstrip('/')
 
-        points_folder = '{}/{}*'.format(points_folder, ns_tile)
-        polygons_folder = '{}/*{}*'.format(polygons_folder, ns_tile)
+        if 'points' in iterate_by:
+            points_folder = '{}{}*'.format(points_folder, ns_tile)
+        if 'polygons' in iterate_by:
+            polygons_folder = '{}*{}*'.format(polygons_folder, ns_tile)
 
     points_folder = points_folder.replace('s3://', 's3a://')
     points_fields = points_fields_dict[analysis_type]
@@ -68,20 +75,34 @@ def call_pip(dryrun):
 
         subprocess.check_call(pip_cmd)
 
-def check_output_exists(analysis_type, output_folder, ns_tile=None):
 
-    if analysis_type == 'extent' or analysis_type == 'biomass':
+def check_output_exists(args, ns_tile=None):
 
-        out_csv = ns_tile
-        prefix = '{}/{}/{}'.format(output_folder, analysis_type, ns_tile)
+    analysis_type = args.analysis_type
+    iterate_by = args.iterate_by
+    output_folder = args.output_folder
+
+    conn = S3Connection(host="s3.amazonaws.com")
+    parsed = urlparse(output_folder)
+
+    if iterate_by:
+        out_csv = '{}.csv'.format(ns_tile)
 
     else:
-        out_csv = '{}_all'.format(analysis_type)
-        prefix = r'{}/{}/{}'.format(output_folder, analysis_type, out_csv)
+        out_csv = '{}_all.csv'.format(analysis_type)
 
-    prefix_path = output_folder.replace('s3://gfw2-data/', '')
-    full_path_list = [key.name for key in bucket.list(prefix='{}'.format(prefix_path))]
+    # connect to the s3 bucket
+    bucket = conn.get_bucket(parsed.netloc)
+
+    # remove leading slash, for some reason
+    prefix = parsed.path[1:]
+
+    # loop through file names in the bucket
+    full_path_list = [key.name for key in bucket.list(prefix=prefix)]
+
+    # unpack the filename from the list of files
     filename_only_list = [x.split('/')[-1] for x in full_path_list]
+
 
     return out_csv in filename_only_list
 
@@ -110,4 +131,3 @@ def upload_to_s3(analysis_type, s3_output_folder, dryrun, ns_tile_name=None):
         #copy application.properties file into the out_path
         cmd = ['aws', 's3', 'cp', 'application.properties', s3_output_folder]
         subprocess.check_call(cmd)
-
