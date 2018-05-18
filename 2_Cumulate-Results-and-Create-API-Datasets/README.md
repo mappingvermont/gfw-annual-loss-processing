@@ -39,7 +39,7 @@ Example command to process this data and save the output locally:
 
 ### Historical precedent
 
-At one point we managed this data as individual datasets in the API. One dataset for WDPA loss stats, one for gadm28, one for plantations, etc.
+At one point we managed this data as individual datasets in the API. One dataset for WDPA loss stats, one for gadm36, one for plantations, etc.
 
 As such, there's a lot of legacy code to manage creation/overwriting of these datasets in the history of this repo. It's much easier to manage this as a single dataset, and elastic makes querying it easy, so this code is no longer needed.
 
@@ -49,7 +49,7 @@ Once we've processed loss, extent2000, and extent2010, we can join them using th
 
 The gain data has no threshold, and thus the raw data can be used without postprocessing it.
 
-In addition to the above, we'll also need to include a CSV of the area of our polygons of interest (including the gadm28 base data as well).
+In addition to the above, we'll also need to include a CSV of the area of our polygons of interest (including the gadm36 base data as well).
 
 We can generate this CSV using some code in the 1b section of this repo:
 

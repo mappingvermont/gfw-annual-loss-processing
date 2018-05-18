@@ -40,14 +40,14 @@ def main():
 
 def poly_aoi_df_to_adm2_area(poly_aoi_df):
     
-    # take the poly_aoi_df and filter it to get only gadm28 data
+    # take the poly_aoi_df and filter it to get only gadm36 data
     adm2_area_df = poly_aoi_df.copy()
-    adm2_area_df = adm2_area_df[adm2_area_df.polyname == 'gadm28'] 
+    adm2_area_df = adm2_area_df[adm2_area_df.polyname == 'gadm36'] 
  
     # remove polyname and boundary fields from poly_aoi df
     adm2_area_df = adm2_area_df.drop(adm2_area_df.columns[[0, 1, 2, 3, 4]], axis=1)
 
-    adm2_area_df = adm2_area_df.rename(columns={'area_poly_aoi': 'area_gadm28'})
+    adm2_area_df = adm2_area_df.rename(columns={'area_poly_aoi': 'area_gadm36'})
 
 
     return adm2_area_df 
@@ -55,7 +55,7 @@ def poly_aoi_df_to_adm2_area(poly_aoi_df):
 
 def qc_loss_extent(df):
 
-    if not df[(df.area_gadm28 < 0) | (df.area_gain < 0) | (df.area_extent < 0) | 
+    if not df[(df.area_gadm36 < 0) | (df.area_gain < 0) | (df.area_extent < 0) | 
               (df.area_poly_aoi < 0) | (df.area_extent_2000 < 0) | (df.area_loss < 0) | 
               (df.emissions < 0) | (df.year < 0) ].empty:
         raise ValueError('Final dataframe has negative values in area fields')
@@ -66,7 +66,7 @@ def write_output(df, adm_level, field_list):
     # build field list for grouping
     adm_list = ['iso', 'adm1', 'adm2'][0: adm_level + 1]
 
-    area_fields = ['area_extent', 'area_gadm28', 'area_poly_aoi', 'area_gain', 'area_extent_2000', 'area_loss', 'emissions']
+    area_fields = ['area_extent', 'area_gadm36', 'area_poly_aoi', 'area_gain', 'area_extent_2000', 'area_loss', 'emissions']
     group_list = field_list + adm_list
 
     print 'grouping data by adm level {} and polygon'.format(adm_level)
@@ -94,7 +94,7 @@ def write_output(df, adm_level, field_list):
 
 def add_area_to_extent_df(extent_2000_df, extent_2010_df, adm2_area_df, poly_area_df, gain_df):
     
-    # join extent2000 to gadm28 areas for each polygon
+    # join extent2000 to gadm36 areas for each polygon
     # doesn't include anything to do with thresh - one to many
     join_field_list = ['iso', 'adm1', 'adm2']
     first_merge = pd.merge(extent_2000_df, adm2_area_df, how='left', on=join_field_list)
@@ -103,8 +103,8 @@ def add_area_to_extent_df(extent_2000_df, extent_2010_df, adm2_area_df, poly_are
     join_field_list.extend(['polyname', 'bound1', 'bound2', 'bound3', 'bound4'])
     second_merge = pd.merge(first_merge, poly_area_df, how='left', on=join_field_list)
 
-    # gadm28 polygons don't have a default area_poly_aoi, so set it = gadm area
-    second_merge.loc[second_merge.area_poly_aoi.isnull(), 'area_poly_aoi'] = second_merge['area_gadm28']
+    # gadm36 polygons don't have a default area_poly_aoi, so set it = gadm area
+    second_merge.loc[second_merge.area_poly_aoi.isnull(), 'area_poly_aoi'] = second_merge['area_gadm36']
 
     # gain data doesn't have thresh, but has unique values per poly AOI as well
     third_merge = pd.merge(second_merge, gain_df, how='left', on=join_field_list)
@@ -167,8 +167,8 @@ def read_df(csv_path):
     
     df = pd.read_csv(csv_path, na_values=-9999, encoding='utf-8')
     
-    # change gadm28_large to just gadm28
-    df.loc[df['polyname'] == 'gadm28_large', 'polyname'] = 'gadm28'
+    # change gadm36_large to just gadm36
+    df.loc[df['polyname'] == 'gadm36_large', 'polyname'] = 'gadm36'
 
     # set all values of bound1, 2, 3 and 4 to null unless plantatations are involved
     df.loc[~df['polyname'].str.contains(r'plantation|biome'), ['bound1', 'bound2']] = None
@@ -196,7 +196,7 @@ def read_df(csv_path):
 def remove_waterbody_data(df):
 
     cwd = os.path.dirname(os.path.abspath(__file__))
-    water_body_csv = os.path.join(cwd, 'data', 'gadm28_water_bodies.csv')
+    water_body_csv = os.path.join(cwd, 'data', 'gadm36_water_bodies.csv')
     water_body_df = pd.read_csv(water_body_csv)
 
     # left join dataset to bogus water body polygons that we ultimately want to filter out
