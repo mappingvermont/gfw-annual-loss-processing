@@ -28,7 +28,7 @@ def loss(excel_file, sheet_name):
         thresh_df = raw_df.filter(regex=r'\.{}|Country'.format(thresh_id), axis=1)
 
         # rename columns
-        thresh_df.columns = ['Country'] + range(2001, 2017)
+        thresh_df.columns = ['Country'] + range(2001, 2018)
 
         # add thresh column
         thresh_df['thresh'] = thresh_val
@@ -53,4 +53,5 @@ def gain(excel_file, sheet_name):
     return df
 
 if __name__ == '__main__':
-    unstack_loss_sheet('tree_cover_stats_2016.xlsx', 'Loss (2001-2016) by Country')
+    unstack_loss_sheet('tree_cover_stats_2017.xlsx', 'Loss (2001-2017) by Country')
+

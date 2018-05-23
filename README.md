@@ -26,7 +26,7 @@ Take the cumsummed data and package it into user-friendly spreadsheets-- one at 
 ##### 4 - Write GEE tiles
 Write the updated loss tiles using EarthEngine.
 
-##### 5 - Update the loss analysis API to include 2016 data
+##### 5 - Update the loss analysis API to include 2017 data
 Should be pretty straightforward after we create the new asset; just need to update the code to point at it and test
 
 ##### 6 - Update Carto with new years data

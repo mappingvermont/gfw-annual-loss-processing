@@ -70,7 +70,7 @@ logs/
 *~lock.*
 
 2_Cumulate-Results-and-Create-API-Datasets/processing/
-tree_cover_stats_2016.xlsx
+tree_cover_stats_2017.xlsx
 
 3_Create-Summary-Spreadsheets/venv/
 3_Create-Summary-Spreadsheets/data/data.db

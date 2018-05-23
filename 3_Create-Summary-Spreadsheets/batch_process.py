@@ -36,7 +36,7 @@ for iso in all_iso_codes:
         if openpyxl_version < 24:
             raise ValueError('openpyxl must be version 2.4.x or greater when postprocessing')
 
-        output_excel = os.path.join(root_dir, 'output', 'tree_cover_stats_2016_{}.xlsx'.format(iso))
+        output_excel = os.path.join(root_dir, 'output', 'tree_cover_stats_2017_{}.xlsx'.format(iso))
         format_excel(output_excel, None)
 
 

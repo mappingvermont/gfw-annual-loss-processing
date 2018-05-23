@@ -20,8 +20,8 @@ def main():
     extent2000_subnat = excel_to_df.extent(xl_src, 'Extent (2000) by Subnat1')
     extent2010_subnat = excel_to_df.extent(xl_src, 'Extent (2010) by Subnat1')
 
-    loss_iso = excel_to_df.loss(xl_src, 'Loss (2001-2016) by Country')
-    loss_subnat = excel_to_df.loss(xl_src, 'Loss (2001-2016) by Subnat1')
+    loss_iso = excel_to_df.loss(xl_src, 'Loss (2001-2017) by Country')
+    loss_subnat = excel_to_df.loss(xl_src, 'Loss (2001-2017) by Subnat1')
 
     gain_iso = excel_to_df.gain(xl_src, 'Gain (2001-2012) by Country')
     gain_subnat = excel_to_df.gain(xl_src, 'Gain (2001-2012) by Subnat1')

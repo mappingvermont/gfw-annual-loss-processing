@@ -59,7 +59,7 @@ def calc_api(local_geojson, valid_adm2_tuples):
 def calc_rasterio(local_geojson):
 
     # run the rasterstats process, returing the geojson object with stats
-    loss_vrt = r's3://gfw2-data/forest_change/hansen_2016_masked_30tcd/data.vrt'
+    loss_vrt = r's3://gfw2-data/forest_change/hansen_2017_masked_30tcd/data.vrt'
     kwargs = {'categorical': True, 'geojson_out': True, 'prefix': '_'}
     geojson_with_stats = zonal_stats(local_geojson, loss_vrt, **kwargs)
 
