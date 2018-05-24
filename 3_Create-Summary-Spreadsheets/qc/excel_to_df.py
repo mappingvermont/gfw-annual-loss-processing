@@ -5,7 +5,7 @@ thresh_list = [10, 15, 20, 25, 30, 50, 75]
 
 # read formatted loss table, unstack, and return
 # in country | thresh | year1 | year2 | year3 . . . format
-def loss(excel_file, sheet_name):
+def loss(excel_file, sheet_name, max_year):
 
     # read sheet
     raw_df = pd.read_excel(excel_file, sheetname=sheet_name, skiprows=[0])
@@ -28,7 +28,7 @@ def loss(excel_file, sheet_name):
         thresh_df = raw_df.filter(regex=r'\.{}|Country'.format(thresh_id), axis=1)
 
         # rename columns
-        thresh_df.columns = ['Country'] + range(2001, 2018)
+        thresh_df.columns = ['Country'] + range(2001, max_year + 1)
 
         # add thresh column
         thresh_df['thresh'] = thresh_val
@@ -53,5 +53,5 @@ def gain(excel_file, sheet_name):
     return df
 
 if __name__ == '__main__':
-    unstack_loss_sheet('tree_cover_stats_2017.xlsx', 'Loss (2001-2017) by Country')
+    loss('tree_cover_stats_2017.xlsx', 'Loss (2001-2017) by Country', 2017)
 

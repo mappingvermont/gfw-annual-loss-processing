@@ -9,9 +9,11 @@ def main():
 
     parser = argparse.ArgumentParser(description='QC Hansen Stats Spreadsheet')
     parser.add_argument('--excel_file', '-e', required=True)
+    parser.add_argument('--max-year', '-y', required=True)
 
     args = parser.parse_args()
     xl_src = args.excel_file
+    max_year = args.max_year
 
     # load dataframes
     extent2000_iso = excel_to_df.extent(xl_src, 'Extent (2000) by Country')
@@ -20,8 +22,8 @@ def main():
     extent2000_subnat = excel_to_df.extent(xl_src, 'Extent (2000) by Subnat1')
     extent2010_subnat = excel_to_df.extent(xl_src, 'Extent (2010) by Subnat1')
 
-    loss_iso = excel_to_df.loss(xl_src, 'Loss (2001-2017) by Country')
-    loss_subnat = excel_to_df.loss(xl_src, 'Loss (2001-2017) by Subnat1')
+    loss_iso = excel_to_df.loss(xl_src, 'Loss (2001-{}) by Country'.format(max_year), max_year)
+    loss_subnat = excel_to_df.loss(xl_src, 'Loss (2001-{}) by Subnat1'.format(max_year), max_year)
 
     gain_iso = excel_to_df.gain(xl_src, 'Gain (2001-2012) by Country')
     gain_subnat = excel_to_df.gain(xl_src, 'Gain (2001-2012) by Subnat1')
