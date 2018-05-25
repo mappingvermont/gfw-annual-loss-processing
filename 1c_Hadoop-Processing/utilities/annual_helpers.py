@@ -13,7 +13,7 @@ def download_jar(dryrun):
     # check first to see if the target folder is already there:
     if not os.path.exists('target') and not dryrun:
 
-        jar_file = 's3://gfw2-data/alerts-tsv/batch-processing/target_0.3.3.4.zip'
+        jar_file = 's3://gfw2-data/alerts-tsv/target_0.3.zip'
 
         cmd = ['aws', 's3', 'cp', jar_file, '.']
         subprocess.check_call(cmd)
