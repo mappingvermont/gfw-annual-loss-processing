@@ -9,9 +9,8 @@ This repo contains:
 
 ---
 <a name='hasset'></a>
-#### Hansen Composite 14-15
-To re-generate this asset simply run the code. The current [Hansen Asset](https://code.earthengine.google.com/?asset=projects/wri-datalab/HansenComposite_14-15) is unique because it merges data from Hansen 2014 and Hansen 2015. Therefore process probably won't need to be repeated.  That said, the second half of the code, starting around [here](https://github.com/wri/hansen_ee_processing/blob/master/js/composite_asset.js#L52) could easily be modified to create future assets.
-
+#### Hansen Composite
+Before we can generate any tiles, we'll need to build a composite GEE asset with the new Hansen data. This is used in tile generation, and in dynamic user-drawn AOI analysis. To re-generate this asset simply go the GEE playground and run js/composite_asset.js
 
 ---
 <a name='htiles'></a>
@@ -19,8 +18,9 @@ To re-generate this asset simply run the code. The current [Hansen Asset](https:
 
 Due to the earthengine limits discussed [here](https://groups.google.com/forum/#!topic/google-earth-engine-developers/wU4NNoWTD70) tile processing happens in 2 (and a half) steps:
 
-1. Export Tiles for zoom-levels 12-7, and export an earthengine asset for zoom-level 7
-2. Export Tiles for zoom-levels 6-2
+1. Update hansen_tiles.py to point to the composite asset generated above and proper tile output directories
+2. Export Tiles for zoom-levels 12-7, and export an earthengine asset for zoom-level 7
+3. Export Tiles for zoom-levels 6-2
 
 The code can be run via the command line:
 
@@ -60,3 +60,5 @@ optional arguments:
 ### Final update step
 
 After tiles are created, make sure to update the umd-loss-gain API to use the new Hansen composite asset. The path to the composite asset in EE should be updated here: https://github.com/gfw-api/gfw-analysis-gee/blob/master/gfwanalysis/config/base.py
+
+
