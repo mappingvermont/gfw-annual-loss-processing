@@ -1,6 +1,7 @@
 import os
 import logging
 import subprocess
+import getpass
 
 from sqlalchemy import create_engine
 import psycopg2
@@ -10,11 +11,12 @@ def get_creds():
     try:
         creds = {'host': os.environ['PG_HOST'],
                  'user': os.environ['PG_USER'],
-                 'password': os.environ['PG_PASS'],
                  'dbname': os.environ['PG_DBNAME']}
 
     except KeyError:
-        creds = {'host': 'localhost', 'password': 'gis', 'dbname': 'gis', 'user': 'gis'}
+        # if no creds specified, assume an unprotected database matching the user name
+        user_name = getpass.getuser()
+        creds = {'host': 'localhost', 'dbname': user_name, 'user': user_name}
 
     return creds
 
@@ -33,13 +35,13 @@ def add_cluster(table_name, cursor):
 def build_ogr_pg_conn():
     creds = get_creds()
 
-    return 'PG:user={user} password={password} dbname={dbname} host={host}'.format(**creds)
+    return 'PG:user={user} dbname={dbname} host={host}'.format(**creds)
 
 
 def sqlalchemy_engine():
     creds = get_creds()
 
-    return create_engine('postgresql://{user}:{password}@{host}'.format(**creds))
+    return create_engine('postgresql://{user}@{host}'.format(**creds))
 
 
 def find_admin_columns(cursor, tile1, tile2):
@@ -137,7 +139,7 @@ def create_area_table():
 def insert_into_postgis(src_dataset, dummy_fields=None):
 
     creds = get_creds()
-    conn_str = 'postgresql://{user}:{password}@{host}'.format(**creds)
+    conn_str = 'postgresql://{user}@{host}'.format(**creds)
 
     if os.path.splitext(src_dataset)[1] == '.shp':
         cmd = ['shp2pgsql']
@@ -186,9 +188,8 @@ def is_raster(table_name, cursor):
 
 def fix_geom(table_name, cursor, add_pkey=True):
 
-    sql_list = ["UPDATE {} SET geom = ST_MakeValid(geom) WHERE ST_IsValid(geom) <> '1'",
-                "UPDATE {} SET geom = ST_CollectionExtract(geom, 3)",
-                "CREATE INDEX {0}_geom_idx ON {0} using gist(geom)"]
+    sql_list = ["UPDATE {} SET geom = ST_CollectionExtract(ST_MakeValid(geom), 3) WHERE ST_IsValid(geom) <> '1'",
+                "CREATE INDEX IF NOT EXISTS {0}_geom_idx ON {0} using gist(geom)"]
 
     if add_pkey:
         sql_list.extend(["ALTER TABLE {} ADD Column gid serial PRIMARY KEY"])
