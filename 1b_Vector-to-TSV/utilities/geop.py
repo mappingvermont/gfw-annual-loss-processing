@@ -133,11 +133,6 @@ def raster_intersect(q):
                 logging.error('Error {} in sql statement {}'.format(sql, e))
 
             if valid_intersect:
-                # add dummy fields to match the rest of the schema
-                for i in range(2, 5):
-                    cursor.execute('ALTER TABLE {} ADD COLUMN boundary_field{} varchar(30)'.format(table_name, i))
-                    cursor.execute("UPDATE {} SET boundary_field{} = '1'".format(table_name, i))
-
                 pg_util.fix_geom(table_name, cursor)
 
                 if pg_util.table_has_rows(cursor, table_name):
