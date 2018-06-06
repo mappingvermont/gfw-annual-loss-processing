@@ -188,7 +188,8 @@ def is_raster(table_name, cursor):
 
 def fix_geom(table_name, cursor, add_pkey=True):
 
-    sql_list = ["UPDATE {} SET geom = ST_CollectionExtract(ST_MakeValid(geom), 3) WHERE ST_IsValid(geom) <> '1'",
+    sql_list = ["UPDATE {} SET geom = ST_MakeValid(geom) WHERE ST_IsValid(geom) <> '1'",
+                "UPDATE {} SET geom = ST_CollectionExtract(geom, 3) WHERE ST_GeometryType(geom) NOT IN ('ST_Polygon', 'ST_MultiPolygon')",
                 "CREATE INDEX IF NOT EXISTS {0}_geom_idx ON {0} using gist(geom)"]
 
     if add_pkey:

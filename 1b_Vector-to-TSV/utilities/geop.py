@@ -107,7 +107,7 @@ def raster_intersect(q):
 
         conn, cursor = pg_util.conn_to_postgis()
 
-        table_name = '{}_{}_{}'.format(tile1.postgis_table, tile2.postgis_table, tile1.tile_id)
+        table_name = '{}_{}'.format(tile1.postgis_table, tile2.postgis_table)
 
         if pg_util.table_has_rows(cursor, tile1.postgis_table):
 
@@ -152,7 +152,7 @@ def intersect(q):
 
         conn, cursor = pg_util.conn_to_postgis()
 
-        table_name = '{}_{}_{}'.format(tile1.postgis_table, tile2.postgis_table, tile1.tile_id)
+        table_name = '{}_{}'.format(tile1.postgis_table, tile2.postgis_table)
 
         if pg_util.table_has_rows(cursor, tile1.postgis_table):
 
