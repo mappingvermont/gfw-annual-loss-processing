@@ -1,7 +1,7 @@
 import argparse
 
 from utilities.layer import Layer
-from utilities import util, s3_list_tiles, geop
+from utilities import util, s3_list_tiles, geop, postgis_util
 
 
 def main():
@@ -13,15 +13,18 @@ def main():
     parser.add_argument('--output-format', '-o', help='output format', default='tsv', choices=('tsv', 'shp', 'geojson'))
     parser.add_argument('--output-name', '-n', help='output name', required=True)
 
-    default_s3_dir = 's3://gfw2-data/alerts-tsv/tsv-boundaries-tiled/'
-    parser.add_argument('--root-s3-dir', '-r', help='root s3 dir', default=default_s3_dir)
-    parser.add_argument('--s3-out-dir', '-s', help='s3 out dir', default=default_s3_dir)
+    parser.add_argument('--root-s3-dir', '-r', help='root s3 dir', required=True)
+    parser.add_argument('--s3-out-dir', '-s', help='s3 out dir', required=True)
 
     parser.add_argument('--batch', dest='batch', action='store_true')
     parser.add_argument('--test', dest='test', action='store_true')
     args = parser.parse_args()
 
     util.start_logging()
+
+    # connect to postgis to make sure database is tuned properly
+    # could do this later, but better now before we start multithreading
+    conn, cursor = postgis_util.conn_to_postgis()
 
     # these boundary fields already exist in the TSV
     # may be empty, but could contain stuff like plantation type/species, etc

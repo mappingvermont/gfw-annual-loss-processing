@@ -2,6 +2,7 @@ import os
 import logging
 import subprocess
 import getpass
+import multiprocessing as mp
 
 from sqlalchemy import create_engine
 import psycopg2
@@ -216,6 +217,15 @@ def conn_to_postgis():
     conn = psycopg2.connect(**creds)
     cursor = conn.cursor()
 
+    # check that if we're running on a large system we've tuned the database appropriately
+    # whenever we tune the database, we bump up max connections to 200
+    cursor.execute('SHOW max_connections;')
+    max_connections = int(cursor.fetchall()[0][0])
+
+    if mp.cpu_count() >= 40 and max_connections < 200:
+        raise ValueError('Postgres is not properly tuned for this large machine. ' \
+                         'Please run ./utilities/update_postgres_config.sh before continuing.')
+        
     return conn, cursor
 
 

@@ -8,9 +8,19 @@ In addition to converting input shapefiles to WKT-based TSV, this process will i
 
 ### Simple shapefile to TSV
 
-`python shp-to-gadm28-tiled-tsv.py -i /path/to/input.shp --n output_name`
+`python shp-to-gadm28-tiled-tsv.py -i name_of_postgres_table --n output_name`
 
-This will cut the input shapefile into 10x10 degree tiles, intersect each tile with GADM28, then upload the processed tiles to `s3://gfw2-data/alerts-tsv/tsv-boundaries-tiled/` where it can be used in the hadoop process.
+This will cut the postgres table into 10x10 degree tiles, intersect each tile with GADM28, then upload the processed tiles to the output directory where it can be used in the hadoop process.
+
+### Raster to TSV
+
+`python shp-to-gadm28-tiled-tsv.py -i raster_in_filesystem.tif --n output_name`
+
+This is the same as above, but uses gdal_translate to chop the raster into 10x10 degress locally, then runs `raster2pgsql` to insert each into postgis. This is generaly runs pretty well, but can be subject to various issues that arise with using the postgis raster function. One import gotcha:
+
+**Input tifs must not have the nodata flag set!**
+
+I have no idea why this ^^ matters, but it seems to result in topology errors when nodata is set. To get around this, I recommend having your nodata pixels be 0, which will be filtered out by the raster intersect. Check utilities/geop.py for more info.
 
 ### Intersect tiled TSVs
 
