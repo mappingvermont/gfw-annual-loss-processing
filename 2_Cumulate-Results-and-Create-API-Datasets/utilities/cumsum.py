@@ -41,7 +41,7 @@ def tabulate(input_data, args):
             all_combo_df['thresh'] = dummy_thresh
 
             if args.years:
-                for dummy_year in range(2001, 2017):
+                for dummy_year in range(2001, args.max_year + 1):
                     all_combo_df['year'] = dummy_year
                     dummy_df = dummy_df.append(all_combo_df)
 

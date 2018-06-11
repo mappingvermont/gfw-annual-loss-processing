@@ -147,7 +147,8 @@ def join_loss_extent(loss_df, extent_df, field_list):
     # these are currently rows in the dataset with a single loss year
     # of -9999. Need to join to these, and a create a record
     # for each year with 0 loss and 0 emissions
-    dummy_df = pd.DataFrame(range(2001, 2017), columns=['dummy_year'])
+    max_year = loss_df.year.max()
+    dummy_df = pd.DataFrame(range(2001, max_year + 1), columns=['dummy_year'])
     dummy_df['year'] = -9999
 
     # now join this dummy dataframe to merged
