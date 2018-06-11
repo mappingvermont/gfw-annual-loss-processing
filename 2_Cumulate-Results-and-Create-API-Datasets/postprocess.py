@@ -188,26 +188,7 @@ def read_df(csv_path):
     # remove any row that has one of these iso codes and polyname like primary
     df = df[~(df.polyname.str.contains('primary') & df.iso.isin(invalid_iso_codes))]
 
-    # remove garbage water body polygons
-    df = remove_waterbody_data(df)
-
     return df
-
-
-def remove_waterbody_data(df):
-
-    cwd = os.path.dirname(os.path.abspath(__file__))
-    water_body_csv = os.path.join(cwd, 'data', 'gadm36_water_bodies.csv')
-    water_body_df = pd.read_csv(water_body_csv)
-
-    # left join dataset to bogus water body polygons that we ultimately want to filter out
-    merged = pd.merge(df, water_body_df, how='left', on=['iso', 'adm1', 'adm2'], indicator=True)
-
-    # remove everything except left_only rows
-    merged = merged[merged._merge == 'left_only']
-    del merged['_merge']
-
-    return merged
 
 
 if __name__ == '__main__':

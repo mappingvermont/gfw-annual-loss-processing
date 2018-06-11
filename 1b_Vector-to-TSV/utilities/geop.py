@@ -107,7 +107,7 @@ def raster_intersect(q):
 
         conn, cursor = pg_util.conn_to_postgis()
 
-        table_name = '{}_{}_{}'.format(tile1.postgis_table, tile2.postgis_table, tile1.tile_id)
+        table_name = '{}_{}'.format(tile1.postgis_table, tile2.postgis_table)
 
         if pg_util.table_has_rows(cursor, tile1.postgis_table):
 
@@ -133,11 +133,6 @@ def raster_intersect(q):
                 logging.error('Error {} in sql statement {}'.format(sql, e))
 
             if valid_intersect:
-                # add dummy fields to match the rest of the schema
-                for i in range(2, 5):
-                    cursor.execute('ALTER TABLE {} ADD COLUMN boundary_field{} varchar(30)'.format(table_name, i))
-                    cursor.execute("UPDATE {} SET boundary_field{} = '1'".format(table_name, i))
-
                 pg_util.fix_geom(table_name, cursor)
 
                 if pg_util.table_has_rows(cursor, table_name):
@@ -157,7 +152,7 @@ def intersect(q):
 
         conn, cursor = pg_util.conn_to_postgis()
 
-        table_name = '{}_{}_{}'.format(tile1.postgis_table, tile2.postgis_table, tile1.tile_id)
+        table_name = '{}_{}'.format(tile1.postgis_table, tile2.postgis_table)
 
         if pg_util.table_has_rows(cursor, tile1.postgis_table):
 
