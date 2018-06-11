@@ -8,7 +8,7 @@ def main():
     # Parse commandline arguments
     parser = argparse.ArgumentParser(description='Process hadoop output and create/overwrite datasets in the GFW API')
     parser.add_argument('--input', '-i', required=True, help='an input CSV or folder on S3 or the local file system')
-    parser.add_argument('--max-year', '-i', required=True, help='the max year of the loss data, if applicable')
+    parser.add_argument('--max-year', '-y', type=int, help='the max year of the loss data, if applicable')
     parser.add_argument('--biomass-thresh', '-b', help='10,20,30 etc. whatever thresh the biomass raster was created for')
 
     parser.add_argument('--no-emissions', dest='emissions', action='store_false')
@@ -18,6 +18,9 @@ def main():
     parser.set_defaults(years=True)
 
     args = parser.parse_args()
+
+    if args.years and not args.max_year:
+        raise ValueError('Max year must be specified if the dataset has year values included')
 
     local_data = util.download_data(args.input)
     print local_data
