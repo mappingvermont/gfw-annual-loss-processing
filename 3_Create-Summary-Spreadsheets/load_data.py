@@ -52,10 +52,10 @@ def filter_csv(input_csv):
 
     print 'reading {}'.format(input_csv)
 
-    # read in df, filtering for only gadm36
+    # read in df, filtering for only admin
     # don't care about any of the other datasets used by country pages
     df = pd.read_csv(input_csv)
-    df = df[df.polyname == 'gadm36'].copy()
+    df = df[df.polyname == 'admin'].copy()
 
     skip_col_list = ['polyname', 'bound1', 'bound2', 'bound3', 'bound4', 'emissions']
     col_list = [x for x in df.columns.tolist() if x not in skip_col_list]
