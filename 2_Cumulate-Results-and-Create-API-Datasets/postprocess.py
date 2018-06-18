@@ -175,6 +175,14 @@ def read_df(csv_path):
     # our only dataset with attribute values
     df[['bound3', 'bound4']] = None
 
+    # correct issue with primary-forest vs. primary_forest
+    df.loc[df['polyname'] == 'primary-forest', 'polyname'] = 'primary_forest'
+
+    # same for ifl_2013 --> ifl
+    # a little tricker because we have many ifl_2013__* datasets
+    # whereas the above primary_forest issue was contained to just singular primary-forest polynames
+    df.polyname = df.polyname.str.replace('ifl_2013', 'ifl')
+
     # to allow for better joining
     df = df.fillna(-9999)
 
