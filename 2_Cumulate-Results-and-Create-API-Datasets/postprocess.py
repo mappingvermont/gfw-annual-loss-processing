@@ -4,26 +4,25 @@ import pandas as pd
 import json
 import io
 
+from utilities import util
+
 
 def main():
 
     # Parse commandline arguments
     parser = argparse.ArgumentParser(description='Clean up polynames, join loss and extent data')
-    parser.add_argument('--loss-dataset', '-l', required=True, help='path to cum-summed loss csv')
-    parser.add_argument('--extent-2000-dataset', '-e2000', required=True, help='path to cum-summed extent 2000 csv')
-    parser.add_argument('--extent-2010-dataset', '-e2010', required=True, help='path to cum-summed extent 2010 csv')
-    parser.add_argument('--gain-dataset', '-g', required=True, help='path to gain dataset')
-
-    parser.add_argument('--polygon-dataset', '-p', required=True, help='path to CSV of polygon AOI areas, grouped by polyname/bound1/bound2/bound3/bound4/iso/adm1/adm2')
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--source-dir', '-s', help='path to an input directory with datasets all input CSVs')
+    group.add_argument('--loss-dataset', '-l', help='path to cum-summed loss csv')
+    parser.add_argument('--extent-2000-dataset', '-e2000', help='path to cum-summed extent 2000 csv')
+    parser.add_argument('--extent-2010-dataset', '-e2010', help='path to cum-summed extent 2010 csv')
+    parser.add_argument('--gain-dataset', '-g', help='path to gain dataset')
+    parser.add_argument('--polygon-dataset', '-p', help='path to CSV of polygon AOI areas, grouped by polyname/bound1/bound2/bound3/bound4/iso/adm1/adm2')
 
     args = parser.parse_args()
 
-    loss_df = read_df(args.loss_dataset)
-    extent_2000_df = read_df(args.extent_2000_dataset)
-    extent_2010_df = read_df(args.extent_2010_dataset)
-    gain_df = read_df(args.gain_dataset)
+    loss_df, extent_2000_df, extent_2010_df, gain_df, poly_aoi_df = util.input_csvs_to_df(args)
 
-    poly_aoi_df = read_df(args.polygon_dataset)
     adm2_area_df = poly_aoi_df_to_adm2_area(poly_aoi_df) 
 
     extent_with_area = add_area_to_extent_df(extent_2000_df, extent_2010_df, adm2_area_df, poly_aoi_df, gain_df)
@@ -32,7 +31,7 @@ def main():
     
     merged = join_loss_extent(loss_df, extent_with_area, field_list)
 
-    qc_loss_extent(merged)
+    util.qc_loss_extent(merged)
 
     for adm_level in range(0, 3):
         write_output(merged, adm_level, field_list)
@@ -49,16 +48,7 @@ def poly_aoi_df_to_adm2_area(poly_aoi_df):
 
     adm2_area_df = adm2_area_df.rename(columns={'area_poly_aoi': 'area_admin'})
 
-
     return adm2_area_df 
-
-
-def qc_loss_extent(df):
-
-    if not df[(df.area_admin < 0) | (df.area_gain < 0) | (df.area_extent < 0) | 
-              (df.area_poly_aoi < 0) | (df.area_extent_2000 < 0) | (df.area_loss < 0) | 
-              (df.emissions < 0) | (df.year < 0) ].empty:
-        raise ValueError('Final dataframe has negative values in area fields')
 
 
 def write_output(df, adm_level, field_list):
@@ -162,38 +152,6 @@ def join_loss_extent(loss_df, extent_df, field_list):
     del merged['dummy_year']
 
     return merged
-
-
-def read_df(csv_path):
-    
-    df = pd.read_csv(csv_path, na_values=-9999, encoding='utf-8')
-    
-    # set all values of bound1, 2, 3 and 4 to null unless plantatations are involved
-    df.loc[~df['polyname'].str.contains(r'plantation|biome'), ['bound1', 'bound2']] = None
-    
-    # and set bound3 and bound4 columns to -9999 - plantations is
-    # our only dataset with attribute values
-    df[['bound3', 'bound4']] = None
-
-    # correct issue with primary-forest vs. primary_forest
-    df.loc[df['polyname'] == 'primary-forest', 'polyname'] = 'primary_forest'
-
-    # same for ifl_2013 --> ifl
-    # a little tricker because we have many ifl_2013__* datasets
-    # whereas the above primary_forest issue was contained to just singular primary-forest polynames
-    df.polyname = df.polyname.str.replace('ifl_2013', 'ifl')
-
-    # to allow for better joining
-    df = df.fillna(-9999)
-
-    # filter out primary forest from any country except IDN and COD
-    primary_forest_iso_codes = df[df.polyname.str.contains('primary')].iso.unique().tolist()
-    invalid_iso_codes = [x for x in primary_forest_iso_codes if x not in ['COD', 'IDN']]
-
-    # remove any row that has one of these iso codes and polyname like primary
-    df = df[~(df.polyname.str.contains('primary') & df.iso.isin(invalid_iso_codes))]
-
-    return df
 
 
 if __name__ == '__main__':
