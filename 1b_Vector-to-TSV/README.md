@@ -26,7 +26,11 @@ I have no idea why this ^^ matters, but it seems to result in topology errors wh
 
 Many of our zonal stats use-cases involve multiple layers-- for example  how much loss occurred in protected areas that are within primary forest. This code identifies overlapping tiles for two datasets, brings them into PostGIS, then intersects them and writes the output tiles to S3.
 
-`python intersect-tiled-tsvs.py -a name_of_dataset_a -b name_of_dataset_b -n output_name`
+`python intersect-tiled-tsvs.py -a name_of_dataset_a -b name_of_dataset_b -n output_name -r source_s3_bucket -s destination_s3_bucket`
+
+Example:
+
+`python intersect-tiled-tsvs.py -a primary_forest -b wdpa -n primary_forest__wdpa -r s3://gfw2-data/alerts-tsv/ -s s3://gfw2-data/alerts-tsv/`
 
 ### TSV to Tiled TSV
 
