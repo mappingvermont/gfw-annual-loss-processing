@@ -7,8 +7,8 @@ from utilities import util, s3_list_tiles, geop, postgis_util
 def main():
 
     parser = argparse.ArgumentParser(description='Intersect two pre-tiled datasets to create union tiles')
-    parser.add_argument('--dataset-a', '-a', help='s3 path (with wildcard) to dataset A', required=True)
-    parser.add_argument('--dataset-b', '-b', help='s3 path (with wildcard) to dataset B', required=True)
+    parser.add_argument('--dataset-a', '-a', help='name of dataset A', required=True)
+    parser.add_argument('--dataset-b', '-b', help='name of dataset B', required=True)
 
     parser.add_argument('--output-format', '-o', help='output format', default='tsv', choices=('tsv', 'shp', 'geojson'))
     parser.add_argument('--output-name', '-n', help='output name', required=True)
