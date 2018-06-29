@@ -177,5 +177,8 @@ def read_df(csv_path):
     for poly, iso_list in whitelist.iteritems():
         df = filter_out_bad_combos(poly, iso_list, df)
 
+    # remove XCA and TWN
+    df = df[~df.iso.isin(['XCA', 'TWN'])]
+    
     return df
 
