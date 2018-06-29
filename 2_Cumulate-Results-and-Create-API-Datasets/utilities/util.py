@@ -75,9 +75,9 @@ def check_for_duplicates(df):
     
     # see if we're dealing with loss (12 cols) or a different input df
     if len(cols) < 12:
-	col_idx = -1
+        col_idx = -1
     else:
-	col_idx = -2
+        col_idx = -2
 
     group_list = cols[0:col_idx]
     sum_list = cols[col_idx:]
@@ -103,11 +103,11 @@ def input_csvs_to_df(args):
         poly_aoi_df = read_df(os.path.join(source_dir, 'area.csv'))
 
     else:
-	loss_df = read_df(args.loss_dataset)
-	extent_2000_df = read_df(args.extent_2000_dataset)
-	extent_2010_df = read_df(args.extent_2010_dataset)
-	gain_df = read_df(args.gain_dataset)
-	poly_aoi_df = read_df(args.polygon_dataset)
+        loss_df = read_df(args.loss_dataset)
+        extent_2000_df = read_df(args.extent_2000_dataset)
+        extent_2010_df = read_df(args.extent_2010_dataset)
+        gain_df = read_df(args.gain_dataset)
+        poly_aoi_df = read_df(args.polygon_dataset)
 
     return loss_df, extent_2000_df, extent_2010_df, gain_df, poly_aoi_df
 
@@ -121,6 +121,19 @@ def check_source_dir(source_dir):
 
     if missing_files:
         raise ValueError('{}.csv required but not found in {}'.format(missing_files[0], source_dir))
+
+
+def filter_out_bad_combos(poly, iso_list, df):
+
+    # filter out polygon from any country except those in list
+    poly_iso_codes = df[df.polyname.str.contains(poly)].iso.unique().tolist()
+    invalid_iso_codes = [x for x in poly_iso_codes if x not in iso_list]
+
+    # remove any row that has one of these iso codes and polyname
+    df = df[~(df.polyname.str.contains(poly) & df.iso.isin(invalid_iso_codes))]
+
+    return df
+
 
 def read_df(csv_path):
     
@@ -149,6 +162,20 @@ def read_df(csv_path):
 
     # check for dupes - should be unique polyname | bound1 | bound2 | iso | adm1 | adm2 (and year + thresh if loss)
     check_for_duplicates(df)
+
+    # remove invalid poly/iso combos
+    whitelist = {'mining': ['CMR', 'KHM', 'CAN', 'COL', 'COG', 'GAB', 'COD', 'PER', 'BRA', 'MEX'],
+                 'primary_forest': ['COD', 'IDN'],
+                 'idn_mys_peatlands': ['IDN', 'MYS'],
+                 'landmark': ['IDN'],
+                 'plantations': ['BRA', 'KHM', 'COL', 'IDN', 'LBR', 'MYS', 'PER'],
+                 'managed_forest': ['CMR', 'CAN', 'CAR', 'COD', 'GNQ', 'GAB', 'IDN', 'LBR', 'COG'],
+                 'idn_forest_moratorium': ['IDN'],
+                 'wood_fiber': ['IDN', 'COG', 'MYS'],
+                 'oil_palm': ['CMR', 'IDN', 'LBR', 'COG']}
+
+    for poly, iso_list in whitelist.iteritems():
+        df = filter_out_bad_combos(poly, iso_list, df)
 
     return df
 
