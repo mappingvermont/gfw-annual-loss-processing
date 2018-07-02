@@ -137,7 +137,7 @@ def filter_out_bad_combos(poly, iso_list, df):
 
 def read_df(csv_path):
     
-    df = pd.read_csv(csv_path, na_values=-9999, encoding='utf-8')
+    df = pd.read_csv(csv_path, na_values=-9999, encoding='utf-8', dtype={'polyname': str, 'bound1': str, 'bound2': str})
     
     # set all values of bound1, 2, 3 and 4 to null unless plantatations are involved
     df.loc[~df['polyname'].str.contains(r'plantation|biome'), ['bound1', 'bound2']] = None
@@ -180,4 +180,3 @@ def read_df(csv_path):
     df = df[~df.iso.isin(['XCA', 'TWN'])]
     
     return df
-
