@@ -167,7 +167,6 @@ def read_df(csv_path):
     whitelist = {'mining': ['CMR', 'KHM', 'CAN', 'COL', 'COG', 'GAB', 'COD', 'PER', 'BRA', 'MEX'],
                  'primary_forest': ['COD', 'IDN'],
                  'idn_mys_peatlands': ['IDN', 'MYS'],
-                 'landmark': ['IDN'],
                  'plantations': ['BRA', 'KHM', 'COL', 'IDN', 'LBR', 'MYS', 'PER'],
                  'managed_forest': ['CMR', 'CAN', 'CAR', 'COD', 'GNQ', 'GAB', 'IDN', 'LBR', 'COG'],
                  'idn_forest_moratorium': ['IDN'],
