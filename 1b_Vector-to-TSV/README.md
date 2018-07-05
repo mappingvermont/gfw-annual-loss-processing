@@ -4,13 +4,42 @@
 
 After writing the loss and extent raster data to TSV, we need to prep our geometry for the hadoop zonal stats process.
 
-In addition to converting input shapefiles to WKT-based TSV, this process will intersect input data with GADM28 boundaries, grouping by any input attributes and dissolving by ISO/ADM1/ADM2.
+In addition to converting input shapefiles to WKT-based TSV, this process will intersect input data with GADM boundaries (version of your choosing), grouping by any input attributes and dissolving by ISO/ADM1/ADM2.
 
-### Simple shapefile to TSV
+### Install necessary packages on spot machine
 
-`python shp-to-gadm28-tiled-tsv.py -i name_of_postgres_table --n output_name`
+In gfw-annual-loss-processing\1b_Vector-to-TSV\requirements.txt, do `sudo pip install -r requirements.txt`
 
-This will cut the postgres table into 10x10 degree tiles, intersect each tile with GADM28, then upload the processed tiles to the output directory where it can be used in the hadoop process.
+### Copy boundary shapefile to spot machine and then into PostGIS
+
+Copy file: `aws s3 cp s3://gfw2-data/country/bra/zip/bra_biomes.zip .`
+Unzip file: `unzip bra_biomes.zip`
+Import the shapefile into a PostGIS table. This has some optional arguments. It also doesn't save any fields in the shapefile: `ogr2ogr -f "PostgreSQL" PG:"host=localhost" bza_biomes.shp -overwrite -progress -nln "bbm" -lco GEOMETRY_NAME=geom -nlt MULTIPOLYGON -t_srs EPSG:4326 -dialect sqlite -sql "SELECT Geometry FROM bza_biomes"`
+
+### Correct the geometry of the shapefile in PostGIS
+
+Enter the Postgres shell: `psql`
+Correct the geometry of the table: `UPDATE bbm SET geom = ST_COLLECTIONEXTRACT(ST_MAKEVALID(geom), 3) WHERE ST_ISVALID(geom) <> '1';`
+Explode the table into singlepart features: `CREATE TABLE bbm_explode AS SELECT (ST_DUMP(geom)).geom FROM bbm;`
+Dissolve the singlepart features into one feature: `CREATE TABLE bbm_diss AS SELECT ST_UNION(geom) AS geom FROM bbm_explode;`
+Re-explode the table into singlepart features: `CREATE TABLE bbm_explode2 AS SELECT (ST_DUMP(geom)).geom FROM bbm_diss;`
+
+NOTE: If you want to maintain some field throughout the geometry correction process so that it can be used in Hadoop (e.g., the names of the Brazil biomes), do the following instead of the explode-dissolve-explode commands above, replacing `name` with the name of the field you want to preserve:
+`CREATE TABLE bbm_explode AS SELECT name, (ST_DUMP(geom)).geom FROM bbm;`
+`CREATE TABLE bbm_diss AS SELECT name, ST_UNION(geom) AS geom FROM bbm_explode GROUP BY name;`
+`CREATE TABLE bbm_explode2 AS SELECT name, (ST_DUMP(geom)).geom FROM bbm_diss;`
+
+Re-correct the geometry of the table: `UPDATE bra_explode2 SET geom = ST_COLLECTIONEXTRACT(ST_MAKEVALID(geom), 3) WHERE ST_ISVALID(geom) <> '1';`
+Exit the Postgres shell: `\q`
+
+### PostGIS table to TSV
+
+Generically: `python shp-to-gadm28-tiled-tsv.py -i name_of_postgres_table --n output_name`
+Specific example: `python shp-to-gadm28-tiled-tsv.py --input-dataset bbbm_explode2 --zip-source s3://gfw2-data/alerts-tsv/gis_source/gadm_3_6_adm2_final.zip --output-name bbm --s3-out-dir s3://gfw2-data/alerts-tsv/country-pages/climate/`
+
+This will cut the postgres table into 10x10 degree tiles, intersect each tile with GADM28, then upload the processed tiles to the output directory where it can be used in the Hadoop process. Make sure to change the output directory to the correct directory.
+
+If this is the first time doing tsv conversion on this particular spot machine, downloading and importing the GADM file into PostGIS will take several minutes (especially on the INSERT 0 1 phase). It will only need to do that once per spot machine. Also, when GADM is importing to PostGIS, it will find some errors in the geometry. The shell will stop and ask you to run the displayed command in PostGIS shell (UPDATE gadm_3_6_adm2_final SET geom = ST_CollectionExtract(ST_MakeValid(geom), 3) WHERE ST_IsValid(geom) <> '1';) to correct the geometry, although it will process the UPDATE command for a long time. It it expected that it will show two notices about holes lying outside the shell at or near points X, Y; that is not a problem. Once it is done with the GADM geometry correction, rerun the above shape-to-gadm28 command in the Linux shell and it should go smoothly. 
 
 ### Raster to TSV
 
