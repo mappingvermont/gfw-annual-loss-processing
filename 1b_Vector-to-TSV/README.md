@@ -77,6 +77,13 @@ After running all the intersections, we need to tabulate the area of each indivi
 
 How do we QC this stuff? Definitely lots of moving parts here. First, visual comparison of source data to TSV in QGIS.
 
+Copy the output tsvs to your local computer.
+Open the command prompty in gfw-annual-loss-processing\1b_Vector-to-TSV\utilities
+Enter the Python shell and import the file decode_tsv.py: `import decode_tsv`
+Convert the tsv into a vrt: `decode_tsv.build_vrt(r"C:\GIS\GFW_Climate_updates\bbm__10S_040W.tsv", r"C:\GIS\GFW_Climate_updates\bbm__10S_040W.vrt")`
+Exit the Python shell and in the Windows command line convert the vrt into a GeoJSON (or shapefile would work, too): `ogr2ogr -f GeoJSON out.geojson C:\GIS\GFW_Climate_updates\bbm__10S_040W.vrt data`
+Open QGIS and load the GeoJSON tile. Compare with the the 10x10 grid, GADM boundary, and non-administrative boundary that were used to make it. 
+
 Second, calculate percent difference of the loss/extent/gain values from this process as compared to other analysis methods. Output from this process is currently stored in the [country pages table](https://production-api.globalforestwatch.org/v1/dataset/499682b1-3174-493f-ba1a-368b4636708e). To QC, we'll pass geometries to the GFW API umd-loss-gain endpoint, and then compare the results to what's stored in the table. If necessary, an option using the python rasterstats package is included as well.
 
 `python qc-output.py -n 100 -g 10 -s s3://gfw2-data/alerts-tsv/tsv-boundaries-tiled/ -o 499682b1-3174-493f-ba1a-368b4636708e`
