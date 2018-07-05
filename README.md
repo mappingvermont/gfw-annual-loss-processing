@@ -7,10 +7,13 @@ We all love the annual Hansen forest change data, but how the heck do we update 
 ##### 1a - Raster to TSV
 We first need to write the loss tiles to TSV, joining them to tree cover density and biomass rasters, and calculating area for each pixel. Output TSVs are saved to S3.
 
-##### 1b - Hadoop Processing
+##### 1b - Vector to TSV
+Intersect non-administrative boundary with GADM and convert to tsv.
+
+##### 1c - Hadoop Processing
 Next, we need to tabulate the loss data using a modified version of Mansour Raad's [spark-pip](https://github.com/wri/spark-pip/) application.
 
-##### 1c - Data Prep GEE
+##### 1d - Data Prep GEE
 To write tiles and respond to analysis requests, we need to create an additional GEE asset from the base Hansen data.
 
 
