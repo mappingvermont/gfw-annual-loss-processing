@@ -15,6 +15,7 @@ In gfw-annual-loss-processing\1b_Vector-to-TSV\requirements.txt, do `sudo pip in
 Copy file: `aws s3 cp s3://gfw2-data/country/bra/zip/bra_biomes.zip .`
 Unzip file: `unzip bra_biomes.zip`
 Import the shapefile into a PostGIS table. This has some optional arguments. It also doesn't save any fields in the shapefile: `ogr2ogr -f "PostgreSQL" PG:"host=localhost" bza_biomes.shp -overwrite -progress -nln "bbm" -lco GEOMETRY_NAME=geom -nlt MULTIPOLYGON -t_srs EPSG:4326 -dialect sqlite -sql "SELECT Geometry FROM bza_biomes"`
+If you want to import any of the shapefile fields into PostGIS, add them between Geometry and FROM, e.g., `"SELECT Geometry, Name FROM bza_biomes"`
 
 ### Correct the geometry of the shapefile in PostGIS
 
