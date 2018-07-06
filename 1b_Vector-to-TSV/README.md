@@ -12,25 +12,35 @@ In gfw-annual-loss-processing\1b_Vector-to-TSV\requirements.txt, do `sudo pip in
 
 ### Copy boundary shapefile to spot machine and then into PostGIS
 
-Copy file: `aws s3 cp s3://gfw2-data/country/bra/zip/bra_biomes.zip .`
-Unzip file: `unzip bra_biomes.zip`
+Copy file: `aws s3 cp s3://gfw2-data/country/bra/zip/bza_biomes.zip .`
+Unzip file: `unzip bza_biomes.zip`
+View field names (optional): `ogrinfo -so -al bza_biomes.shp`
 Import the shapefile into a PostGIS table. This has some optional arguments. It also doesn't save any fields in the shapefile: `ogr2ogr -f "PostgreSQL" PG:"host=localhost" bza_biomes.shp -overwrite -progress -nln "bbm" -lco GEOMETRY_NAME=geom -nlt MULTIPOLYGON -t_srs EPSG:4326 -dialect sqlite -sql "SELECT Geometry FROM bza_biomes"`
 If you want to import any of the shapefile fields into PostGIS, add them between Geometry and FROM, e.g., `"SELECT Geometry, Name FROM bza_biomes"`
 
 ### Correct the geometry of the shapefile in PostGIS
 
 Enter the Postgres shell: `psql`
+View table attributes and fields in Postgres shell (optional but good idea): `\d+ bza_biomes`
+
+Then there are five steps to clean up the geometry of the table (shapefile imported to PostGIS) that you are going to convert to a tsv. Not all tables need these steps but they are always a good idea to do.
+
 Correct the geometry of the table: `UPDATE bbm SET geom = ST_COLLECTIONEXTRACT(ST_MAKEVALID(geom), 3) WHERE ST_ISVALID(geom) <> '1';`
+
+If you do not want to maintain any fields throughout the geometry correction process, do the following to fix geometry:
 Explode the table into singlepart features: `CREATE TABLE bbm_explode AS SELECT (ST_DUMP(geom)).geom FROM bbm;`
 Dissolve the singlepart features into one feature: `CREATE TABLE bbm_diss AS SELECT ST_UNION(geom) AS geom FROM bbm_explode;`
 Re-explode the table into singlepart features: `CREATE TABLE bbm_explode2 AS SELECT (ST_DUMP(geom)).geom FROM bbm_diss;`
 
-NOTE: If you want to maintain some field throughout the geometry correction process so that it can be used in Hadoop (e.g., the names of the Brazil biomes), do the following instead of the explode-dissolve-explode commands above, replacing `name` with the name of the field you want to preserve:
+If you want to maintain specific fields throughout the geometry correction process so that it can be used in Hadoop (e.g., the names of the Brazil biomes), do the following instead of the explode-dissolve-explode commands above, replacing `name` with the name of the field you want to preserve:
 `CREATE TABLE bbm_explode AS SELECT name, (ST_DUMP(geom)).geom FROM bbm;`
 `CREATE TABLE bbm_diss AS SELECT name, ST_UNION(geom) AS geom FROM bbm_explode GROUP BY name;`
+If done correctly, this should produce the number of distinct values in the fields you have saved. For example, if you wanted to preserve the biome name in the Brazil biomes file, this would produce `6`.
 `CREATE TABLE bbm_explode2 AS SELECT name, (ST_DUMP(geom)).geom FROM bbm_diss;`
 
 Re-correct the geometry of the table: `UPDATE bra_explode2 SET geom = ST_COLLECTIONEXTRACT(ST_MAKEVALID(geom), 3) WHERE ST_ISVALID(geom) <> '1';`
+This should produce `0`. `0` doesn't guarantee that the tsv process will work but it is a good sign. 
+If the above did not produce `0`, you can check whether there are any remaining geometry errors (optional): `SELECT count(*), ST_IsValid(geom) FROM bbm GROUP BY ST_IsValid;`
 Exit the Postgres shell: `\q`
 
 ### PostGIS table to TSV
