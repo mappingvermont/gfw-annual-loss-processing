@@ -10,7 +10,7 @@ from utilities import util
 def main():
 
     # Parse commandline arguments
-    parser = argparse.ArgumentParser(description='Clean up polynames, join loss and extent data')
+    parser = argparse.ArgumentParser(description='Join loss, extent, gain and area data to API format')
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--source-dir', '-s', help='path to an input directory with datasets all input CSVs')
     group.add_argument('--loss-dataset', '-l', help='path to cum-summed loss csv')
@@ -23,12 +23,12 @@ def main():
 
     loss_df, extent_2000_df, extent_2010_df, gain_df, poly_aoi_df = util.input_csvs_to_df(args)
 
-    adm2_area_df = poly_aoi_df_to_adm2_area(poly_aoi_df) 
+    adm2_area_df = poly_aoi_df_to_adm2_area(poly_aoi_df)
 
     extent_with_area = add_area_to_extent_df(extent_2000_df, extent_2010_df, adm2_area_df, poly_aoi_df, gain_df)
 
-    field_list = ['polyname', 'bound1', 'bound2', 'bound3', 'bound4', 'thresh'] 
-    
+    field_list = ['polyname', 'bound1', 'bound2', 'bound3', 'bound4', 'thresh']
+
     merged = join_loss_extent(loss_df, extent_with_area, field_list)
 
     util.qc_loss_extent(merged)
@@ -38,17 +38,17 @@ def main():
 
 
 def poly_aoi_df_to_adm2_area(poly_aoi_df):
-    
+
     # take the poly_aoi_df and filter it to get only admin data
     adm2_area_df = poly_aoi_df.copy()
-    adm2_area_df = adm2_area_df[adm2_area_df.polyname == 'admin'] 
- 
+    adm2_area_df = adm2_area_df[adm2_area_df.polyname == 'admin']
+
     # remove polyname and boundary fields from poly_aoi df
     adm2_area_df = adm2_area_df.drop(adm2_area_df.columns[[0, 1, 2, 3, 4]], axis=1)
 
     adm2_area_df = adm2_area_df.rename(columns={'area_poly_aoi': 'area_admin'})
 
-    return adm2_area_df 
+    return adm2_area_df
 
 
 def write_output(df, adm_level, field_list):
@@ -83,7 +83,7 @@ def write_output(df, adm_level, field_list):
 
 
 def add_area_to_extent_df(extent_2000_df, extent_2010_df, adm2_area_df, poly_area_df, gain_df):
-    
+
     # join extent2000 to admin areas for each polygon
     # doesn't include anything to do with thresh - one to many
     join_field_list = ['iso', 'adm1', 'adm2']
@@ -108,12 +108,12 @@ def add_area_to_extent_df(extent_2000_df, extent_2010_df, adm2_area_df, poly_are
 
 
 def join_loss_extent(loss_df, extent_df, field_list):
-    
+
     join_list = field_list + ['iso', 'adm1', 'adm2']
     suffixes = ['_extent', '_loss']
 
     merged = pd.merge(extent_df, loss_df, how='left', on=join_list, suffixes=suffixes)
-    
+
     # temporarily set nodata to -9999 - pandas can't group nd values
     bound_list = [x for x in merged.columns if 'bound' in x]
     merged[bound_list] = merged[bound_list].fillna(-9999)
@@ -132,7 +132,7 @@ def join_loss_extent(loss_df, extent_df, field_list):
 
     for field_name in bound_list:
         merged[field_name] = merged[field_name].astype(unicode)
-        
+
     # there are many adm2 areas with extent data but without loss
     # these are currently rows in the dataset with a single loss year
     # of -9999. Need to join to these, and a create a record
@@ -156,4 +156,3 @@ def join_loss_extent(loss_df, extent_df, field_list):
 
 if __name__ == '__main__':
     main()
-

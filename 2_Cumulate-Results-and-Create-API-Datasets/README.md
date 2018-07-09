@@ -23,7 +23,7 @@ If we're processing loss data, the above table will have the following columns a
 |12|10|2301.92479254|1.1405613065553998E-5
 |10|30|9881.107236421|1.35012201795243E-4
 
-And for extent, biomass, or gain data these columns will be tacked on to our polygon data.
+And for extent or biomass data these columns will be tacked on to our polygon data.
 
 | thresh | area |
 | --- | --- |
@@ -33,19 +33,13 @@ And for extent, biomass, or gain data these columns will be tacked on to our pol
 
 The threshold values above need to be cum-summed for display on GFW-- our thresholds (e.g. loss where tree cover >=20) should tabulate all loss on areas where TCD was >= 20, not just the 20 - 30 range that the Spark PIP process outputs.
 
-### Processing
+### Cumsumming hadoop results
 Example command to process this data and save the output locally:
-`python tabulate-and-push.py --input s3://gfw2-data/alerts-tsv/output/loss.csv`
+`python cumsum_hadoop_output.py --input s3://gfw2-data/alerts-tsv/output/loss.csv`
 
-### Historical precedent
+### Combining extent/loss/gain/area cumsummed results
 
-At one point we managed this data as individual datasets in the API. One dataset for WDPA loss stats, one for gadm36, one for plantations, etc.
-
-As such, there's a lot of legacy code to manage creation/overwriting of these datasets in the history of this repo. It's much easier to manage this as a single dataset, and elastic makes querying it easy, so this code is no longer needed.
-
-### Postprocessing
-
-Once we've processed loss, extent2000, and extent2010, we can join them using the `postprocess.py`.
+Once we've cumsummed loss, extent2000 and extent2010, we can join them using the `combine_all_for_api.py`.
 
 The gain data has no threshold, and thus the raw data can be used without postprocessing it.
 
@@ -53,7 +47,10 @@ In addition to the above, we'll also need to include a CSV of the area of our po
 
 We can generate this CSV using some code in the 1b section of this repo:
 
-`python tabulate-bucket-area.py -b s3://gfw2-data/alerts-tsv/country-pages/ten-by-ten/`
+`python tabulate-bucket-area.py -b <s3 path to directory of polygon TSVs>`
+
+The current s3 directory of polygon TSVs is:
+`s3://gfw2-data/alerts-tsv/country-pages/ten-by-ten-gadm36/`
 
 This will download all the input data in the bucket, insert it into postgis, tabulate area_ha, and then write it to a CSV.
 
@@ -70,7 +67,7 @@ Given the complicated nature of joining these datasets, the input files must mee
 - The area field in the polygon area CSV should be area_poly_aoi
 
 
-Once we have all these datasets lined up, we can run our postprocess script to generate our main summary table.
+Once we have all these datasets lined up, we can run cumsum_hadoop_output.py to generate our main summary table.
 
 Here's an example of our final output:
 [https://production-api.globalforestwatch.org/v1/query/499682b1-3174-493f-ba1a-368b4636708e?sql=SELECT * FROM data LIMIT 10](https://production-api.globalforestwatch.org/v1/query/499682b1-3174-493f-ba1a-368b4636708e?sql=SELECT%20*%20FROM%20data%20LIMIT%2010)

@@ -15,31 +15,31 @@ def load(zip_source):
     table_name = os.path.splitext(os.path.basename(zip_source))[0]
     if pg_util.check_table_exists(table_name):
         logging.info('{} data already in PostGIS'.format(zip_source))
-    
+
     else:
         gadm28_shp = download_gadm28(zip_source)
 
         pg_util.insert_into_postgis(gadm28_shp, boundary_fields)
-        
+
         conn, cursor = pg_util.conn_to_postgis()
-        
+
         pg_util.fix_geom(table_name, cursor, False)
-        
+
         conn.close()
-        
+
         print "For whatever reason, we're unable to truly update " \
               "the input gadm geometry.\nPlease enter the postgres shell " \
               "and run UPDATE <gadm table name> SET geom = ST_CollectionExtract(" \
-              "ST_MakeValid(geom), 3) WHERE ST_IsValid(geom) <> '1'"
-          
+              "ST_MakeValid(geom), 3) WHERE ST_IsValid(geom) <> '1';"
+
         sys.exit()
-        
+
     l = Layer(table_name, [])
     l.tile_list = [Tile(l.input_dataset, boundary_fields, None, None, l.input_dataset)]
 
     return l
 
-    
+
 def download_gadm28(s3_src):
 
     logging.info('loading {} into postGIS'.format(s3_src))
@@ -60,5 +60,3 @@ def download_gadm28(s3_src):
     print os.path.join(out_dir + unzipped_path)
 
     return os.path.join(out_dir + unzipped_path)
-
-

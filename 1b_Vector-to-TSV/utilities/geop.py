@@ -37,10 +37,8 @@ def clip(q):
             dataset_name = os.path.splitext(os.path.basename(tile.dataset))[0]
             tile.postgis_table = '_'.join([dataset_name, tile.tile_id, 'clip']).lower()
 
-        if pg_util.check_table_exists(tile.postgis_table):
-            pass
-
-        else:
+        # if the clipped tile doesn't exist yet, create it
+        if not pg_util.check_table_exists(tile.postgis_table):
 
             # any TSV name will have the data as it's layer, otherwise use the actual shape
             file_ext = os.path.splitext(tile.dataset)[1]
@@ -59,21 +57,21 @@ def clip(q):
                     bbox_list = [str(x) for x in tile.bbox]
                     cmd += ['-clipsrc'] + bbox_list
 
-                logging.info(cmd)
-		p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-		for line in iter(p.stdout.readline, b''):
-                    if 'error' in line.lower():
-			logging.error('Error in loading dataset, {}'.format(cmd))
+                    logging.info(cmd)
+
+                    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+                    for line in iter(p.stdout.readline, b''):
+                        if 'error' in line.lower():
+                             logging.error('Error in loading dataset, {}'.format(cmd))
 
             # source dataset is already in postgis
             else:
                 conn, cursor = pg_util.conn_to_postgis()
 
                 # if it's a raster, already clipped to a tile and imported
-                if pg_util.is_raster(tile.postgis_table, cursor):
-                    pass
+                if not pg_util.is_raster(tile.postgis_table, cursor):
 
-                else:
                     envelope = 'ST_MakeEnvelope({}, {}, {}, {}, 4326)'.format(*tile.bbox)
 
                     clip_sql = ('CREATE TABLE {n} AS '
@@ -227,7 +225,7 @@ def intersect_gadm(source_layer, gadm_layer):
     return output_layer
 
 
-def vectorize(q):
+def clip_raster_then_insert_into_postgis(q):
     while True:
         output_dir, tile = q.get()
 
@@ -257,13 +255,13 @@ def vectorize(q):
         q.task_done()
 
 
-def raster_to_vector(layer_dir, tile_list):
+def raster_to_postgis(layer_dir, tile_list):
     input_list = []
 
     for t in tile_list:
         input_list.append((layer_dir, t))
 
-    util.exec_multiprocess(vectorize, input_list)
+    util.exec_multiprocess(clip_raster_then_insert_into_postgis, input_list)
 
     return
 
