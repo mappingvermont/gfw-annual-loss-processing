@@ -38,15 +38,15 @@ If you want to maintain specific fields throughout the geometry correction proce
 If done correctly, this should produce the number of distinct values in the fields you have saved. For example, if you wanted to preserve the biome name in the Brazil biomes file, this would produce `6`.
 `CREATE TABLE bbm_explode2 AS SELECT name, (ST_DUMP(geom)).geom FROM bbm_diss;`
 
-Re-correct the geometry of the table: `UPDATE bra_explode2 SET geom = ST_COLLECTIONEXTRACT(ST_MAKEVALID(geom), 3) WHERE ST_ISVALID(geom) <> '1';`
+Re-correct the geometry of the table: `UPDATE bbm_explode2 SET geom = ST_COLLECTIONEXTRACT(ST_MAKEVALID(geom), 3) WHERE ST_ISVALID(geom) <> '1';`
 This should produce `0`. `0` doesn't guarantee that the tsv process will work but it is a good sign. 
 If the above did not produce `0`, you can check whether there are any remaining geometry errors (optional): `SELECT count(*), ST_IsValid(geom) FROM bbm GROUP BY ST_IsValid;`
 Exit the Postgres shell: `\q`
 
 ### PostGIS table to TSV
 
-Generically: `python intersect-source-with-gadm.py -i name_of_postgres_table --n output_name`
-Specific example: `python intersect-source-with-gadm.py --input-dataset bbbm_explode2 --zip-source s3://gfw2-data/alerts-tsv/gis_source/gadm_3_6_adm2_final.zip --output-name bbm --s3-out-dir s3://gfw2-data/alerts-tsv/country-pages/climate/`
+Generically: `python intersect-source-with-gadm.py --iinput-dataset name_of_postgres_table --zip-source gadm_file --output-name output_file`
+Specific example: `python intersect-source-with-gadm.py --input-dataset bbm_explode2 --zip-source s3://gfw2-data/alerts-tsv/gis_source/gadm_3_6_adm2_final.zip --output-name bbm --s3-out-dir s3://gfw2-data/alerts-tsv/country-pages/climate/`
 
 This will cut the postgres table into 10x10 degree tiles, intersect each tile with GADM28, then upload the processed tiles to the output directory where it can be used in the Hadoop process. Make sure to change the output directory to the correct directory.
 
