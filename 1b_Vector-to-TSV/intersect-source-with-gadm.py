@@ -22,22 +22,7 @@ def main():
 
     util.start_logging()
 
-    # load source dataset, then create layer object
-    source_ext = os.path.splitext(args.input_dataset)[1]
-
-    # raster data
-    if source_ext in ['.rvrt', '.tif']:
-        input_data = args.input_dataset
-
-    # postgis table
-    elif source_ext == '':
-        input_data = pg_util.insert_into_postgis(args.input_dataset)
-
-    else:
-        raise ValueError('Unexpected extension {}. This process only accepts ' \
-                         'tifs and postgis tables'.format(source_ext))
-
-    source_layer = Layer(input_data, args.col_list)
+    source_layer = Layer(args.input_dataset, args.col_list)
 
     # load gadm28/custom into postGIS if it doesn't exist already
     gadm28_layer = load_gadm28.load(args.zip_source)

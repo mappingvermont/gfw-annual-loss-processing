@@ -15,6 +15,8 @@ class Layer(object):
         logging.info('Starting layer class for source {}'.format(input_dataset))
 
         self.input_dataset = input_dataset
+        self.check_layer_source()
+
         self.col_list = col_list
         self.iso_col_dict = iso_col_dict
 
@@ -24,6 +26,18 @@ class Layer(object):
         self.layer_dir = util.create_temp_dir()
 
         self.tile_list = []
+
+    def check_layer_source(self):
+
+        # some layers don't have an input dataset
+        # (those created from an intersection of two input layers)
+        # if they do have one, make sure that the input format is correct
+        if self.input_dataset:
+            src_ext = os.path.splitext(self.input_dataset)[1]
+
+	    if src_ext not in ['.rvrt', '.tif', '']:
+		raise ValueError('Unexpected extension {}. This process only accepts ' \
+				 'tifs and postgis tables'.format(source_ext))
 
     def build_col_list(self):
 
