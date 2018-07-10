@@ -45,8 +45,8 @@ Exit the Postgres shell: `\q`
 
 ### PostGIS table to TSV
 
-Generically: `python shp-to-gadm28-tiled-tsv.py -i name_of_postgres_table --n output_name`
-Specific example: `python shp-to-gadm28-tiled-tsv.py --input-dataset bbbm_explode2 --zip-source s3://gfw2-data/alerts-tsv/gis_source/gadm_3_6_adm2_final.zip --output-name bbm --s3-out-dir s3://gfw2-data/alerts-tsv/country-pages/climate/`
+Generically: `python intersect-source-with-gadm.py -i name_of_postgres_table --n output_name`
+Specific example: `python intersect-source-with-gadm.py --input-dataset bbbm_explode2 --zip-source s3://gfw2-data/alerts-tsv/gis_source/gadm_3_6_adm2_final.zip --output-name bbm --s3-out-dir s3://gfw2-data/alerts-tsv/country-pages/climate/`
 
 This will cut the postgres table into 10x10 degree tiles, intersect each tile with GADM28, then upload the processed tiles to the output directory where it can be used in the Hadoop process. Make sure to change the output directory to the correct directory.
 
@@ -54,9 +54,9 @@ If this is the first time doing tsv conversion on this particular spot machine, 
 
 ### Raster to TSV
 
-`python shp-to-gadm28-tiled-tsv.py -i raster_in_filesystem.tif --n output_name`
+`python intersect-source-with-gadm.py -i raster_in_filesystem.tif --n output_name`
 
-This is the same as above, but uses gdal_translate to chop the raster into 10x10 degress locally, then runs `raster2pgsql` to insert each into postgis. This is generaly runs pretty well, but can be subject to various issues that arise with using the postgis raster function. One import gotcha:
+This uses gdal_translate to chop the raster into 10x10 degress locally, then runs `raster2pgsql` to insert each into postgis. This is generaly runs pretty well, but can be subject to various issues that arise with using the postgis raster function. One import gotcha:
 
 **Input tifs must not have the nodata flag set!**
 
