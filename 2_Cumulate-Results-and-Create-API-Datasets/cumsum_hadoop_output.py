@@ -24,6 +24,9 @@ def main():
     if args.years and not args.max_year:
         raise ValueError('Max year must be specified if the dataset has year values included')
 
+    if args.max_year < 2000:
+        raise ValueError('Max year must be >2000, e.g., 2017')
+
     local_data = util.download_data(args.input)
     print local_data
 
