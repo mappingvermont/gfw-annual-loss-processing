@@ -15,6 +15,8 @@ class Layer(object):
         logging.info('Starting layer class for source {}'.format(input_dataset))
 
         self.input_dataset = input_dataset
+        self.check_layer_source()
+
         self.col_list = col_list
         self.iso_col_dict = iso_col_dict
 
@@ -24,6 +26,18 @@ class Layer(object):
         self.layer_dir = util.create_temp_dir()
 
         self.tile_list = []
+
+    def check_layer_source(self):
+
+        # some layers don't have an input dataset
+        # (those created from an intersection of two input layers)
+        # if they do have one, make sure that the input format is correct
+        if self.input_dataset:
+            src_ext = os.path.splitext(self.input_dataset)[1]
+
+	    if src_ext not in ['.rvrt', '.tif', '']:
+		raise ValueError('Unexpected extension {}. This process only accepts ' \
+				 'tifs and postgis tables'.format(source_ext))
 
     def build_col_list(self):
 
@@ -58,34 +72,34 @@ class Layer(object):
             for k, v in self.iso_col_dict.iteritems():
                 self.col_list.append({k: v})
 
-    def raster_to_vector(self):
-        geop.raster_to_vector(self.layer_dir, self.tile_list)
+    def raster_to_postgis(self):
+        geop.raster_to_postgis(self.layer_dir, self.tile_list)
 
-    def upload_to_s3(self, output_format, s3_out_dir, is_test, batch_upload):
+    def upload_to_s3(self, s3_out_dir, is_test, batch_upload):
 
-        if output_format == 'tsv':
-            logging.info('uploading {} to {}'.format(self.layer_dir, s3_out_dir))
+        logging.info('uploading {} to {}'.format(self.layer_dir, s3_out_dir))
 
-            if batch_upload:
-                cmd = ['aws', 's3', 'cp', '--recursive', self.layer_dir, s3_out_dir, '--exclude', '*', '--include', '*.tsv']
-                subprocess.check_call(cmd)
+        if batch_upload:
+            cmd = ['aws', 's3', 'cp', '--recursive', self.layer_dir, s3_out_dir, '--exclude', '*', '--include', '*.tsv']
 
-            else:
+            if is_test:
+                cmd += '--dryrun'
 
-		    # check to make sure we've written out some data
-		    out_tsv_list = [x.final_output for x in self.tile_list if x.final_output and os.stat(x.final_output).st_size]
-
-		    for out_tsv in out_tsv_list:
-
-			cmd = ['aws', 's3', 'cp', out_tsv, s3_out_dir]
-
-			if is_test:
-			    cmd += ['--dryrun']
-
-			subprocess.check_call(cmd)
+            subprocess.check_call(cmd)
 
         else:
-            logging.info('Output format is {}, not uploading anything to s3')
+
+    	    # check to make sure we've written out some data
+    	    out_tsv_list = [x.final_output for x in self.tile_list if x.final_output and os.stat(x.final_output).st_size]
+
+    	    for out_tsv in out_tsv_list:
+        		cmd = ['aws', 's3', 'cp', out_tsv, s3_out_dir]
+
+        		if is_test:
+        		    cmd += ['--dryrun']
+
+        		subprocess.check_call(cmd)
+
 
     def download_s3_tile(self, dataset_name, s3_path, tile_id):
 
@@ -120,10 +134,10 @@ class Layer(object):
             wildcard = '*'
 
         cmd = ['aws', 's3', 'cp', '--recursive', s3_root_dir, self.layer_dir,
-               '--exclude', '*', '--include', wildcard] 
+               '--exclude', '*', '--include', wildcard]
 
         subprocess.check_call(cmd)
-        
+
         for f in os.listdir(self.layer_dir):
 
             if os.path.splitext(f)[1] == '.tsv':
@@ -147,11 +161,11 @@ class Layer(object):
 
                 self.tile_list.append(t)
 
-    def export(self, output_name, output_format):
+    def export(self, output_name):
 
         input_list = []
 
         for t in self.tile_list:
-            input_list.append((self.layer_dir, output_name, t, output_format))
+            input_list.append((self.layer_dir, output_name, t))
 
         util.exec_multiprocess(export.export, input_list)

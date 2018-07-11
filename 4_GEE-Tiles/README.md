@@ -10,7 +10,7 @@ This repo contains:
 ---
 <a name='hasset'></a>
 #### Hansen Composite
-Before we can generate any tiles, we'll need to build a composite GEE asset with the new Hansen data. This is used in tile generation, and in dynamic user-drawn AOI analysis. To re-generate this asset simply go the GEE playground and run js/composite_asset.js
+Before we can generate any tiles, we'll need to build a composite GEE asset with the new Hansen data. This is used in tile generation, and in dynamic user-drawn AOI analysis. To re-generate this asset simply go the GEE playground and run js/composite_asset.js, making sure to update `var h17` (the input) and `var COMPOSITE_IMG_NAME` (the output).
 
 ---
 <a name='htiles'></a>

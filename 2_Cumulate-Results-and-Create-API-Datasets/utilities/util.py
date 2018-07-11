@@ -48,7 +48,7 @@ def download_data(input_dataset):
         raise ValueError("Dataset {} does not exist locally and doesn't have an s3:// URL ".format(input_dataset))
 
 
-def push_to_s3(cumsum_df, input_file):
+def write_output(cumsum_df, input_file):
 
     print 'dumping records to local CSV'
     if os.path.isdir(input_file):
@@ -63,8 +63,8 @@ def push_to_s3(cumsum_df, input_file):
 
 def qc_loss_extent(df):
 
-    if not df[(df.area_admin < 0) | (df.area_gain < 0) | (df.area_extent < 0) | 
-              (df.area_poly_aoi < 0) | (df.area_extent_2000 < 0) | (df.area_loss < 0) | 
+    if not df[(df.area_admin < 0) | (df.area_gain < 0) | (df.area_extent < 0) |
+              (df.area_poly_aoi < 0) | (df.area_extent_2000 < 0) | (df.area_loss < 0) |
               (df.emissions < 0) | (df.year < 0) ].empty:
         raise ValueError('Final dataframe has negative values in area fields')
 
@@ -72,7 +72,7 @@ def qc_loss_extent(df):
 def check_for_duplicates(df):
 
     cols = df.columns.tolist()
-    
+
     # see if we're dealing with loss (12 cols) or a different input df
     if len(cols) < 12:
         col_idx = -1
@@ -83,7 +83,7 @@ def check_for_duplicates(df):
     sum_list = cols[col_idx:]
 
     grouped = df.groupby(group_list)[sum_list].sum().reset_index()
- 
+
     if df.shape != grouped.shape:
         df_size = df.groupby(group_list).size().reset_index()
         print df_size[df_size[0] > 1].head()
@@ -95,7 +95,7 @@ def input_csvs_to_df(args):
     if args.source_dir:
         source_dir = args.source_dir
         check_source_dir(source_dir)
-        
+
         loss_df = read_df(os.path.join(source_dir, 'loss.csv'))
         extent_2000_df = read_df(os.path.join(source_dir, 'extent2000.csv'))
         extent_2010_df = read_df(os.path.join(source_dir, 'extent2010.csv'))
@@ -116,7 +116,7 @@ def check_source_dir(source_dir):
 
     file_list = os.listdir(source_dir)
     files_required = ['loss', 'gain', 'extent2000', 'extent2010', 'area']
-    
+
     missing_files = [x for x in files_required if x + '.csv' not in file_list]
 
     if missing_files:
@@ -136,12 +136,12 @@ def filter_out_bad_combos(poly, iso_list, df):
 
 
 def read_df(csv_path):
-    
+
     df = pd.read_csv(csv_path, na_values=-9999, encoding='utf-8', dtype={'polyname': str, 'bound1': str, 'bound2': str})
-    
+
     # set all values of bound1, 2, 3 and 4 to null unless plantatations are involved
     df.loc[~df['polyname'].str.contains(r'plantation|biome'), ['bound1', 'bound2']] = None
-    
+
     # and set bound3 and bound4 columns to -9999 - plantations is
     # our only dataset with attribute values
     df[['bound3', 'bound4']] = None
@@ -178,5 +178,5 @@ def read_df(csv_path):
 
     # remove XCA and TWN
     df = df[~df.iso.isin(['XCA', 'TWN'])]
-    
+
     return df
