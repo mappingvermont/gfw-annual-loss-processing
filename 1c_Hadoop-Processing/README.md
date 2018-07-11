@@ -3,7 +3,7 @@
 1. Create a cluster
 	- can clone an old one, or create a new one. currently using 16 d2.8xlarge machines, with all slaves running as spot instances with max price $1.50
 
-2. Once it's ready SSH in. If you want to see the spark console in your browser, use port forwarding (get to it via the links generated in the EMR part of the AWS console)
+2. Once it's ready, SSH in. You can get the connection string/hostname in the AWS console. It'll be in the format of hadoop@ec2-54-234-230-206.compute-1.amazonaws.com. If you want to see the spark console in your browser, use port forwarding (get to it via the links generated in the EMR part of the AWS console)
 
 3. Install git: `sudo yum install git`
 
