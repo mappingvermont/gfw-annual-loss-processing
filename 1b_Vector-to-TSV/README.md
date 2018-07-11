@@ -2,26 +2,29 @@
 
 ### Use case
 
-After writing the loss and extent raster data to TSV, we need to prep our geometry for the hadoop zonal stats process.
+In order to run zonal statistics on polygons and loss/biomass/gain using Hadoop, we need to prepare our geometry. This describes how to prepare boundaries (GADM and other boundaries, like primary forests and mining concessions) for intersection with forest loss, biomass, or gain. Preparing the geometry means converting shapefiles into TSVs. 
 
-In addition to converting input shapefiles to WKT-based TSV, this process will intersect input data with GADM boundaries (version of your choosing), grouping by any input attributes and dissolving by ISO/ADM1/ADM2.
+In addition to converting input shapefiles to WKT-based TSV, this process will intersect input data with GADM boundaries (version of your choosing), grouping by any input attributes and dissolving by ISO/ADM1/ADM2. You can then use these TSVs as input for Hadoop zonal statistics.
 
 ### Install necessary packages on spot machine
 
-In gfw-annual-loss-processing\1b_Vector-to-TSV\requirements.txt, do `sudo pip install -r requirements.txt`
+In gfw-annual-loss-processing\1b_Vector-to-TSV\requirements.txt, do `sudo pip install -r requirements.txt` to install the necessary packages on the spot machine.
 
 ### Copy boundary shapefile to spot machine and then into PostGIS
+
+First, get the shapefile onto the spot machine. Then import it to PostGIS. If your zonal statistics will use any of the fields in the shapefile (e.g., the specific biome in Brazil or the type of plantation), make sure to import that field into PostGIS and to maintain that field throughout the geometry correction process. 
 
 Copy file: `aws s3 cp s3://gfw2-data/country/bra/zip/bza_biomes.zip .`
 Unzip file: `unzip bza_biomes.zip`
 View field names (optional): `ogrinfo -so -al bza_biomes.shp`
-Import the shapefile into a PostGIS table. This has some optional arguments. It also doesn't save any fields in the shapefile: `ogr2ogr -f "PostgreSQL" PG:"host=localhost" bza_biomes.shp -overwrite -progress -nln "bbm" -lco GEOMETRY_NAME=geom -nlt MULTIPOLYGON -t_srs EPSG:4326 -dialect sqlite -sql "SELECT Geometry FROM bza_biomes"`
-If you want to import any of the shapefile fields into PostGIS, add them between Geometry and FROM, e.g., `"SELECT Geometry, Name FROM bza_biomes"`
+Import the shapefile into a PostGIS table. This has some optional arguments. 
+To not import any fields in the shapefile into PostGIS: `ogr2ogr -f "PostgreSQL" PG:"host=localhost" bza_biomes.shp -overwrite -progress -nln "bbm" -lco GEOMETRY_NAME=geom -nlt MULTIPOLYGON -t_srs EPSG:4326 -dialect sqlite -sql "SELECT Geometry FROM bza_biomes"`
+To import specific fields in the shapefile into PostGIS: `ogr2ogr -f "PostgreSQL" PG:"host=localhost" bza_biomes.shp -overwrite -progress -nln "bbm" -lco GEOMETRY_NAME=geom -nlt MULTIPOLYGON -t_srs EPSG:4326 -dialect sqlite -sql "SELECT Geometry, name FROM bza_biomes"`
 
 ### Correct the geometry of the shapefile in PostGIS
 
 Enter the Postgres shell: `psql`
-View table attributes and fields in Postgres shell (optional but good idea): `\d+ bza_biomes`
+View table attributes and fields in Postgres shell (optional but good idea): `\d+ bbm`
 
 Then there are five steps to clean up the geometry of the table (shapefile imported to PostGIS) that you are going to convert to a tsv. Not all tables need these steps but they are always a good idea to do.
 
@@ -32,7 +35,7 @@ Explode the table into singlepart features: `CREATE TABLE bbm_explode AS SELECT 
 Dissolve the singlepart features into one feature: `CREATE TABLE bbm_diss AS SELECT ST_UNION(geom) AS geom FROM bbm_explode;`
 Re-explode the table into singlepart features: `CREATE TABLE bbm_explode2 AS SELECT (ST_DUMP(geom)).geom FROM bbm_diss;`
 
-If you want to maintain specific fields throughout the geometry correction process so that it can be used in Hadoop (e.g., the names of the Brazil biomes), do the following instead of the explode-dissolve-explode commands above, replacing `name` with the name of the field you want to preserve:
+If you want to maintain specific fields throughout the geometry correction process so that it can be used in Hadoop (e.g., the names of the Brazil biomes or types of plantations), do the following instead of the explode-dissolve-explode commands above, replacing `name` with the name of the field you want to preserve:
 `CREATE TABLE bbm_explode AS SELECT name, (ST_DUMP(geom)).geom FROM bbm;`
 `CREATE TABLE bbm_diss AS SELECT name, ST_UNION(geom) AS geom FROM bbm_explode GROUP BY name;`
 If done correctly, this should produce the number of distinct values in the fields you have saved. For example, if you wanted to preserve the biome name in the Brazil biomes file, this would produce `6`.
@@ -45,14 +48,14 @@ Exit the Postgres shell: `\q`
 
 ### PostGIS table to TSV
 
-Generically: `python intersect-source-with-gadm.py --iinput-dataset name_of_postgres_table --zip-source gadm_file --output-name output_file`
+This step cuts the postgres table into 10x10 degree tiles, intersects each tile with whatever version of GADM you supply, then uploads the processed tiles to the output directory where it can be used in the Hadoop process. 
+
+Generically: `python intersect-source-with-gadm.py --input-dataset name_of_postgres_table --zip-source gadm_file --output-name output_file`
 Specific example: `python intersect-source-with-gadm.py --input-dataset bbm_explode2 --zip-source s3://gfw2-data/alerts-tsv/gis_source/gadm_3_6_adm2_final.zip --output-name bbm --s3-out-dir s3://gfw2-data/alerts-tsv/country-pages/climate/`
 
-If you want to export to tsv using a column in the shapefile/postgis (e.g., plantation type, Brazil biome), add --col-list <column names> as an argument. You can use up to two column names: `python shp-to-gadm28-tiled-tsv.py --input-dataset bbbm_explode2 --zip-source s3://gfw2-data/alerts-tsv/gis_source/gadm_3_6_adm2_final.zip --output-name bbm --s3-out-dir s3://gfw2-data/alerts-tsv/country-pages/climate/ --col-list name`
+If this is the first time doing TSV conversion on this particular spot machine, `intersect-source-with-gadm.py` will download GADM to the spot machine and load it into PostGIS. However, it will only need to download and convert GADM once per spot machine. This will take several minutes (especially on the INSERT 0 1 phase of the conversion). Also, when GADM is importing to PostGIS, it will find some errors in the geometry. The shell will stop and ask you to run the displayed command in PostGIS shell (`UPDATE gadm_3_6_adm2_final SET geom = ST_CollectionExtract(ST_MakeValid(geom), 3) WHERE ST_IsValid(geom) <> '1';`) to correct the geometry, then it will process the UPDATE command for a long time. It is expected that it will show two notices about holes lying outside the shell at or near points X, Y; that is fine. Once it is done with the GADM geometry correction, rerun the above intersect-source-with-gadm.py command in the Linux shell and it should go smoothly. 
 
-This will cut the postgres table into 10x10 degree tiles, intersect each tile with whatever version of GADM you supply, then upload the processed tiles to the output directory where it can be used in the Hadoop process. 
-
-If this is the first time doing tsv conversion on this particular spot machine, `intersect-source-with-gadm.py` will download GADM to the spot machine and load it into PostGIS. However, it will only need to download and convert GADM once per spot machine. This will take several minutes (especially on the INSERT 0 1 phase of the conversion). Also, when GADM is importing to PostGIS, it will find some errors in the geometry. The shell will stop and ask you to run the displayed command in PostGIS shell (`UPDATE gadm_3_6_adm2_final SET geom = ST_CollectionExtract(ST_MakeValid(geom), 3) WHERE ST_IsValid(geom) <> '1';`) to correct the geometry, then it will process the UPDATE command for a long time. It is expected that it will show two notices about holes lying outside the shell at or near points X, Y; that is fine. Once it is done with the GADM geometry correction, rerun the above intersect-source-with-gadm.py command in the Linux shell and it should go smoothly. 
+If you want to export to TSV using a column in the shapefile/postgis (e.g., plantation type, Brazil biome), add --col-list <column names> as an argument. You can use up to two column names: `python shp-to-gadm28-tiled-tsv.py --input-dataset bbbm_explode2 --zip-source s3://gfw2-data/alerts-tsv/gis_source/gadm_3_6_adm2_final.zip --output-name bbm --s3-out-dir s3://gfw2-data/alerts-tsv/country-pages/climate/ --col-list name`
 
 ### Raster to TSV
 
