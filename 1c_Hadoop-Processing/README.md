@@ -26,9 +26,19 @@ usage: annual_update.py [-h] --analysis-type {extent,loss,gain,biomass}
                         [{points,polygons,None} ...]
 ```
 
-Example dry-run: `python annual_update.py --analysis-type loss --points-folder s3://gfw2-data/alerts-tsv/loss_2017/ --output-folder s3://gfw2-data/alerts-tsv/output2017/20180711/climate/raw/loss/ --polygons-folder s3://gfw2-data/alerts-tsv/country-pages/climate/ --iterate-by None --dryrun`
+Example dry-run for annual forest loss/emissions: `python annual_update.py --analysis-type loss --points-folder s3://gfw2-data/alerts-tsv/loss_2017/ --output-folder s3://gfw2-data/alerts-tsv/output2017/20180711/climate/raw/loss/ --polygons-folder s3://gfw2-data/alerts-tsv/country-pages/climate/ --iterate-by None --dryrun`
 
-Example actual run: `python annual_update.py --analysis-type loss --points-folder s3://gfw2-data/alerts-tsv/loss_2017/ --output-folder s3://gfw2-data/alerts-tsv/output2017/20180711/climate/raw/loss/ --polygons-folder s3://gfw2-data/alerts-tsv/country-pages/climate/ --iterate-by None`
+Example actual run for annual forest loss/emissions: `python annual_update.py --analysis-type loss --points-folder s3://gfw2-data/alerts-tsv/loss_2017/ --output-folder s3://gfw2-data/alerts-tsv/output2017/20180711/climate/raw/loss/ --polygons-folder s3://gfw2-data/alerts-tsv/country-pages/climate/ --iterate-by None`
+
+Example dry-run for forest extent in 2000: `python annual_update.py --analysis-type extent --points-folder s3://gfw2-data/alerts-tsv/extent_2000/ --output-folder s3://gfw2-data/alerts-tsv/output2017/20180717/climate/raw/extent/ --polygons-folder s3://gfw2-data/alerts-tsv/country-pages/climate/ --iterate-by points --dryrun`
+
+Example actual run for forest extent in 2000: `python annual_update.py --analysis-type extent --points-folder s3://gfw2-data/alerts-tsv/extent_2000/ --output-folder s3://gfw2-data/alerts-tsv/output2017/20180717/climate/raw/extent/ --polygons-folder s3://gfw2-data/alerts-tsv/country-pages/climate/ --iterate-by points`  
+(Note: Because of the --iterate-by points argument, this will produce one output csv for each 10 deg latitude band (00N, 10N, 10S, etc.). These csvs will be automatically combined in post-processing.)
+
+To see the configuration file: `more application.properties`. The row points.path shows what latitude band the forest extent processing is on. 
+
+
+
 
 ##### What's this code doing?
 
