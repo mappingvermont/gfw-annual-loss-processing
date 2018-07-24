@@ -53,7 +53,10 @@ def main():
             print ' '.join(cmd2)
             subprocess.check_call(cmd2)
 
-            biomass_s3 = r's3://WHRC-carbon/global_27m_tiles/final_global_27m_tiles/biomass_10x10deg/{}_biomass.tif'.format(tile_name)
+            # For the update with 2017 Hansen data (summer 2018), these biomass tiles were used:
+            # s3://WHRC-carbon/global_27m_tiles/final_global_27m_tiles/biomass_10x10deg/{}_biomass.tif
+            # For the update with 2018 Hansen data, we should use the below biomass tiles, which are v4 from Woods Hole (delivered summer 2018)
+            biomass_s3 = r's3://WHRC-carbon/WHRC_V4/Processed/{}_biomass.tif'.format(tile_name)
             biomass_local = r'/home/ubuntu/data/emissions/{}.tif'.format(tile_name)
             biomass_cmd = ['aws', 's3', 'cp', biomass_s3, biomass_local]
 
