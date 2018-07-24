@@ -5,7 +5,7 @@ from urlparse import urlparse
 import logging
 
 from tile import Tile
-import geop, util, decode_tsv, export
+import geop, util, decode_polygon_tsv, export
 
 
 class Layer(object):
@@ -117,7 +117,7 @@ class Layer(object):
         s3.Bucket(bucket).download_file(s3_path, output_path)
         vrt_path = os.path.splitext(output_path)[0] + '.vrt'
 
-        tile_vrt = decode_tsv.build_vrt(output_path, vrt_path)
+        tile_vrt = decode_polygon_tsv.build_vrt(output_path, vrt_path)
         postgis_table = '_'.join([dataset_name, tile_id]).lower()
 
         # then create a tile object
@@ -143,7 +143,7 @@ class Layer(object):
             if os.path.splitext(f)[1] == '.tsv':
 
                 vrt_path = os.path.join(self.layer_dir, os.path.splitext(f)[0] + '.vrt')
-                tile_vrt = decode_tsv.build_vrt(os.path.join(self.layer_dir, f), vrt_path)
+                tile_vrt = decode_polygon_tsv.build_vrt(os.path.join(self.layer_dir, f), vrt_path)
 
                 basename = os.path.splitext(os.path.basename(f))[0]
                 tile_id = basename.split('__')[-1]

@@ -14,7 +14,7 @@ import rasterio
 from shapely.geometry import shape
 
 from tile import Tile
-import decode_tsv
+import decode_polygon_tsv
 import postgis_util as pg_util
 
 
@@ -167,7 +167,7 @@ def s3_to_gdf(s3_src_dir, tile_name, output_dir):
     # write the VRT
     local_tsv = os.path.join(output_dir, tile_name)
     local_vrt = os.path.join(output_dir, tile_name.replace('.tsv', '.vrt'))
-    decode_tsv.build_vrt(local_tsv, local_vrt)
+    decode_polygon_tsv.build_vrt(local_tsv, local_vrt)
 
     # convert VRT to geojson
     local_geojson = os.path.join(output_dir, tile_name.replace('.tsv', '.geojson'))

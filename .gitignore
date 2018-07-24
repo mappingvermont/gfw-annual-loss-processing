@@ -52,6 +52,9 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
+# Geojson
+*.geojson
+
 
 # Config files
 config/*.config
@@ -79,3 +82,8 @@ tree_cover_stats_2017.xlsx
 
 1b_Vector-to-TSV/data/
 .DS_Store
+*.geojson
+
+#geojson
+*.geojson
+

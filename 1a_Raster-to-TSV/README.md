@@ -19,8 +19,21 @@ For extent data, download this zip to a large spot machine:
 s3://gfw2-data/alerts-tsv/batch-processing/treecover_process_v4.zip
 
 For biomass, use:
-s3://gfw2-data/alerts-tsv/batch-processing/sam-biomass-to-tsv.zip
+this repo (https://github.com/wri/gfw-climate-indicator-update) and run biomass-to-tsv.py on a 16xlarge spot machine.
+It is based on the script here: s3://gfw2-data/alerts-tsv/batch-processing/sam-biomass-to-tsv.zip
 
 These zips contain a script to run the code, and a version of `raster-vector-to-tsv` optimized for this sort of thing-- no raster joins, just writing the TCD or gain raster to TSV, calculating the area of each pixel, and uploading to s3. *Be sure to edit the code in job.py to modify the S3 output location*.
 
 This situation will hopefully be fixed soon-- either by coming up with a better process, or by using GeoTrellis/GEE to work with rasters in their native format.
+
+### Quality Control of Output
+
+How do we QC this stuff? Visual comparison of source data to TSV in QGIS.
+
+For rasters converted to tsvs (biomass in 2000, forest extent/TCD in 2000):
+Copy select output tsvs to your local computer.
+Open the command prompt in gfw-annual-loss-processing\1a_Raster-to-TSV\utilities
+Enter the Python shell and import the file decode_raster_tsv.py: `import decode_raster_tsv`
+Convert the tsv into a vrt: `decode_raster_tsv.build_vrt(r"C:\GIS\GFW_Climate_updates\10S_040W_24601.tsv", r"C:\GIS\GFW_Climate_updates\10S_040W_24601.vrt")`
+Exit the Python shell and in the Windows command line convert the vrt into a GeoJSON: `ogr2ogr -f GeoJSON out.geojson C:\GIS\GFW_Climate_updates\10S_040W_24601.vrt data`
+Open QGIS and load the GeoJSON tile. Compare it with the the input raster used to make it. If the raster is biomass 2000 and it was masked by TCD30 for tsv conversion, load the TCD tile into QGIS and make sure that matches as expected.
