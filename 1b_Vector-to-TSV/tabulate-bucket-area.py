@@ -50,7 +50,7 @@ def main():
 
     output_file = 'area.csv'
     print 'Area CSV saved here: {}'.format(output_file)
-    grouped.to_csv(output_file, index=False)
+    grouped.to_csv(output_file, index=False, encoding='utf-8')
 
 if __name__ == '__main__':
     main()
