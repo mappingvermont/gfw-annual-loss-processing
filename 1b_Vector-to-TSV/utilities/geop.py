@@ -46,6 +46,7 @@ def clip(q):
             # why VRT here? so we can read the TSVs that are already created
             # which requires a crazy vector VRT file
             if file_ext in ['.tsv', '.vrt']:
+
                 sql = "SELECT {}, GEOMETRY FROM data".format(col_str)
 
                 cmd = ['ogr2ogr', '-f', 'PostgreSQL', conn_str, tile.dataset, '-nln', tile.postgis_table,
@@ -59,11 +60,11 @@ def clip(q):
 
                     logging.info(cmd)
 
-                    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+	        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-                    for line in iter(p.stdout.readline, b''):
-                        if 'error' in line.lower():
-                             logging.error('Error in loading dataset, {}'.format(cmd))
+    	        for line in iter(p.stdout.readline, b''):
+		     if 'error' in line.lower():
+		         logging.error('Error in loading dataset, {}'.format(cmd))
 
             # source dataset is already in postgis
             else:
