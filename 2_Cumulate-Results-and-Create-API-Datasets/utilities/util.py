@@ -139,8 +139,8 @@ def read_df(csv_path):
 
     df = pd.read_csv(csv_path, na_values=-9999, encoding='utf-8', dtype={'polyname': str, 'bound1': str, 'bound2': str})
 
-    # set all values of bound1, 2, 3 and 4 to null unless plantatations are involved
-    df.loc[~df['polyname'].str.contains(r'plantation|biome'), ['bound1', 'bound2']] = None
+    # set all values of bound1, 2, 3 and 4 to null unless plantatations, biomes, or tsc are involved
+    df.loc[~df['polyname'].str.contains(r'plantation|biome|tsc'), ['bound1', 'bound2']] = None
 
     # and set bound3 and bound4 columns to -9999 - plantations is
     # our only dataset with attribute values
@@ -161,6 +161,7 @@ def read_df(csv_path):
     df = df[~(df.polyname.str.contains('primary') & df.iso.isin(invalid_iso_codes))]
 
     # check for dupes - should be unique polyname | bound1 | bound2 | iso | adm1 | adm2 (and year + thresh if loss)
+    print 'checking {} for dupes'.format(csv_path)
     check_for_duplicates(df)
 
     # remove invalid poly/iso combos
