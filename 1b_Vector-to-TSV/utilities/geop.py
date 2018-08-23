@@ -10,8 +10,8 @@ def tabulate_area(q):
         tile = q.get()
 
         conn, cursor = pg_util.conn_to_postgis()
-        col_list = ['polyname', 'boundary_field1', 'boundary_field2',
-                    'boundary_field3', 'boundary_field4', 'iso', 'id_1', 'id_2']
+        col_list = ['polyname', 'bound1', 'bound2',
+                    'bound3', 'bound4', 'iso', 'id_1', 'id_2']
         col_str = ', '.join(col_list)
 
         sql = ("INSERT INTO aoi_area "
@@ -31,7 +31,7 @@ def clip(q):
         tile = q.get()
 
         conn_str = pg_util.build_ogr_pg_conn()
-        col_str = pg_util.boundary_field_dict_to_sql_str(tile.col_list)
+        col_str = pg_util.bound_dict_to_sql_str(tile.col_list)
 
         if not tile.postgis_table:
             dataset_name = os.path.splitext(os.path.basename(tile.dataset))[0]
@@ -112,7 +112,7 @@ def raster_intersect(q):
 
             # source: https://gis.stackexchange.com/a/19858/30899
             sql = ("CREATE TABLE {table_name} AS "
-                   "SELECT (gv).val AS boundary_field1, 1 AS boundary_field2, 1 AS boundary_field3, 1 as boundary_field4, iso, id_1, id_2, (gv).geom AS geom "
+                   "SELECT (gv).val AS bound1, 1 AS bound2, 1 AS bound3, 1 as bound4, iso, id_1, id_2, (gv).geom AS geom "
                    "FROM (SELECT iso, id_1, id_2, ST_Intersection(rast, geom) AS gv "
                    "      FROM {table1}, {table2} "
                    "      WHERE ST_Intersects(rast, geom) "
@@ -159,7 +159,7 @@ def intersect(q):
             # will return ['a.ISO', 'a.ID_1', 'a._ID_2'] or b., depending on if first or second tile has admin columns
             admin2_columns = pg_util.find_admin_columns(cursor, tile1, tile2)
 
-            # tile1 and tile2 could have same column names (boundary_field1, boundary_field2)
+            # tile1 and tile2 could have same column names (bound1, bound2)
             # need to alias them to ensure that they're referenced properly
             tile1_cols = tile1.alias_select_columns('a')
             tile2_cols = tile2.alias_select_columns('b')
@@ -168,7 +168,7 @@ def intersect(q):
 
             # rename boundary fields
             for i, fieldname in enumerate(tile1_cols + tile2_cols):
-                tile_cols_aliased.append(fieldname + ' AS boundary_field{}'.format(str(i)))
+                tile_cols_aliased.append(fieldname + ' AS bound{}'.format(str(i)))
 
             select_cols = ", ".join(tile_cols_aliased + admin2_columns)
             groupby_columns = ", ".join(tile1_cols + tile2_cols + admin2_columns)

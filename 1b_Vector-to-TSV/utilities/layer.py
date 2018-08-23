@@ -43,7 +43,7 @@ class Layer(object):
 
         # if none specified, build dummy list
         if not self.col_list:
-            self.col_list = [{'1': 'boundary_field1'}, {'1': 'boundary_field2'}]
+            self.col_list = [{'1': 'bound1'}, {'1': 'bound2'}]
 
         elif self.input_dataset and len(self.col_list) > 2:
             logging.error(self.col_list)
@@ -56,7 +56,7 @@ class Layer(object):
             output_list = []
 
             for i, fieldname in enumerate(self.col_list):
-                boundary_fieldname = 'boundary_field{}'.format(str(i + 1))
+                boundary_fieldname = 'bound{}'.format(str(i + 1))
 
                 output_list.append({fieldname: boundary_fieldname})
 
@@ -64,7 +64,7 @@ class Layer(object):
 
         # if len(col_list) is 1, fill empty space with dummy value of '1'
         if len(self.col_list) == 1:
-            self.col_list.append({'1': 'boundary_field2'})
+            self.col_list.append({'1': 'bound2'})
 
         # if we're passing in ISO information, add this as well
         # important for when we're intersecting two pre-tiled datasets

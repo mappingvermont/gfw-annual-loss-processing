@@ -13,7 +13,10 @@ def tabulate(input_data, args):
 
         boundary_fields = ['polyname', 'bound1', 'bound2', 'bound3', 'bound4', 'iso', 'adm1', 'adm2', 'thresh', 'bio_per_pixel']
         df.columns = boundary_fields
-        
+
+        # remove where thresh == 0 (coded as -1)
+        df = df[df.thresh != -1]
+
         return df
         
     else:
@@ -123,7 +126,10 @@ def source_to_df(input_data, args):
 
     col_list = boundary_fields + base_fields
     df.columns = col_list
-    
+
+    # remove where thresh == 0 (coded as -1)
+    df = df[df.thresh != -1]
+
     # replace Nan values with -9999 so the groupby works
     for field in ['bound1', 'bound2', 'bound3', 'bound4']:
         df[field].fillna(-9999, inplace=True)

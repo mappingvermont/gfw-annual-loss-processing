@@ -28,7 +28,7 @@ def main():
 
     # these boundary fields already exist in the TSV
     # may be empty, but could contain stuff like plantation type/species, etc
-    col_list = [{'field_3': 'boundary_field1'}, {'field_4': 'boundary_field2'}]
+    col_list = [{'field_3': 'bound1'}, {'field_4': 'bound2'}]
 
     # include reference to iso/id_1/id_2 fields
     iso_col_dict = {'field_7': 'iso', 'field_8': 'id_1', 'field_9': 'id_2'}
