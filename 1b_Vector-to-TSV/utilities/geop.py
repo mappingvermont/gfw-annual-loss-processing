@@ -31,7 +31,7 @@ def clip(q):
         tile = q.get()
 
         conn_str = pg_util.build_ogr_pg_conn()
-        col_str = pg_util.bound_dict_to_sql_str(tile.col_list)
+        col_str = pg_util.boundary_field_dict_to_sql_str(tile.col_list)
 
         if not tile.postgis_table:
             dataset_name = os.path.splitext(os.path.basename(tile.dataset))[0]
