@@ -1,7 +1,9 @@
 ## Hadoop loss tile processing
 
-1. Create a cluster
+1. Clone an existing cluster:
 	- can clone an old one, or create a new one. currently using 16 d2.8xlarge machines, with all slaves running as spot instances with max price $1.50
+	- For large jobs (like global annual loss/emissions processing), select 15 servant/slave/helper machines.
+	- For small jobs, 2 servant/slave/helper machines is enough.
 
 2. Once it's ready, SSH in. You can get the connection string/hostname in the AWS console. It'll be in the format of hadoop@ec2-54-234-230-206.compute-1.amazonaws.com. If you want to see the spark console in your browser, use port forwarding (get to it via the links generated in the EMR part of the AWS console)
 
@@ -17,7 +19,9 @@
 
 8. To see arguments for Hadoop running code, inside 1c_Hadoop-Processing: `python annual_update.py`
 
-9. Run `annual_update.py`.
+9. Run `annual_update.py`. For large jobs, you can do what's shown below.
+For small jobs (using <15 servant/slave/helper machines), you need to decrease the executor memory that's expected; small machines don't have the memory that's expected by default for large jobs. To do that, cd into gfw-annual-loss-processing/1c_Hadoop-Processing/utilities and enter annual_helpers.py using `nano annual_helpers.py`. Change the executor memory argument in the subprocess call to `9g` from 20g. Press ctrl X to exit and save your changes. Then proceed with running `annual_update.py` as shown below.
+
 ```
 usage: annual_update.py [-h] --analysis-type {extent,loss,gain,biomass}
                         --points-folder POINTS_FOLDER --polygons-folder
