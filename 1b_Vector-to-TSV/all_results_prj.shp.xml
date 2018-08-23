@@ -1,2 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<metadata xml:lang="en"><Esri><CreaDate>20180823</CreaDate><CreaTime>09402400</CreaTime><ArcGISFormat>1.0</ArcGISFormat><SyncOnce>TRUE</SyncOnce><DataProperties><lineage><Process ToolSource="c:\program files (x86)\arcgis\desktop10.5\ArcToolbox\Toolboxes\Conversion Tools.tbx\RasterToPolygon" Date="20180305" Time="102931">RasterToPolygon all_results_int.tif "C:\GIS_data\projects\state_of_forests\indicator_data\tsc\Files for WRI_v3\Files for WRI_v2\all_results.shp" NO_SIMPLIFY Value</Process></lineage></DataProperties></Esri></metadata>
