@@ -35,6 +35,7 @@ The threshold values above need to be cum-summed for display on GFW-- our thresh
 
 ### Cumsumming hadoop results
 Install necessary packages first: `sudo pip install -r requirements.txt`
+
 Example command to process this data and save the output locally:
 `python cumsum_hadoop_output.py --input s3://gfw2-data/alerts-tsv/output/loss.csv --max-year 2017`
 The cumsum tool will tell you where the output file is saved locally (e.g., `Cumsummed CSV is saved here /home/ubuntu/gfw-annual-loss-processing/2_Cumulate-Results-and-Create-API-Datasets/processing/bf709d57-1a18-4b56-8ba2-9d8c06755225/loss_20180824_processed.csv`). Copy that file from the spot machine to s3.
