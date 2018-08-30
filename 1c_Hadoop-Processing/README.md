@@ -20,7 +20,7 @@
 8. To see arguments for Hadoop running code, inside 1c_Hadoop-Processing: `python annual_update.py`
 
 9. Run `annual_update.py`. For large jobs, you can do what's shown below.
-For small jobs (using <15 servant/slave/helper machines), you need to decrease the executor memory that's expected; small machines don't have the memory that's expected by default for large jobs. To do that, cd into gfw-annual-loss-processing/1c_Hadoop-Processing/utilities and enter annual_helpers.py using `nano annual_helpers.py`. Change the executor memory argument in the subprocess call to `9g` from 20g. Press ctrl X to exit and save your changes. If you don't change the executor memory, you'll get a lengthy error about available memory and Hadoop won't run. Then proceed with running `annual_update.py` as shown below.
+For small jobs (using <15 servant/slave/helper machines, probably for GLAD or fire alerts (things where there aren't values for most pixels)), you need to decrease the executor memory that's expected; small machines don't have the memory that's expected by default for large jobs. To do that, cd into gfw-annual-loss-processing/1c_Hadoop-Processing/utilities and enter annual_helpers.py using `nano annual_helpers.py`. Change the executor memory argument in the subprocess call to `9g` from 20g. Press ctrl X to exit and save your changes. If you don't change the executor memory, you'll get a lengthy error about available memory and Hadoop won't run. Then proceed with running `annual_update.py` as shown below.
 
 ```
 usage: annual_update.py [-h] --analysis-type {extent,loss,gain,biomass}
