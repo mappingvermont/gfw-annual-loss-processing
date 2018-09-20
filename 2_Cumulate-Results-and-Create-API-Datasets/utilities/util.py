@@ -135,9 +135,10 @@ def filter_out_bad_combos(poly, iso_list, df):
     return df
 
 
-def read_df(csv_path):
+def read_df(csv_path, headers=None):
 
-    df = pd.read_csv(csv_path, na_values=-9999, encoding='utf-8', dtype={'polyname': str, 'bound1': str, 'bound2': str})
+    df = pd.read_csv(csv_path, na_values=-9999, encoding='utf-8', dtype={'polyname': str, 'bound1': str, 'bound2': str},
+                     names='{}'.format(headers))
 
     # set all values of bound1, 2, 3 and 4 to null unless plantatations, biomes, or tsc are involved
     df.loc[~df['polyname'].str.contains(r'plantation|biome|tsc'), ['bound1', 'bound2']] = None

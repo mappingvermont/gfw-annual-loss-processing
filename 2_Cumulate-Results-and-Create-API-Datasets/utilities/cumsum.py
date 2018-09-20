@@ -83,16 +83,22 @@ def tabulate(input_data, args):
         else:
             cumsum_fields = boundary_fields
 
-        grouped_df['area'] = grouped_df.groupby(cumsum_fields)['area_raw'].cumsum()
+        area_field_lookup = {'extent2000': 'area_extent_2000', 'extent2010': 'area', 'loss': 'area',
+                            'gain': 'area_gain'}
+
+        area_fieldname = area_field_lookup[args.analysis_name]
+
+        grouped_df[area_fieldname] = grouped_df.groupby(cumsum_fields)['area_raw'].cumsum()
 
         # Delete the area_raw column-- this shouldn't go in the database
         del grouped_df['area_raw']
 
         if args.emissions:
-            grouped_df['biomass'] = grouped_df.groupby(cumsum_fields)['emissions_raw'].cumsum()
+            grouped_df['emissions'] = grouped_df.groupby(cumsum_fields)['emissions_raw'].cumsum()
             del grouped_df['emissions_raw']
 
         return grouped_df
+
 
 def read_df(input_data):
     print 'Reading df'
