@@ -91,7 +91,7 @@ def check_for_duplicates(df):
 
 
 def input_csvs_to_df(args):
-
+    gain_headers = ['polyname', 'bound1', 'bound2', 'bound3', 'bound4', 'iso', 'adm1', 'adm2', 'area_gain']
     if args.source_dir:
         source_dir = args.source_dir
         check_source_dir(source_dir)
@@ -99,14 +99,14 @@ def input_csvs_to_df(args):
         loss_df = read_df(os.path.join(source_dir, 'loss.csv'))
         extent_2000_df = read_df(os.path.join(source_dir, 'extent2000.csv'))
         extent_2010_df = read_df(os.path.join(source_dir, 'extent2010.csv'))
-        gain_df = read_df(os.path.join(source_dir, 'gain.csv'))
+        gain_df = read_df(os.path.join(source_dir, 'gain.csv'), gain_headers)
         poly_aoi_df = read_df(os.path.join(source_dir, 'area.csv'))
 
     else:
         loss_df = read_df(args.loss_dataset)
         extent_2000_df = read_df(args.extent_2000_dataset)
         extent_2010_df = read_df(args.extent_2010_dataset)
-        gain_df = read_df(args.gain_dataset)
+        gain_df = read_df(args.gain_dataset, gain_headers)
         poly_aoi_df = read_df(args.polygon_dataset)
 
     return loss_df, extent_2000_df, extent_2010_df, gain_df, poly_aoi_df
@@ -136,6 +136,7 @@ def filter_out_bad_combos(poly, iso_list, df):
 
 
 def read_df(csv_path, headers=None):
+    print headers
 
     df = pd.read_csv(csv_path, na_values=-9999, encoding='utf-8', dtype={'polyname': str, 'bound1': str, 'bound2': str},
                      names='{}'.format(headers))

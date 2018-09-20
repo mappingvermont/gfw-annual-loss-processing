@@ -8,7 +8,7 @@ def main():
     # Parse commandline arguments
     parser = argparse.ArgumentParser(description='Cumsum hadoop output')
     parser.add_argument('--input', '-i', required=True, help='an input CSV or folder on S3 or the local file system')
-    parser.add_argument('--analysis-name', '-i', required=True, help='choose loss, extent2000, extent2010 or gain')
+    parser.add_argument('--analysis-name', '-a', required=True, help='choose loss, extent2000 or extent2010')
     parser.add_argument('--max-year', '-y', type=int, help='the max year of the loss data, if applicable')
     parser.add_argument('--biomass-thresh', '-b', help='10,20,30 etc. whatever thresh the biomass raster was created for')
 
@@ -27,6 +27,10 @@ def main():
 
     if args.years and args.max_year < 2000:
         raise ValueError('Max year must be >2000, e.g., 2017')
+
+    analysis_names = ['loss', 'extent2000', 'extent2010']
+    if args.analysis_name not in analysis_names:
+        raise ValueError('Analysis name must be one of {}'.format(", ".join(analysis_names)))
 
     local_data = util.download_data(args.input)
     print local_data
