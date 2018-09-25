@@ -69,7 +69,7 @@ def qc_loss_extent(df):
         raise ValueError('Final dataframe has negative values in area fields')
 
 
-def check_for_duplicates(df):
+def check_for_duplicates(df, polynames_with_bound1):
 
     cols = df.columns.tolist()
 
@@ -87,7 +87,11 @@ def check_for_duplicates(df):
     if df.shape != grouped.shape:
         df_size = df.groupby(group_list).size().reset_index()
         print df_size[df_size[0] > 1].head()
-        raise ValueError('Appears to be some duplicate values in input df')
+        raise ValueError('\n\n\nAppears to be some duplicate values in input df. ' \
+                          'If data your processing has valid bound1 and bound2 entries ' \
+                          'that make it unique, you may have to add it to the list in ' \
+                          'utilities/util.py, on line 150. Currently that list is: ' \
+                          '{}'.format(', '.join(polynames_with_bound1)))
 
 
 def input_csvs_to_df(args):
@@ -145,7 +149,9 @@ def read_df(csv_path, headers=None):
                          names='{}'.format(headers))
 
     # set all values of bound1, 2, 3 and 4 to null unless plantatations, biomes, or tsc are involved
-    df.loc[~df['polyname'].str.contains(r'plantation|biome|tsc'), ['bound1', 'bound2']] = None
+    polynames_with_bound1 = ['plantation', 'biome', 'tsc', 'riverbasin', 'ecoregion', 'ifl']
+    polynames_with_bound1_str = '|'.join(polynames_with_bound1)
+    df.loc[~df['polyname'].str.contains(polynames_with_bound1_str), ['bound1', 'bound2']] = None
 
     # and set bound3 and bound4 columns to -9999 - plantations is
     # our only dataset with attribute values
@@ -167,7 +173,7 @@ def read_df(csv_path, headers=None):
 
     # check for dupes - should be unique polyname | bound1 | bound2 | iso | adm1 | adm2 (and year + thresh if loss)
     print 'checking {} for dupes'.format(csv_path)
-    check_for_duplicates(df)
+    check_for_duplicates(df, polynames_with_bound1)
 
     # remove invalid poly/iso combos
     whitelist = {'mining': ['CMR', 'KHM', 'CAN', 'COL', 'COG', 'GAB', 'COD', 'PER', 'BRA', 'MEX'],
