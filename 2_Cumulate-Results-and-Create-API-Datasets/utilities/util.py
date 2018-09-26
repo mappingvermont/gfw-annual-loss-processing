@@ -95,7 +95,10 @@ def check_for_duplicates(df, polynames_with_bound1):
 
 
 def input_csvs_to_df(args):
+
     gain_headers = ['polyname', 'bound1', 'bound2', 'bound3', 'bound4', 'iso', 'adm1', 'adm2', 'area_gain']
+    area_headers = ['polyname', 'bound1', 'bound2', 'bound3', 'bound4', 'iso', 'adm1', 'adm2', 'area_poly_aoi']
+
     if args.source_dir:
         source_dir = args.source_dir
         check_source_dir(source_dir)
@@ -104,7 +107,7 @@ def input_csvs_to_df(args):
         extent_2000_df = read_df(os.path.join(source_dir, 'extent2000.csv'))
         extent_2010_df = read_df(os.path.join(source_dir, 'extent2010.csv'))
         gain_df = read_df(os.path.join(source_dir, 'gain.csv'), gain_headers)
-        poly_aoi_df = read_df(os.path.join(source_dir, 'area.csv'))
+        poly_aoi_df = read_df(os.path.join(source_dir, 'area.csv'), None, area_headers)
 
     else:
         loss_df = read_df(args.loss_dataset)
@@ -139,15 +142,23 @@ def filter_out_bad_combos(poly, iso_list, df):
     return df
 
 
-def read_df(csv_path, headers=None):
+def read_df(csv_path, gain_headers=None, area_headers=None):
 
-    if not headers:
-        df = pd.read_csv(csv_path, na_values=-9999, encoding='utf-8',
+    df = pd.read_csv(csv_path, na_values=-9999, encoding='utf-8',
                          dtype={'polyname': str, 'bound1': str, 'bound2': str})
-    else:
-        df = pd.read_csv(csv_path, na_values=-9999, encoding='utf-8', dtype={'polyname': str, 'bound1': str, 'bound2': str},
-                         names='{}'.format(headers))
 
+    if gain_headers:
+        # drop the thresh column from gain
+        df = df.drop(df.columns[8], axis=1)
+
+        # assign column headers. This is missing because gain skips the post processing step that would do this
+        df.columns = gain_headers
+
+        # convert gain area from m2 to ha
+        df['area_gain'] = df.area_gain / 10000
+
+    if area_headers:
+        df.columns = area_headers
     # set all values of bound1, 2, 3 and 4 to null unless plantatations, biomes, or tsc are involved
     polynames_with_bound1 = ['plantation', 'biome', 'tsc', 'riverbasin', 'ecoregion', 'ifl']
     polynames_with_bound1_str = '|'.join(polynames_with_bound1)
