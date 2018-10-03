@@ -34,6 +34,9 @@ def main():
     if 'None' in iterate_by:
         iterate_by = False
 
+    if iterate_by and (analysis_type == 'loss' or analysis_type == 'gain'):
+        raise ValueError("If running loss or gain, set iterate-by to None")
+
     if iterate_by:
         ns_list = ['00N', '10N', '20N', '30N', '40N', '50N', '60N', '70N', '80N', '10S', '20S', '30S', '40S', '50S']
 
