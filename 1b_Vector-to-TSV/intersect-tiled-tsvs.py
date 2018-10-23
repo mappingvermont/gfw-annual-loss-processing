@@ -9,8 +9,6 @@ def main():
     parser = argparse.ArgumentParser(description='Intersect two pre-tiled datasets to create union tiles')
     parser.add_argument('--dataset-a', '-a', help='name of dataset A', required=True)
     parser.add_argument('--dataset-b', '-b', help='name of dataset B', required=True)
-
-    parser.add_argument('--output-format', '-o', help='output format', default='tsv', choices=('tsv', 'shp', 'geojson'))
     parser.add_argument('--output-name', '-n', help='output name', required=True)
 
     parser.add_argument('--root-s3-dir', '-r', help='root s3 dir', required=True)
@@ -65,10 +63,10 @@ def main():
     layer_c = geop.intersect_layers(layer_a, layer_b)
 
     # export to TSV
-    layer_c.export(args.output_name, args.output_format)
+    layer_c.export(args.output_name)
 
     # upload output
-    layer_c.upload_to_s3(args.output_format, args.s3_out_dir, args.test, args.batch)
+    layer_c.upload_to_s3(args.s3_out_dir, args.test, args.batch)
 
 
 if __name__ == '__main__':
