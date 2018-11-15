@@ -8,7 +8,8 @@ import sys
 
 #iterate over tsv files, like tsv folder files, and swaths of 00N - 80N 10S-50S... for extent
 parser = argparse.ArgumentParser()
-parser.add_argument('--analysis-type', '-a', required=True, choices=['extent', 'loss', 'gain', 'biomass'])
+parser.add_argument('--analysis-type', '-a', required=True, choices=['extent', 'loss', 'gain', 'biomass',
+                                                                     'grossEmis', 'netEmis', 'cumulGain', 'annualGain'])
 parser.add_argument('--points-folder', '-t', required=True, help='s3 location of points folder')
 parser.add_argument('--polygons-folder', '-y', required=True, help='s3 location of polygons folder')
 parser.add_argument('--output-folder', '-o', required=True, help='s3 location for hadoop output')
@@ -26,7 +27,8 @@ def main():
     annual_helpers.download_jar(args.dryrun)
 
     # properties dict
-    points_fields_dict = {'loss': '2,3,4,5', 'extent': '2,3', 'biomass': '2,3', 'gain': '2,3'}
+    points_fields_dict = {'loss': '2,3,4,5', 'extent': '2,3', 'biomass': '2,3', 'gain': '2,3',
+                          'grossEmis': '2,3,4,5', 'netEmis': '2,3,4', 'cumulGain': '2,3,4', 'annualGain': '2,3,4'}
 
     if 'None' in iterate_by and len(iterate_by) != 1:
         print "Either specify None OR an iterate-by option"
