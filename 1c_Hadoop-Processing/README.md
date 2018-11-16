@@ -1,6 +1,7 @@
 ## Hadoop loss tile processing
 
 1. Clone an existing cluster:
+	- Go to the AWS console and go to EMR.
 	- can clone an old one, or create a new one. currently using 16 d2.8xlarge machines, with all slaves running as spot instances with max price $1.50
 	- For large jobs (like global annual loss/emissions processing), select 15 servant/slave/helper machines.
 	- For small jobs, 2 servant/slave/helper machines is enough.
