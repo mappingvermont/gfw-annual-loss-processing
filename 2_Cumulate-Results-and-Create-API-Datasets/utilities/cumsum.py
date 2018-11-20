@@ -134,6 +134,8 @@ def source_to_df(input_data, args):
 
     col_list = boundary_fields + base_fields
 
+    print boundary_fields
+    print base_fields
     print col_list
 
     df.columns = col_list
