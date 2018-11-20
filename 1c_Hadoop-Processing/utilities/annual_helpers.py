@@ -85,7 +85,7 @@ def check_output_exists(args, ns_tile=None):
     conn = S3Connection(host="s3.amazonaws.com")
     parsed = urlparse(output_folder)
 
-    if ns_tile:
+    if iterate_by:
         out_csv = '{}.csv'.format(ns_tile)
 
     else:
@@ -117,7 +117,7 @@ def upload_to_s3(analysis_type, s3_output_folder, dryrun, ns_tile_name=None):
             raise ValueError("process failed, success file not found")
 
         # Extent outputs should be extent/10N.csv, 20N.csv etc
-        if analysis_type == 'extent' or analysis_type == 'biomass':
+        if ns_tile_name:
             csv_name = ns_tile_name + '.csv'
         else:
             csv_name = analysis_type + '.csv'
