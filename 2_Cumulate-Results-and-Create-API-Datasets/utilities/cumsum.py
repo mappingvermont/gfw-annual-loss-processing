@@ -101,6 +101,8 @@ def tabulate(input_data, args):
 
         if args.analysis_name == 'netEmis':
 
+            print "Column rename triggered"
+
             df.rename(columns={args.analysis_name: "area", "emissions": args.analysis_name})
 
 
