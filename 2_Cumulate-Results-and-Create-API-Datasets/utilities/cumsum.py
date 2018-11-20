@@ -89,7 +89,7 @@ def tabulate(input_data, args):
 
             print "Column rename triggered"
 
-            grouped_df = grouped_df.rename(columns={args.analysis_name: "area", "emissions": 'net_emissions_tCO2'})
+            grouped_df = grouped_df.rename(columns={"area_raw": "area", "emissions_raw": args.analysis_name})
 
         area_field_lookup = {'extent2000': 'area_extent_2000', 'extent2010': 'area', 'loss': 'area',
                             'gain': 'area_gain',
