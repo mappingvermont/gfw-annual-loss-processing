@@ -83,6 +83,8 @@ def tabulate(input_data, args):
         else:
             cumsum_fields = boundary_fields
 
+        print grouped_df.head
+
         if args.analysis_name == 'netEmis':
 
             print "Column rename triggered"
