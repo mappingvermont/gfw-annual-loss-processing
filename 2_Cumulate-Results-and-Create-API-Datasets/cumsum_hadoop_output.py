@@ -13,7 +13,7 @@ def main():
     parser.add_argument('--biomass-thresh', '-b', help='10,20,30 etc. whatever thresh the biomass raster was created for')
 
     parser.add_argument('--no-emissions', dest='emissions', action='store_false',
-                        help='used when processing extent, biomass, or gain data')
+                        help='used when processing extent, biomass, gain data, carbon model net emissions, carbon model annual gain rate, and carbon model cumulative gain')
     parser.set_defaults(emissions=True)
 
     parser.add_argument('--no-years', dest='years', action='store_false',
