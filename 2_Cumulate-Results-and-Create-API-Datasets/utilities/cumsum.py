@@ -103,7 +103,7 @@ def tabulate(input_data, args):
 
             print "Column rename triggered"
 
-            df = df.rename(columns={args.analysis_name: "area", "emissions": args.analysis_name})
+            grouped_df = grouped_df.rename(columns={args.analysis_name: "area", "emissions": args.analysis_name})
 
 
         return grouped_df
