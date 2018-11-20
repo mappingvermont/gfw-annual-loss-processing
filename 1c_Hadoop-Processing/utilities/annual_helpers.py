@@ -85,7 +85,7 @@ def check_output_exists(args, ns_tile=None):
     conn = S3Connection(host="s3.amazonaws.com")
     parsed = urlparse(output_folder)
 
-    if iterate_by:
+    if ns_tile:
         out_csv = '{}.csv'.format(ns_tile)
 
     else:

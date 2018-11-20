@@ -74,7 +74,7 @@ def tabulate(input_data, args):
         else:
             grouped_df = joined_df.groupby(join_fields)['area_raw'].sum().reset_index()
 
-        print 'Tabluating cum sum for thresh'
+        print 'Tabulating cum sum for thresh'
         # First sort the DF by threshold DESC, then cumsum, grouping by iso and year
         grouped_df = grouped_df.sort_values('thresh', ascending=False)
 
