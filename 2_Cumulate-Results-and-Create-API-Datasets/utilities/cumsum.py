@@ -99,6 +99,11 @@ def tabulate(input_data, args):
             grouped_df['emissions'] = grouped_df.groupby(cumsum_fields)['emissions_raw'].cumsum()
             del grouped_df['emissions_raw']
 
+        if args.analysis == 'netEmis':
+
+            df.rename(columns={args.analysis: "area", "emissions": args.analysis})
+
+
         return grouped_df
 
 
