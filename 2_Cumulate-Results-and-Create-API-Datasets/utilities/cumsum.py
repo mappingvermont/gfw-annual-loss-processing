@@ -132,13 +132,7 @@ def source_to_df(input_data, args):
     num_cols = len(df.columns)
     expected_num = len(boundary_fields) + len(base_fields)
 
-    print df.head
-
     col_list = boundary_fields + base_fields
-
-    print boundary_fields
-    print base_fields
-    print col_list
 
     df.columns = col_list
 
