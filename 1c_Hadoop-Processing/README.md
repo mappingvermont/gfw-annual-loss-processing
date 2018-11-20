@@ -141,7 +141,7 @@ These methods were developed to process some of the outputs of the global forest
 	4. `cd /usr/local/spark`
 	5. `export SPARK_HOME=/usr/local/spark`
 13. Change directory to the root and add spark to the spot machine path. To do this, do: `nano ~/.bashrc`. Below the gdal export line, add `export PATH=$PATH:/usr/local/spark/bin/` (which means “set my PATH to whatever my path is, plus this new spark dir”).
-14. In any directory type `source .bashrc` to update the spot machine paths to what's now in bashrc. 
+14. In the home directory type `source .bashrc` to update the spot machine paths to what's now in bashrc. 
 15. Type `echo $PATH` to make sure that spark is now in the PATH.
 16. Change directory to spark-pip folder.
 17. Type `mvn compile` to compile the scala, to make sure it is compiling alright.
