@@ -84,7 +84,9 @@ def tabulate(input_data, args):
             cumsum_fields = boundary_fields
 
         area_field_lookup = {'extent2000': 'area_extent_2000', 'extent2010': 'area', 'loss': 'area',
-                            'gain': 'area_gain'}
+                            'gain': 'area_gain',
+                             'annualGain': 'annual_accum_t_biomass', 'cumulGain': 'cumulative_t_carbon',
+                             'netEmis': 'net_emissions_tCO2', 'grossEmis': 'gross_emissions_tCO2'}
 
         area_fieldname = area_field_lookup[args.analysis_name]
 
