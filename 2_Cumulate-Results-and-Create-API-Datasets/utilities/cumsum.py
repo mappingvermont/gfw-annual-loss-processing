@@ -22,7 +22,7 @@ def tabulate(input_data, args):
     else:
         df, boundary_fields = source_to_df(input_data, args)
 
-        # years in this CSV are stored as 1 - 14, should be 2001 - 2014
+        # years in this CSV are stored as 1 - 17, should be 2001 - 2017
         if args.years:
             df['year'] = df['year'] + 2000
 
