@@ -84,7 +84,9 @@ def tabulate(input_data, args):
             cumsum_fields = boundary_fields
 
         area_field_lookup = {'extent2000': 'area_extent_2000', 'extent2010': 'area', 'loss': 'area',
-                            'gain': 'area_gain'}
+                            'gain': 'area_gain',
+                             'annualGain': 'annual_accum_t_biomass', 'cumulGain': 'cumulative_t_carbon',
+                             'netEmis': 'net_emissions_tCO2', 'grossEmis': 'gross_emissions_tCO2'}
 
         area_fieldname = area_field_lookup[args.analysis_name]
 
@@ -96,6 +98,15 @@ def tabulate(input_data, args):
         if args.emissions:
             grouped_df['emissions'] = grouped_df.groupby(cumsum_fields)['emissions_raw'].cumsum()
             del grouped_df['emissions_raw']
+
+        if args.analysis_name == 'annualGain':
+            grouped_df = grouped_df.rename(columns={'annual_accum_t_biomass': "area", "emissions": 'annual_accum_t_biomass'})
+        if args.analysis_name == 'cumulGain':
+            grouped_df = grouped_df.rename(columns={'cumulative_t_carbon': "area", "emissions": 'cumulative_t_carbon'})
+        if args.analysis_name == 'netEmis':
+            grouped_df = grouped_df.rename(columns={'net_emissions_tCO2': "area", "emissions": 'net_emissions_tCO2'})
+        if args.analysis_name == 'grossEmis':
+            grouped_df = grouped_df.rename(columns={'gross_emissions_tCO2': "area", "emissions": 'gross_emissions_tCO2'})
 
         return grouped_df
 
@@ -131,6 +142,7 @@ def source_to_df(input_data, args):
     expected_num = len(boundary_fields) + len(base_fields)
 
     col_list = boundary_fields + base_fields
+
     df.columns = col_list
 
     # remove where thresh == 0 (coded as -1)

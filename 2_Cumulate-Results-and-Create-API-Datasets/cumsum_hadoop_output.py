@@ -8,12 +8,13 @@ def main():
     # Parse commandline arguments
     parser = argparse.ArgumentParser(description='Cumsum hadoop output')
     parser.add_argument('--input', '-i', required=True, help='an input CSV or folder on S3 or the local file system')
-    parser.add_argument('--analysis-name', '-a', required=True, help='choose loss, extent2000, extent2010, annualGain, cumulGain, grossEmis, or netEmis')
+    parser.add_argument('--analysis-name', '-a', required=True, help='choose loss, extent2000, extent2010, '
+                                                                                      'annualGain, cumulGain, grossEmis, or netEmis')
     parser.add_argument('--max-year', '-y', type=int, help='the max year of the loss data, if applicable')
     parser.add_argument('--biomass-thresh', '-b', help='10,20,30 etc. whatever thresh the biomass raster was created for')
 
     parser.add_argument('--no-emissions', dest='emissions', action='store_false',
-                        help='used when processing extent, biomass, or gain data')
+                        help='used when processing extent, biomass, gain data, carbon model net emissions, carbon model annual gain rate, and carbon model cumulative gain')
     parser.set_defaults(emissions=True)
 
     parser.add_argument('--no-years', dest='years', action='store_false',
