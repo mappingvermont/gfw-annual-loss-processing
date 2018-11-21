@@ -1,27 +1,29 @@
-# Vector to TSV
+# Summary AOIs to TSV
 
 ### Use case
 
-In order to run zonal statistics on polygons and loss/biomass/gain using Hadoop, we need to prepare our geometry. This describes how to prepare boundaries (GADM and other boundaries, like primary forests and mining concessions) for intersection with forest loss, biomass, or gain. Preparing the geometry means converting shapefiles into TSVs. 
+In order to run zonal statistics on polygons and loss/biomass/gain using Hadoop, we need to prepare our geometry. This describes how to prepare boundaries (GADM and other boundaries, like primary forests and mining concessions) for intersection with forest loss, biomass, or gain. Preparing the geometry means converting shapefiles and rasters into TSVs.
 
 In addition to converting input shapefiles to WKT-based TSV, this process will intersect input data with GADM boundaries (version of your choosing), grouping by any input attributes and dissolving by ISO/ADM1/ADM2. You can then use these TSVs as input for Hadoop zonal statistics.
 
 ### Install necessary packages on spot machine
 
-In gfw-annual-loss-processing\1b_Vector-to-TSV\requirements.txt, do `sudo pip install -r requirements.txt` to install the necessary packages on the spot machine.
+In gfw-annual-loss-processing\1b_Summary-AOIs-to-TSV\requirements.txt, do `sudo pip install -r requirements.txt` to install the necessary packages on the spot machine.
 
-### Copy boundary shapefile to spot machine and then into PostGIS
+### SHP --> TSV
 
-First, get the shapefile onto the spot machine. Then import it to PostGIS. If your zonal statistics will use any of the fields in the shapefile (e.g., the specific biome in Brazil or the type of plantation), make sure to import that field into PostGIS and to maintain that field throughout the geometry correction process. 
+##### Copy boundary shapefile to spot machine and then into PostGIS
 
-Copy file: `aws s3 cp s3://gfw2-data/country/bra/zip/bza_biomes.zip .`
-Unzip file: `unzip bza_biomes.zip`
-View field names (optional): `ogrinfo -so -al bza_biomes.shp`
-Import the shapefile into a PostGIS table. This has some optional arguments. 
-To not import any fields in the shapefile into PostGIS: `ogr2ogr -f "PostgreSQL" PG:"host=localhost" bza_biomes.shp -overwrite -progress -nln "bbm" -lco GEOMETRY_NAME=geom -nlt MULTIPOLYGON -t_srs EPSG:4326 -dialect sqlite -sql "SELECT Geometry FROM bza_biomes"`
-To import specific fields in the shapefile into PostGIS: `ogr2ogr -f "PostgreSQL" PG:"host=localhost" bza_biomes.shp -overwrite -progress -nln "bbm" -lco GEOMETRY_NAME=geom -nlt MULTIPOLYGON -t_srs EPSG:4326 -dialect sqlite -sql "SELECT Geometry, name FROM bza_biomes"`
+First, get the shapefile onto the spot machine. Then import it to PostGIS. If your zonal statistics will use any of the fields in the shapefile (e.g., the specific biome in Brazil or the type of plantation), make sure to import that field into PostGIS and to maintain that field throughout the geometry correction process.
 
-### Correct the geometry of the shapefile in PostGIS
+- Copy file: `aws s3 cp s3://gfw2-data/country/bra/zip/bza_biomes.zip .`
+- Unzip file: `unzip bza_biomes.zip`
+- View field names (optional): `ogrinfo -so -al bza_biomes.shp`
+- Import the shapefile into a PostGIS table. This has some optional arguments.
+- To not import any fields in the shapefile into PostGIS: `ogr2ogr -f "PostgreSQL" PG:"host=localhost" bza_biomes.shp -overwrite -progress -nln "bbm" -lco GEOMETRY_NAME=geom -nlt MULTIPOLYGON -t_srs EPSG:4326 -dialect sqlite -sql "SELECT Geometry FROM bza_biomes"`
+- To import specific fields in the shapefile into PostGIS: `ogr2ogr -f "PostgreSQL" PG:"host=localhost" bza_biomes.shp -overwrite -progress -nln "bbm" -lco GEOMETRY_NAME=geom -nlt MULTIPOLYGON -t_srs EPSG:4326 -dialect sqlite -sql "SELECT Geometry, name FROM bza_biomes"`
+
+##### Correct the geometry of the shapefile in PostGIS
 
 Enter the Postgres shell: `psql`
 View table attributes and fields in Postgres shell (optional but good idea): `\d+ bbm`
@@ -42,18 +44,18 @@ If done correctly, this should produce the number of distinct values in the fiel
 `CREATE TABLE bbm_explode2 AS SELECT name, (ST_DUMP(geom)).geom FROM bbm_diss;`
 
 Re-correct the geometry of the table: `UPDATE bbm_explode2 SET geom = ST_COLLECTIONEXTRACT(ST_MAKEVALID(geom), 3) WHERE ST_ISVALID(geom) <> '1';`
-This should produce `0`. `0` doesn't guarantee that the tsv process will work but it is a good sign. 
+This should produce `0`. `0` doesn't guarantee that the tsv process will work but it is a good sign.
 If the above did not produce `0`, you can check whether there are any remaining geometry errors (optional): `SELECT count(*), ST_IsValid(geom) FROM bbm GROUP BY ST_IsValid;`
 Exit the Postgres shell: `\q`
 
-### PostGIS table to TSV
+##### PostGIS table to TSV
 
-This step cuts the postgres table into 10x10 degree tiles, intersects each tile with whatever version of GADM you supply, then uploads the processed tiles to the output directory where it can be used in the Hadoop process. 
+This step cuts the postgres table into 10x10 degree tiles, intersects each tile with whatever version of GADM you supply, then uploads the processed tiles to the output directory where it can be used in the Hadoop process.
 
 Generically: `python intersect-source-with-gadm.py --input-dataset name_of_postgres_table --zip-source gadm_file --output-name output_file`
 Specific example: `python intersect-source-with-gadm.py --input-dataset bbm_explode2 --zip-source s3://gfw2-data/alerts-tsv/gis_source/gadm_3_6_adm2_final.zip --output-name bbm --s3-out-dir s3://gfw2-data/alerts-tsv/country-pages/climate/`
 
-If this is the first time doing TSV conversion on this particular spot machine, `intersect-source-with-gadm.py` will download GADM to the spot machine and load it into PostGIS. However, it will only need to download and convert GADM once per spot machine. This will take several minutes (especially on the INSERT 0 1 phase of the conversion). Also, when GADM is importing to PostGIS, it will find some errors in the geometry. The shell will stop and ask you to run the displayed command in PostGIS shell (`UPDATE gadm_3_6_adm2_final SET geom = ST_CollectionExtract(ST_MakeValid(geom), 3) WHERE ST_IsValid(geom) <> '1';`) to correct the geometry, then it will process the UPDATE command for a long time. It is expected that it will show two notices about holes lying outside the shell at or near points X, Y; that is fine. Once it is done with the GADM geometry correction, rerun the above intersect-source-with-gadm.py command in the Linux shell and it should go smoothly. 
+If this is the first time doing TSV conversion on this particular spot machine, `intersect-source-with-gadm.py` will download GADM to the spot machine and load it into PostGIS. However, it will only need to download and convert GADM once per spot machine. This will take several minutes (especially on the INSERT 0 1 phase of the conversion). Also, when GADM is importing to PostGIS, it will find some errors in the geometry. The shell will stop and ask you to run the displayed command in PostGIS shell (`UPDATE gadm_3_6_adm2_final SET geom = ST_CollectionExtract(ST_MakeValid(geom), 3) WHERE ST_IsValid(geom) <> '1';`) to correct the geometry, then it will process the UPDATE command for a long time. It is expected that it will show two notices about holes lying outside the shell at or near points X, Y; that is fine. Once it is done with the GADM geometry correction, rerun the above intersect-source-with-gadm.py command in the Linux shell and it should go smoothly.
 
 If you want to export to TSV using a column in the shapefile/postgis (e.g., plantation type, Brazil biome), add --col-list <column names> as an argument. You can use up to two column names: `python intersect-source-with-gadm.py --input-dataset bbbm_explode2 --zip-source s3://gfw2-data/alerts-tsv/gis_source/gadm_3_6_adm2_final.zip --output-name bbm --s3-out-dir s3://gfw2-data/alerts-tsv/country-pages/climate/ --col-list name`
 
@@ -99,8 +101,7 @@ Open the command prompt in gfw-annual-loss-processing\1b_Vector-to-TSV\utilities
 Enter the Python shell and import the file decode_polygon_tsv.py: `import decode_polygon_tsv`
 Convert the tsv into a vrt: `decode_polygon_tsv.build_vrt(r"C:\GIS\GFW_Climate_updates\bbm__10S_040W.tsv", r"C:\GIS\GFW_Climate_updates\bbm__10S_040W.vrt")`
 Exit the Python shell and in the Windows command line convert the vrt into a GeoJSON (or shapefile would work, too): `ogr2ogr -f GeoJSON out.geojson C:\GIS\GFW_Climate_updates\bbm__10S_040W.vrt data`
-Open QGIS and load the GeoJSON tile. Compare with the the 10x10 grid, GADM boundary, and non-administrative boundary that were used to make it. 
-
+Open QGIS and load the GeoJSON tile. Compare with the the 10x10 grid, GADM boundary, and non-administrative boundary that were used to make it.
 
 Second, calculate percent difference of the loss/extent/gain values from this process as compared to other analysis methods. Output from this process is currently stored in the [country pages table](https://production-api.globalforestwatch.org/v1/dataset/499682b1-3174-493f-ba1a-368b4636708e). To QC, we'll pass geometries to the GFW API umd-loss-gain endpoint, and then compare the results to what's stored in the table. If necessary, an option using the python rasterstats package is included as well.
 

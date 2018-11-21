@@ -6,6 +6,7 @@ from threading import Thread
 from Queue import Queue
 import logging
 import math
+import argparse
 
 import fiona
 import numpy as np
@@ -78,7 +79,7 @@ def build_gadm28_tile_list(source_layer, is_test):
         extent_sql = 'SELECT ST_Extent(geom) FROM {}'.format(source_layer.input_dataset)
         cursor.execute(extent_sql)
         extent_text = cursor.fetchall()[0][0].replace('BOX(', '').replace(')','').replace(',', ' ')
-        aoi_bounds = [float(x) for x in extent_text.split()] 
+        aoi_bounds = [float(x) for x in extent_text.split()]
 
     else:
         aoi_bounds = fiona.open(source_layer.input_dataset).bounds
@@ -238,7 +239,7 @@ def subset_geojson(local_geojson, record_count):
     if local_geojson:
 
 	    gdf = gpd.read_file(local_geojson)
-	    
+
 	    if len(gdf) > record_count:
 		gdf = gdf.sample(record_count)
 
@@ -247,3 +248,13 @@ def subset_geojson(local_geojson, record_count):
 
     return local_geojson
 
+
+def s3_output_path(s):
+    # source: https://stackoverflow.com/a/41881271/4355916
+    if s[-1] != '/':
+        raise argparse.ArgumentTypeError('s3 output dir must end in /')
+
+    if s[0:5] != 's3://':
+        raise argparse.ArgumentTypeError('s3 output dir must begin with s3://')
+
+    return s

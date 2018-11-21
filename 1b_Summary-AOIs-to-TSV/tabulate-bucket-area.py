@@ -9,7 +9,7 @@ from utilities import util, geop, postgis_util as pg_util
 def main():
 
     parser = argparse.ArgumentParser(description='Tabulate area for a wildcard')
-    parser.add_argument('--bucket-path', '-b', help='path to s3 bucket', required=True)
+    parser.add_argument('--bucket-path', '-b', help='path to s3 bucket', required=True, type=util.s3_output_path)
 
     parser.add_argument('--test', dest='test', action='store_true')
     args = parser.parse_args()

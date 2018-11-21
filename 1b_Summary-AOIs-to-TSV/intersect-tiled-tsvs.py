@@ -11,8 +11,8 @@ def main():
     parser.add_argument('--dataset-b', '-b', help='name of dataset B', required=True)
     parser.add_argument('--output-name', '-n', help='output name', required=True)
 
-    parser.add_argument('--root-s3-dir', '-r', help='root s3 dir', required=True)
-    parser.add_argument('--s3-out-dir', '-s', help='s3 out dir', required=True)
+    parser.add_argument('--root-s3-dir', '-r', help='root s3 dir', required=True, type=util.s3_output_path)
+    parser.add_argument('--s3-out-dir', '-s', help='s3 out dir', required=True, type=util.s3_output_path)
 
     parser.add_argument('--batch', dest='batch', action='store_true')
     parser.add_argument('--test', dest='test', action='store_true')

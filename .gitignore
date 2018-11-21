@@ -80,10 +80,7 @@ tree_cover_stats_2017.xlsx
 3_Create-Summary-Spreadsheets/source/
 3_Create-Summary-Spreadsheets/output/
 
-1b_Vector-to-TSV/data/
+1b_Summary-AOIs-to-TSV/data/
 .DS_Store
-*.geojson
-
-#geojson
 *.geojson
 

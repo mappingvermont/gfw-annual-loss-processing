@@ -15,7 +15,7 @@ def main():
     parser.add_argument('--zip-source', '-z', required=True, help='location of zipped gadm-like file on s3')
     parser.add_argument('--output-name', '-n', help='output name to carry forward from ' \
                         'this dataset - will appear in all TSVs', required=True)
-    parser.add_argument('--s3-out-dir', '-s', help='s3 out dir', required=True)
+    parser.add_argument('--s3-out-dir', '-s', help='s3 out dir', required=True, type=util.s3_output_path)
 
     parser.add_argument('--test', dest='test', action='store_true')
     args = parser.parse_args()

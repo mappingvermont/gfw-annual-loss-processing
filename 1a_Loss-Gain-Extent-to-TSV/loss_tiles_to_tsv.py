@@ -66,12 +66,10 @@ def main():
             extent_local = r'/home/ubuntu/data/extent2000/{}.tif'.format(tile_name)
             subprocess.check_call(['wget', '-O', extent_local, extent_url])
 
-            ras_cwd = r'/home/ubuntu/raster-vector-to-tsv'
-            ras_to_vec_cmd = ['python', 'write-tsv.py', '--main', '--threads', '50', '--prefix', tile_name, '--separate', '--local-output-dir', local_output_dir]
-            ras_to_vec_cmd += ['--step', '--function', 'join', '--dataset1', processed_file, '--csv-process1', 'area']
-            ras_to_vec_cmd += ['--dataset2', extent_local]
-            ras_to_vec_cmd += ['--step', '--function', 'join', '--dataset1', biomass_local, '--csv-process1', 'emissions']
-
+            ras_cwd = r'/home/ubuntu/raster-to-tsv'
+            ras_to_vec_cmd = ['python', 'write-tsv.py', '--datasets', processed_file, extent_local, biomass_local,
+                              '--threads', '50', '--prefix', tile_name, '--separate', '--local-output-dir', local_output_dir,
+                              '--csv-process', 'area']
             subprocess.check_call(ras_to_vec_cmd, cwd=ras_cwd)
 
             for ras in [processed_file, extent_local, biomass_local]:
@@ -82,7 +80,7 @@ def main():
         # upload all files in the local output dir
         # should be fast-- wait for all tsvs to finish, then use 64 threads to upload
         # configured using aws configure set default.s3.max_concurrent_requests 64
-        cmd = ['aws', 's3', 'cp', local_output_dir, s3_output_dir, '--recursive']
+        cmd = ['aws', 's3', 'cp', '--recursive', local_output_dir, s3_output_dir]
         subprocess.check_call(cmd)
 
         # delete TSVs
