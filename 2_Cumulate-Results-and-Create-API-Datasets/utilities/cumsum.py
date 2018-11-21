@@ -86,7 +86,7 @@ def tabulate(input_data, args):
         area_field_lookup = {'extent2000': 'area_extent_2000', 'extent2010': 'area', 'loss': 'area',
                             'gain': 'area_gain',
                              'annualGain': 'annual_accum_t_biomass', 'cumulGain': 'cumulative_t_carbon',
-                             'netEmis': 'net_emissions_tCO2', 'grossEmis': 'gross_emissions_tCO2'}
+                             'netEmis': 'net_emissions_t_CO2', 'grossEmis': 'gross_emissions_t_CO2'}
 
         area_fieldname = area_field_lookup[args.analysis_name]
 
@@ -104,9 +104,9 @@ def tabulate(input_data, args):
         if args.analysis_name == 'cumulGain':
             grouped_df = grouped_df.rename(columns={'cumulative_t_carbon': "area", "emissions": 'cumulative_t_carbon'})
         if args.analysis_name == 'netEmis':
-            grouped_df = grouped_df.rename(columns={'net_emissions_tCO2': "area", "emissions": 'net_emissions_tCO2'})
+            grouped_df = grouped_df.rename(columns={'net_emissions_t_CO2': "area", "emissions": 'net_emissions_t_CO2'})
         if args.analysis_name == 'grossEmis':
-            grouped_df = grouped_df.rename(columns={'gross_emissions_tCO2': "area", "emissions": 'gross_emissions_tCO2'})
+            grouped_df = grouped_df.rename(columns={'gross_emissions_t_CO2': "area", "emissions": 'gross_emissions_t_CO2'})
 
         return grouped_df
 
