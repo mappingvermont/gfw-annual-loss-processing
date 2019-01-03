@@ -1,7 +1,7 @@
 import subprocess
 import pandas as pd
 
-def convert_AOI(shp):
+def convert_AOI(shp, name_field):
 
     shp_name = shp[:-4]
 
@@ -16,7 +16,7 @@ def convert_AOI(shp):
 
     # Formats the csv correctly for input to Hadoop and outputs the expected tsv
     file = pd.read_csv('{}.csv'.format(shp_name))
-    file_formatted = file.drop(['Id', 'gridcode'], axis=1)
+    file_formatted = file['wkt', name_field]
     file_formatted['bound1'], file_formatted['bound2'], file_formatted['bound3'], file_formatted['bound4'], \
     file_formatted[
         'iso'], file_formatted['adm1'], file_formatted['adm2'], file_formatted['extra'] = [1, 1, 1, 1, 'ZZZ', '1', '1',
