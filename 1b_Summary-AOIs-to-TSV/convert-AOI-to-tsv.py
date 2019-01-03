@@ -34,6 +34,7 @@ def main():
     # pool.close()
     # pool.join()
 
+    # For testing with a single processor
     for shp in all_shp:
         AOI_to_tsv.convert_AOI(shp, name_field)
 
