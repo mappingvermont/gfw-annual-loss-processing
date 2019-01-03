@@ -17,9 +17,9 @@ def main():
 
     args = parser.parse_args()
 
-    # # Copies all the shapefiles from the input s3 folder to the spot machine
-    # cmd = ['aws', 's3', 'cp', args.input, '.', '--recursive']
-    # subprocess.check_call(cmd)
+    # Copies all the shapefiles from the input s3 folder to the spot machine
+    cmd = ['aws', 's3', 'cp', args.input, '.', '--recursive']
+    subprocess.check_call(cmd)
 
     # Makes a list of all the shapefiles
     all_shp = glob.glob('*.shp')
