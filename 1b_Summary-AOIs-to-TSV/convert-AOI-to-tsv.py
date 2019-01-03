@@ -17,13 +17,13 @@ def main():
 
     args = parser.parse_args()
 
-    cmd = ['aws', 's3', 'cp', args.i, '.', '--recursive']
+    cmd = ['aws', 's3', 'cp', args.input, '.', '--recursive']
     subprocess.check_call(cmd)
 
     all_shp = glob.glob('*.shp')
     print all_shp
 
-    name_field = args.m
+    name_field = args.name
 
     num_of_processes = 20
     pool = Pool(num_of_processes)
@@ -31,7 +31,7 @@ def main():
     pool.close()
     pool.join()
 
-    cmd = ['aws', 's3', 'cp', '.', args.s, '--recursive']
+    cmd = ['aws', 's3', 'cp', '.', args.s3_out_dir, '--recursive']
     subprocess.check_call(cmd)
 
 
