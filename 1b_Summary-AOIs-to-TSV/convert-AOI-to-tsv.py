@@ -28,15 +28,15 @@ def main():
     # The field in the shapefiles with the name you want to use for the tsv
     name_field = args.name
 
-    # num_of_processes = 20
-    # pool = Pool(num_of_processes)
-    # pool.map(partial(AOI_to_tsv.convert_AOI, name_field=name_field), all_shp)
-    # pool.close()
-    # pool.join()
+    num_of_processes = 20
+    pool = Pool(num_of_processes)
+    pool.map(partial(AOI_to_tsv.convert_AOI, name_field=name_field), all_shp)
+    pool.close()
+    pool.join()
 
-    # For testing with a single processor
-    for shp in all_shp:
-        AOI_to_tsv.convert_AOI(shp, name_field)
+    # # For testing with a single processor
+    # for shp in all_shp:
+    #     AOI_to_tsv.convert_AOI(shp, name_field)
 
     # Copies tsvs to s3
     cmd = ['aws', 's3', 'cp', '.', args.s3_out_dir, '--recursive']
