@@ -17,7 +17,7 @@ def main():
 
     args = parser.parse_args()
 
-    cmd = ['aws', 's3', 'cp', args.input, '.']
+    cmd = ['aws', 's3', 'cp', args.input, '.', '--recursive']
     print cmd
     subprocess.check_call(cmd)
 
