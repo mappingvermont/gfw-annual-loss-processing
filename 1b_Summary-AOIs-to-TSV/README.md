@@ -97,7 +97,7 @@ How do we QC this stuff? Definitely lots of moving parts here. First, visual com
 
 For polygons converted to tsvs:
 Copy the output tsvs to your local computer.
-Open the command prompt in gfw-annual-loss-processing\1b_Vector-to-TSV\utilities
+Open the command prompt in gfw-annual-loss-processing\1b_Summary-AOIs-to-TSV\utilities
 Enter the Python shell and import the file decode_polygon_tsv.py: `import decode_polygon_tsv`
 Convert the tsv into a vrt: `decode_polygon_tsv.build_vrt(r"C:\GIS\GFW_Climate_updates\bbm__10S_040W.tsv", r"C:\GIS\GFW_Climate_updates\bbm__10S_040W.vrt")`
 Exit the Python shell and in the Windows command line convert the vrt into a GeoJSON (or shapefile would work, too): `ogr2ogr -f GeoJSON out.geojson C:\GIS\GFW_Climate_updates\bbm__10S_040W.vrt data`
