@@ -39,7 +39,7 @@ def main():
     #     AOI_to_tsv.convert_AOI(shp, name_field)
 
     # Copies tsvs to s3
-    cmd = ['aws', 's3', 'cp', '.', args.s3_out_dir, '--recursive']
+    cmd = ['aws', 's3', 'cp', '.', args.s3_out_dir, '--exclude', '*', '--include', '*.tsv', '--recursive']
     subprocess.check_call(cmd)
 
 
