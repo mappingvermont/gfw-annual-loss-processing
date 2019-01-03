@@ -25,10 +25,6 @@ def main():
     all_shp = glob.glob('*.shp')
     print all_shp
 
-    # Removes any existing csvs
-    cmd = ['rm', '*.csv']
-    subprocess.check_call(cmd)
-
     # The field in the shapefiles with the name you want to use for the tsv
     name_field = args.name
 
