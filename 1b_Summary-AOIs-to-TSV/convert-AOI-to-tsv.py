@@ -2,6 +2,7 @@ import argparse
 import subprocess
 import glob
 import multiprocessing
+import boto
 
 from utilities.layer import Layer
 from utilities import util, s3_list_tiles, geop, postgis_util
