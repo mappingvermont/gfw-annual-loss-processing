@@ -18,6 +18,7 @@ def main():
     args = parser.parse_args()
 
     cmd = ['aws', 's3', 'cp', args.input, '.']
+    print cmd
     subprocess.check_call(cmd)
 
     all_shp = glob.glob('*.shp')
