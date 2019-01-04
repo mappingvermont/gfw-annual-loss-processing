@@ -4,8 +4,6 @@ import glob
 from multiprocessing.pool import Pool
 from functools import partial
 
-from utilities.layer import Layer
-from utilities import util, s3_list_tiles, geop, postgis_util
 from utilities import AOI_to_tsv
 
 def main():
