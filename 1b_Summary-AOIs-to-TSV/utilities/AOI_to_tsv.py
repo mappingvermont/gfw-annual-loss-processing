@@ -5,19 +5,34 @@ def convert_AOI(shp, name_field):
 
     shp_name = shp[:-4]
 
-    print "Converting", shp_name, "from shp to csv..."
+    # print "Converting", shp_name, "from shp to csv..."
+    #
+    # # Converts the shapefile to a csv
+    # cmd = ['ogr2ogr', '-f', 'CSV', '{}.csv'.format(shp_name), '{}.shp'.format(shp_name), '-lco', 'GEOMETRY=AS_WKT',
+    #        '-overwrite', '-progress', '-t_srs', 'EPSG:4326', '-SQL', 'SELECT {0} FROM {1}'.format(name_field, shp_name)]
+    # subprocess.check_call(cmd)
+    #
+    # print "Converting", shp_name, "from csv to tsv..."
 
-    # Converts the shapefile to a csv
-    cmd = ['ogr2ogr', '-f', 'CSV', '{}.csv'.format(shp_name), '{}.shp'.format(shp_name), '-lco', 'GEOMETRY=AS_WKT',
-           '-overwrite', '-progress', '-t_srs', 'EPSG:4326', '-SQL', 'SELECT {0} FROM {1}'.format(name_field, shp_name)]
-    subprocess.check_call(cmd)
+    # For csvs that aren't too large, they are read into Pandas all at once
+    try:
 
-    print "Converting", shp_name, "from csv to tsv..."
+        # Formats the csv correctly for input to Hadoop and outputs the expected tsv
+        in_file = pd.read_csv('{}.csv'.format(shp_name))
 
-    # Formats the csv correctly for input to Hadoop and outputs the expected tsv
-    file = pd.read_csv('{}.csv'.format(shp_name))
-    file_formatted = file
-    # file_formatted = file['WKT']
+    # For csvs that are too large to be read into Pandas all at once, they are read in line by line
+    except:
+
+        mylist = []
+
+        for chunk in pd.read_csv('soy16_15.csv', sep=';', chunksize=1):
+
+            mylist.append(chunk)
+
+        in_file = pd.concat(mylist, axis=0)
+
+    file_formatted = in_file
+    # file_formatted = in_file['WKT']
     file_formatted['bound1'], file_formatted['bound2'], file_formatted['bound3'], file_formatted['bound4'], \
     file_formatted['iso'], file_formatted['adm1'], file_formatted['adm2'], file_formatted['extra'] = \
         [1, 1, 1, 1, 'ZZZ', '1', '1', '1']
