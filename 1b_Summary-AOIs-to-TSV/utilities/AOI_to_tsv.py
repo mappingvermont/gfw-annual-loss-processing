@@ -29,10 +29,12 @@ def csv_to_tsv(shp):
     # For csvs that are too large to be read into Pandas all at once, they are read in line by line
     except:
 
-        print "{} too large to ingest at once. Ingesting in chunks...".format(shp_name)
+        print "{} too large to ingest at once. Ingesting by row...".format(shp_name)
 
         mylist = []
 
+        # Ingests csv to Pandas one row at a time in case the rows are for really large features that will be too large
+        # if ingested together
         for chunk in pd.read_csv('soy16_15.csv', sep=';', chunksize=1):
 
             mylist.append(chunk)
@@ -47,8 +49,12 @@ def csv_to_tsv(shp):
     file_formatted['iso'], file_formatted['adm1'], file_formatted['adm2'], file_formatted['extra'] = \
         [1, 1, 1, 1, 'ZZZ', '1', '1', '1']
     file_formatted_head = file_formatted.head(100)
-    print file_formatted_head.head(2)
+    # print file_formatted_head.head(2)
     print list(file_formatted_head.columns.values)
-    file_formatted.to_csv('{}.tsv'.format(shp_name), sep='\t', index=False, header=False)
 
     print "{} formatted".format(shp_name)
+
+    file_formatted.to_csv('{}.tsv'.format(shp_name), sep='\t', index=False, header=False)
+
+    print "{} converted to tsv".format(shp_name)
+

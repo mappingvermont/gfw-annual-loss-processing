@@ -36,8 +36,8 @@ def main():
     # for shp in all_shp:
     #     AOI_to_tsv.shp_to_csv(shp, name_field)
 
+    # For testing with a single processor
     for shp in all_shp:
-
         AOI_to_tsv.csv_to_tsv(shp)
 
     # Copies tsvs to s3
