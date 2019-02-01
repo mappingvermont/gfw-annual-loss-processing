@@ -1,18 +1,20 @@
 import subprocess
 import pandas as pd
 
-def convert_AOI(shp, name_field):
+def shp_to_csv(shp, name_field):
 
     shp_name = shp[:-4]
 
-    # print "Converting", shp_name, "from shp to csv..."
-    #
-    # # Converts the shapefile to a csv
-    # cmd = ['ogr2ogr', '-f', 'CSV', '{}.csv'.format(shp_name), '{}.shp'.format(shp_name), '-lco', 'GEOMETRY=AS_WKT',
-    #        '-overwrite', '-progress', '-t_srs', 'EPSG:4326', '-SQL', 'SELECT {0} FROM {1}'.format(name_field, shp_name)]
-    # subprocess.check_call(cmd)
-    #
-    # print "Converting", shp_name, "from csv to tsv..."
+    print "Converting", shp_name, "from shp to csv..."
+
+    # Converts the shapefile to a csv
+    cmd = ['ogr2ogr', '-f', 'CSV', '{}.csv'.format(shp_name), '{}.shp'.format(shp_name), '-lco', 'GEOMETRY=AS_WKT',
+           '-overwrite', '-progress', '-t_srs', 'EPSG:4326', '-SQL', 'SELECT {0} FROM {1}'.format(name_field, shp_name)]
+    subprocess.check_call(cmd)
+
+    print "Converting", shp_name, "from csv to tsv..."
+
+def csv_to_tsv(shp_name):
 
     # For csvs that aren't too large, they are read into Pandas all at once
     try:

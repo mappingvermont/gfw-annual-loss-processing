@@ -21,20 +21,24 @@ def main():
 
     # Makes a list of all the shapefiles
     all_shp = glob.glob('*.shp')
-    print all_shp
+    print "List of shapefiles to be processed:", all_shp
 
     # The field in the shapefiles with the name you want to use for the tsv
     name_field = args.name
 
-    num_of_processes = 20
-    pool = Pool(num_of_processes)
-    pool.map(partial(AOI_to_tsv.convert_AOI, name_field=name_field), all_shp)
-    pool.close()
-    pool.join()
+    # num_of_processes = 20
+    # pool = Pool(num_of_processes)
+    # pool.map(partial(AOI_to_tsv.shp_to_csv, name_field=name_field), all_shp)
+    # pool.close()
+    # pool.join()
 
     # # For testing with a single processor
     # for shp in all_shp:
-    #     AOI_to_tsv.convert_AOI(shp, name_field)
+    #     AOI_to_tsv.shp_to_csv(shp, name_field)
+
+    for shp in all_shp:
+
+        AOI_to_tsv.csv_to_tsv(shp)
 
     # Copies tsvs to s3
     cmd = ['aws', 's3', 'cp', '.', args.s3_out_dir, '--exclude', '*', '--include', '*.tsv', '--recursive']
