@@ -9,7 +9,7 @@ def convert_AOI(shp, name_field):
 
     # Converts the shapefile to a csv
     cmd = ['ogr2ogr', '-f', 'CSV', '{}.csv'.format(shp_name), '{}.shp'.format(shp_name), '-lco', 'GEOMETRY=AS_WKT',
-           '-overwrite', '-progress', '-t_srs', 'EPSG:4326', '-SQL', 'SELECT name FROM {}'.format(shp_name)]
+           '-overwrite', '-progress', '-t_srs', 'EPSG:4326', '-SQL', 'SELECT {0} FROM {1}'.format(name_field, shp_name)]
     subprocess.check_call(cmd)
 
     print "Converting", shp_name, "from csv to tsv..."
