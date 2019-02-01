@@ -14,7 +14,11 @@ def shp_to_csv(shp, name_field):
 
     print "Converting", shp_name, "from csv to tsv..."
 
-def csv_to_tsv(shp_name):
+def csv_to_tsv(shp):
+
+    shp_name = shp[:-4]
+
+    print "Converting", shp_name, "from csv to tsv..."
 
     # For csvs that aren't too large, they are read into Pandas all at once
     try:
@@ -25,6 +29,8 @@ def csv_to_tsv(shp_name):
     # For csvs that are too large to be read into Pandas all at once, they are read in line by line
     except:
 
+        print "{} too large to ingest at once. Ingesting in chunks...".format(shp_name)
+
         mylist = []
 
         for chunk in pd.read_csv('soy16_15.csv', sep=';', chunksize=1):
@@ -33,11 +39,16 @@ def csv_to_tsv(shp_name):
 
         in_file = pd.concat(mylist, axis=0)
 
+    print "{} ingested to Pandas. Formatting table now...".format(shp_name)
+
     file_formatted = in_file
     # file_formatted = in_file['WKT']
     file_formatted['bound1'], file_formatted['bound2'], file_formatted['bound3'], file_formatted['bound4'], \
     file_formatted['iso'], file_formatted['adm1'], file_formatted['adm2'], file_formatted['extra'] = \
         [1, 1, 1, 1, 'ZZZ', '1', '1', '1']
     file_formatted_head = file_formatted.head(100)
+    print file_formatted_head.head(2)
     print list(file_formatted_head.columns.values)
     file_formatted.to_csv('{}.tsv'.format(shp_name), sep='\t', index=False, header=False)
+
+    print "{} formatted".format(shp_name)
