@@ -45,7 +45,8 @@ First, copy the shapefile onto a m4.16xlarge spot machine. Then import it to Pos
 - View field names (optional): `ogrinfo -so -al bza_biomes.shp`
 - Import the shapefile into a PostGIS table. This has some optional arguments.
 - To not import any fields in the shapefile into PostGIS: `ogr2ogr -f "PostgreSQL" PG:"host=localhost" bza_biomes.shp -overwrite -progress -nln "bbm" -lco GEOMETRY_NAME=geom -nlt MULTIPOLYGON -t_srs EPSG:4326 -dialect sqlite -sql "SELECT Geometry FROM bza_biomes"`
-- To import specific fields (e.g., name) in the shapefile into PostGIS: `ogr2ogr -f "PostgreSQL" PG:"host=localhost" bza_biomes.shp -overwrite -progress -nln "bbm" -lco GEOMETRY_NAME=geom -nlt MULTIPOLYGON -t_srs EPSG:4326 -dialect sqlite -sql "SELECT Geometry, name FROM bza_biomes"`
+- To import specific fields (e.g., `name`) in the shapefile into PostGIS: `ogr2ogr -f "PostgreSQL" PG:"host=localhost" bza_biomes.shp -overwrite -progress -nln "bbm" -lco GEOMETRY_NAME=geom -nlt MULTIPOLYGON -t_srs EPSG:4326 -dialect sqlite -sql "SELECT Geometry, name FROM bza_biomes"`
+If you want to include multiple columns, ythe `-sql` argument would be, for example, `-sql "SELECT Geometry, id1, id2 FROM bza_biomes"`.
 
 ##### Correct the geometry of the shapefile in PostGIS
 
