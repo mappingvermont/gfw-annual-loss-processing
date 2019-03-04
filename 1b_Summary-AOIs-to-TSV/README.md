@@ -15,11 +15,9 @@ This process allows for grouping by any input attributes and dissolving by ISO/A
 
 In either case, you then use these TSVs as input for Hadoop zonal statistics. Both of these are described further below.
 
-### Install necessary packages on spot machine
+### Convert shapefile to tsv
 
-In gfw-annual-loss-processing\1b_Summary-AOIs-to-TSV\requirements.txt, do `sudo pip install -r requirements.txt` to install the necessary packages on the spot machine.
-
-### SHP --> TSV
+As mentioned above, you can convert AOI shapefiles to tsvs without or with intersecting them with GADM. They are addressed below in that order. For a given shapefile, you either convert it to a tsv with or without intersecting (i.e. choose one of the options below).
 
 #### Convert shapefiles to TSVs without intersecting them with other files
 
